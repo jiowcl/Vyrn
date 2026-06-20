@@ -41,24 +41,25 @@ print(calculate_bonus(100))
 
 ```lua
 -- Lua
-function make()
-    local n = 5
-    function get()
-        return n
-    end
-    return get
+function greet(name)
+    return "Hello, " .. name .. "!"
 end
 
-local g = make()
-print(g())
+function calculate_bonus(score)
+    return score * 1.1
+end
+
+print(greet("Vyrn"))
+print(calculate_bonus(100))
 
 -- Output:
--- 5
+-- Hello, Vyrn!
+-- 110
 ```
 
 ## History  
 
-- 2016: Vyrn (LuaLiteVM) was initially written in `PowerBasic 10.04 for Windows`.  
+- 2016: Vyrn (LuaLiteVM) was initially written in `PowerBasic 10.04`.  
 - 2018: Rewritten in `FreeBasic 1.05` using `FBIde`.  
 - 2024: Rewritten in the latest version of `PureBasic` and renamed to `Vyrn`.  
 
@@ -81,6 +82,5 @@ Code released under the MIT license.
 
 If this application help you reduce time to coding, you can give me a cup of coffee :)  
 
-[![paypal](https://www.paypalobjects.com/en_US/TW/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3RNMD6Q3B495N&source=url)
-
-[Paypal Me](https://paypal.me/jiowcl?locale.x=zh_TW)
+[![paypal](https://www.paypalobjects.com/en_US/TW/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3RNMD6Q3B495N&source=url)  
+[Paypal Me](https://paypal.me/jiowcl?locale.x=zh_TW)  
