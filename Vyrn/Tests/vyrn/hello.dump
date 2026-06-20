@@ -1,0 +1,3 @@
+; func <main>
+SET_MULTI_LOCAL
+RETURN

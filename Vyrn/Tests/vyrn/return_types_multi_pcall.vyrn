@@ -1,0 +1,7 @@
+def bad() -> number, number
+    return 10, "oops"
+end
+
+let ok, err = pcall(bad)
+print(ok)
+print(err)

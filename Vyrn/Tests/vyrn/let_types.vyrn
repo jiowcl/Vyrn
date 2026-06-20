@@ -1,0 +1,9 @@
+-- vyrn: 2
+-- Vyrn 0.2: typed let bindings
+
+let score: number = 100
+let label: string = "ok"
+print(score, label)
+
+let a: number, b: string = 1, "two"
+print(a, b)

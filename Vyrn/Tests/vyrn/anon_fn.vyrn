@@ -1,0 +1,15 @@
+-- vyrn: 8
+let double = def(x)
+    return x * 2
+end
+print(double(21))
+
+def apply(f, x)
+    return f(x)
+end
+print(apply(def(x) return x + 1 end, 10))
+
+let make = def(n)
+    return def(x) return x + n end
+end
+print(make(10)(5))

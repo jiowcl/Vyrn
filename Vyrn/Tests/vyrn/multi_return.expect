@@ -1,0 +1,5 @@
+pair: 10 20
+one: 42 nil
+multi assign: 1 2
+extra local: 10 20 nil
+swap: 7 3

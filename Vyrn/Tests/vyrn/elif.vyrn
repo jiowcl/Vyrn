@@ -1,0 +1,13 @@
+-- Vyrn elif keyword
+
+let x = 0
+
+if x > 0 then
+    print("positive")
+elif x < 0 then
+    print("negative")
+else
+    print("zero")
+end
+
+print("done")

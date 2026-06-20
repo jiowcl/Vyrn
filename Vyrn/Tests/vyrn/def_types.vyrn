@@ -1,0 +1,12 @@
+-- Vyrn syntax: def, let, -> return type
+
+def greet(name: string) -> string
+    return "Hello, " .. name .. "!"
+end
+
+def calculate_bonus(score: number) -> number
+    return score * 1.1
+end
+
+print(greet("Vyrn"))
+print(calculate_bonus(100))

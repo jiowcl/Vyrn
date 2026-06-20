@@ -1,0 +1,23 @@
+-- vyrn: 3
+-- continue in for / while loops
+
+let sum = 0
+for i = 1, 5 do
+    if i == 3 then
+        continue
+    end
+    sum = sum + i
+end
+print("sum:", sum)
+
+let n = 0
+while n < 5 do
+    n = n + 1
+    if n == 2 then
+        continue
+    end
+    if n == 4 then
+        break
+    end
+    print("w:", n)
+end

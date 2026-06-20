@@ -1,0 +1,5 @@
+-- vyrn: 9
+import hello from "lib.mod_hello"
+print(hello("Vyrn"))
+
+import "lib.mod_hello"

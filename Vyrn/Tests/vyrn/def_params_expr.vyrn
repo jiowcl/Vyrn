@@ -1,0 +1,21 @@
+-- vyrn: 5
+let outer = 100
+
+def add(a, b = outer + 1) -> number
+    return a + b
+end
+
+print(add(5))
+outer = 200
+print(add(5))
+print(add(5, 3))
+
+def mk()
+    let base = 10
+    def f(x = base + 1)
+        return x
+    end
+    return f()
+end
+
+print(mk())

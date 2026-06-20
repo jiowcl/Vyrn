@@ -1,0 +1,5 @@
+-- vyrn: 4
+let name = "Vyrn"
+print("Hello, {name}!")
+let n = 42
+print("n={n}")

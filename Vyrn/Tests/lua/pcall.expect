@@ -1,0 +1,3 @@
+ok true 42
+fail false boom
+anon true 42

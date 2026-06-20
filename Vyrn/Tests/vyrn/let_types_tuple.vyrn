@@ -1,0 +1,18 @@
+def pair() -> (number, number)
+    return 10, 20
+end
+
+let (a, b): (number, number) = pair()
+print(a, b)
+
+def sloppy()
+    return 10, "oops"
+end
+
+def try_sloppy()
+    let (x, y): (number, number) = sloppy()
+end
+
+let ok, err = pcall(try_sloppy)
+print(ok)
+print(err)

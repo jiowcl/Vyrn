@@ -1,0 +1,5 @@
+typed 10 20
+false
+tests\vyrn/let_types_from_fn.vyrn:14: Type error: binding #2 expected number, got string
+false
+tests\vyrn/let_types_from_fn.vyrn:22: Type error: return value #2 expected number, got string

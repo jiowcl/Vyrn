@@ -1,0 +1,13 @@
+def pair() -> (number, number)
+    return 10, 20
+end
+
+let a, b = pair()
+print("tuple", a, b)
+
+def swap(a: number, b: number) -> (number, number)
+    return b, a
+end
+
+let u, v = swap(3, 7)
+print("swap", u, v)

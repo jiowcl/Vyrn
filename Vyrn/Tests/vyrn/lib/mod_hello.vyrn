@@ -1,0 +1,5 @@
+def run(label: string) -> string
+    return "ok:" .. label
+end
+
+return run

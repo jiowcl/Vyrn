@@ -1,0 +1,28 @@
+-- Multi-return values
+
+def pair() 
+    return 10, 20
+end
+
+def one()
+    return 42
+end
+
+let a, b = pair()
+print("pair:", a, b)
+
+let x, y = one()
+print("one:", x, y)
+
+let m, n = 1, 2
+print("multi assign:", m, n)
+
+let p, q, r = pair()
+print("extra local:", p, q, r)
+
+def swap(a, b)
+    return b, a
+end
+
+let u, v = swap(3, 7)
+print("swap:", u, v)

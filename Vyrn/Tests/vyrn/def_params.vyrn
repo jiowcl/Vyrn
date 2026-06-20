@@ -1,0 +1,14 @@
+-- vyrn: 5
+def add(a, b: number = 10) -> number
+    return a + b
+end
+
+print(add(5))
+print(add(5, 3))
+
+def greet(name: string = "world")
+    print("hi " .. name)
+end
+
+greet()
+greet("Vyrn")

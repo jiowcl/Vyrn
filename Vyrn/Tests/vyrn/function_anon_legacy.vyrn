@@ -1,0 +1,13 @@
+-- vyrn: 1
+let half = function(x)
+    return x / 2
+end
+
+print(half(10))
+
+let ok, err = pcall(function()
+    error("boom")
+end)
+
+print(ok)
+print(err)

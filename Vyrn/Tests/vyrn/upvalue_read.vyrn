@@ -1,0 +1,14 @@
+let gold = 0
+let gem = 0
+
+def on_tick()
+    gold = gold + 1
+end
+
+def on_report()
+    return gold
+end
+
+on_tick()
+on_tick()
+print(on_report())

@@ -1,0 +1,9 @@
+-- vyrn: 3
+-- immutable const bindings
+
+const PI: number = 3
+const LABEL: string = "ok"
+print(PI, LABEL)
+
+const A: number, B: string = 1, "two"
+print(A, B)

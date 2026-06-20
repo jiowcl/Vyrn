@@ -1,0 +1,9 @@
+-- table.sort
+
+let nums = {3, 1, 4, 1, 5}
+table.sort(nums)
+print("nums:", table.concat(nums, ","))
+
+let words = {"cherry", "apple", "banana"}
+table.sort(words)
+print("words:", table.concat(words, "|"))

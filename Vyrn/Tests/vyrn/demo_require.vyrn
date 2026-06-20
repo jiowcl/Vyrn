@@ -1,0 +1,6 @@
+print("=== vyrn require demo ===")
+
+let greet = require("lib.greet")
+print(greet("Vyrn"))
+
+print("=== done ===")

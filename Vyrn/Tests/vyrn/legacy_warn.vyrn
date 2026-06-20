@@ -1,0 +1,17 @@
+-- Intentionally uses legacy keywords in a .vyrn file to trigger [warn] output
+
+func legacy_greet(name)
+    return "hi " .. name
+end
+
+local score = 1
+
+if score == 0 then
+    print("zero")
+elseif score == 1 then
+    print("one")
+else
+    print("other")
+end
+
+print(legacy_greet("warn"))

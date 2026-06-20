@@ -1,0 +1,21 @@
+-- vyrn: 7
+def outer()
+    let x = 10
+    def inner()
+        print(x)
+    end
+    inner()
+end
+
+outer()
+
+def mutate()
+    let x = 1
+    def setx()
+        x = 2
+    end
+    setx()
+    print(x)
+end
+
+mutate()

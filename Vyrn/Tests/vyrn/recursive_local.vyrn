@@ -1,0 +1,21 @@
+-- vyrn: 7
+def make_step(start)
+    let n = start
+    local function step()
+        n = n + 1
+        return n
+    end
+    return step
+end
+
+let s = make_step(10)
+print(s())
+print(s())
+
+local function fact(n)
+    if n <= 1 then
+        return 1
+    end
+    return n * fact(n - 1)
+end
+print(fact(6))

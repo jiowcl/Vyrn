@@ -1,0 +1,10 @@
+-- # length operator
+
+print("str len:", #"hello")
+print("empty:", #"")
+
+let t = {10, 20, 30, nil}
+print("table len:", #t)
+
+let nested = {"a", "b", "c"}
+print("list len:", #nested)

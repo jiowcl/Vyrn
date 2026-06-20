@@ -1,0 +1,2 @@
+false
+tests\vyrn/return_types_multi_pcall.vyrn:3: Type error: return value #2 expected number, got string

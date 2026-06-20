@@ -1,0 +1,2 @@
+-- vyrn: 7
+let f = def(x) return x end

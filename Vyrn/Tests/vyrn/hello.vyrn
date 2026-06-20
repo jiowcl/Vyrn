@@ -1,0 +1,4 @@
+-- Vyrn 0.1 hello
+
+let name = "Vyrn"
+print("Hello, " .. name .. "!")

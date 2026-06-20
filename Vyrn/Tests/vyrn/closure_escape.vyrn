@@ -1,0 +1,11 @@
+-- vyrn: 7
+def make()
+    let n = 5
+    def get()
+        return n
+    end
+    return get
+end
+
+let g = make()
+print(g())

@@ -1,0 +1,23 @@
+let x = 10
+
+def outer()
+    let y = 1
+    def inner()
+        return x + y
+    end
+    return inner()
+end
+
+print(outer())
+
+let z = 0
+
+def bump()
+    def inc()
+        z = z + 1
+    end
+    inc()
+end
+
+bump()
+print(z)

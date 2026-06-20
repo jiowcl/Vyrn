@@ -1,0 +1,5 @@
+-- vyrn: 1
+-- Optional dialect header (same as first-line -- vyrn: 1)
+
+let name = "Vyrn"
+print("dialect ok:", name)
