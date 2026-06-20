@@ -21,7 +21,7 @@ Module features require PureBasic 5.20 and above.
 
 Vyrn supports both Lua and Vyrn's own syntax.  
 
-```lua
+```vyrn
 -- Vyrn (Optional Typing)
 def greet(name: string) -> string
     return "Hello, " .. name .. "!"
@@ -60,7 +60,7 @@ print(calculate_bonus(100))
 ## History  
 
 - 2016: Vyrn (LuaLiteVM) was initially written in `PowerBasic 10.04`.  
-- 2018: Rewritten in `FreeBasic 1.05` using `FBIde`.  
+- 2018: Rewritten in `FreeBasic 1.05` using `FBEdit`.  
 - 2024: Rewritten in the latest version of `PureBasic` and renamed to `Vyrn`.  
 
 ## Credits  
@@ -76,6 +76,9 @@ Code released under the MIT license.
 
 ## TODO  
 
+- Built-in Functions (IO, File, Socket, etc)  
+- Compile-time Strict  
+- Error Handling  
 - More examples  
 
 ## Donation  
@@ -83,4 +86,5 @@ Code released under the MIT license.
 If this application help you reduce time to coding, you can give me a cup of coffee :)  
 
 [![paypal](https://www.paypalobjects.com/en_US/TW/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3RNMD6Q3B495N&source=url)  
+
 [Paypal Me](https://paypal.me/jiowcl?locale.x=zh_TW)  
