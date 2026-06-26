@@ -1,0 +1,9 @@
+def run(label: string) -> string
+    return "ok:" .. label
+end
+
+def tag() -> string
+    return "tag"
+end
+
+return { run = run, tag = tag }

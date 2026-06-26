@@ -1,0 +1,18 @@
+-- vyrn: 11
+struct Vec2
+    x: number
+    y: number
+end
+
+def accept(v: Vec2)
+    print(v.x)
+end
+
+def outer()
+    def inner()
+        accept(1)
+    end
+    inner()
+end
+
+outer()

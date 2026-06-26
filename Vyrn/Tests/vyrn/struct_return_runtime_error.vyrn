@@ -1,0 +1,11 @@
+-- vyrn: 11
+struct Vec2
+    x: number
+    y: number
+end
+
+def make() -> Vec2
+    return 1
+end
+
+make()

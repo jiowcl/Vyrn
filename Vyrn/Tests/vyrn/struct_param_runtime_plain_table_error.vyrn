@@ -1,0 +1,11 @@
+-- vyrn: 11
+struct Vec2
+    x: number
+    y: number
+end
+
+def accept(v: Vec2)
+    print(v.x)
+end
+
+accept({ x = 1, y = 2 })

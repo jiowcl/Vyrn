@@ -1,0 +1,11 @@
+-- vyrn: 12 strict
+struct Vec2
+    x: number
+    y: number
+end
+
+def pack() -> Vec2, number
+    return Vec2 { x = 1, y = 2 }, 42
+end
+
+let p: number, n: number = pack()

@@ -1,0 +1,7 @@
+-- vyrn: 12 strict
+def twice(n: number)
+    print(n * 2)
+end
+
+let cb = twice
+(cb)(3)

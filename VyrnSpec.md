@@ -264,6 +264,58 @@ REPL / `-e`: typed `let` (`let x: number = 1`) performs runtime type checks on g
 | `--max-loops N` / `--max-ins N` | CLI flags | Override execution limits per run |
 | Script header `bench` | `-- vyrn: 12 bench` | Same raised limits as `--bench` |
 
+## Added in v1.3.1  
+
+| Feature | Notes |
+|---------|-------|
+| Dynamic globals | Compiler + VM global tables ReDim in chunks of 128 |
+| Dynamic locals | Per-function local name/slot tables ReDim in chunks of 64 |
+
+## Added in v1.3.2  
+
+| Feature | Notes |
+|---------|-------|
+| GC root expansion | Marks closed upvalues; stack scan includes active frame locals and open upvalue slots |
+| `--strict` / header `strict` | Compile-time literal checks for `let`/`const`, param defaults, annotated `return` |
+| CLI `--strict` | Same as script header `strict` |
+
+## Added in v1.4.0  
+
+| Feature | Notes |
+|---------|-------|
+| Strict inference | `--strict` tracks locals + arithmetic/compare/concat at compile time |
+| `file` type alias | Parsed as `table`; for `io.open` results |
+| IO file objects | `io.open` returns table with `_handle`, `:read`, `:write`, `:close`, `:flush`, `:lines` |
+| `io.*` compatibility | `io.read(f)`, `io.close(f)` accept table or legacy number handle |
+
+## Added in v1.4.8  
+
+| Feature | Notes |
+|---------|-------|
+| Strict struct error names | Mismatches show struct names (e.g. `expected Vec2, got number`) for parameters and `let name: Struct` bindings |
+
+## Added in v1.4.9  
+
+| Feature | Notes |
+|---------|-------|
+| Runtime struct type names | `OP_CHECK_TYPE` reports struct names (e.g. `expected Vec2, got number`); struct instances store `_typename` |
+| Runtime struct identity | When `_typename` is present, parameter checks compare struct names (e.g. `Vec2` vs `Point`) |
+
+## Added in v1.5.0  
+
+| Feature | Notes |
+|---------|-------|
+| `OP_CHECK_RET` struct names | Return type `-> Vec2` uses struct id encoding; errors show struct names |
+| Plain table vs struct | Struct parameters/returns require `_typename`; anonymous tables fail at runtime |
+| Struct field read strict | `v.x` updates compile-time infer from struct metadata (`let n: number = v.x`) |
+| Eval `--strict` header | `RunEval` / `--eval-file` parses script header flags including `strict` |
+
+## Added in v1.5.1  
+
+| Feature | Notes |
+|---------|-------|
+| Strict struct returns | `return` under `--strict` checks `-> Vec2` at compile time; `return callee()` compares struct return metadata |
+
 ## Developer tools  
 
 | Flag | Purpose |
@@ -274,5 +326,8 @@ REPL / `-e`: typed `let` (`let x: number = 1`) performs runtime type checks on g
 | `--batch` | No “Press Enter” pause; for CI and scripts |
 | `--bench` | Raise VM loop/instruction limits for long benchmarks |
 | `--unlimited` | Disable loop, instruction, and call-depth limits (trusted scripts only) |
+| `--strict` | Compile-time literal type checks (`let`/`const`/defaults/`return`) |
+| `--timing` | Print `[timing] elapsed_ms=… instructions=…` after run |
+| `--timeout SEC` | Wall-clock limit (sampled every `#LuaLite_GCInterval` steps) |
 | `--max-loops N` | Override max back-edge / instruction-step loop guard |
 | `--max-ins N` | Override max executed instructions |

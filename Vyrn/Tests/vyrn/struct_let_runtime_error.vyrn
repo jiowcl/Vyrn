@@ -1,0 +1,7 @@
+-- vyrn: 11
+struct Vec2
+    x: number
+    y: number
+end
+
+let g: Vec2 = 1

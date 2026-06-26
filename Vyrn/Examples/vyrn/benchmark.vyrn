@@ -1,45 +1,42 @@
--- vyrn: 12 bench
+-- vyrn: 12 bench timing
 
--- Performance Testing: Monte Carlo Simulation and Structure Operations
+-- Monte Carlo pi estimate + struct field access (stress: table alloc, GC, calls).
+-- Scale: totalIterations (default 200k). Compare profiles via .\scripts\run_bench.ps1 -Profile
 
 struct Point
     x: number
     y: number
 end
 
--- Simulate a pseudo-random number generator
--- Use the linear congruential method (LCG) to generate random numbers between 0 and 1.
 def LcgNext(seed: number) -> (number, number)
     let nextSeed = (seed * 1103515245 + 12345) % 2147483647
     let r = nextSeed / 2147483647
-
     return nextSeed, r
 end
 
 def RunBenchmark()
-    print("Start performance testing...")
-    
     let totalIterations = 200000
     let insideCircle = 0
     let currentSeed = 12345
-    
+
     let i = 0
     while i < totalIterations do
         let nextSeedX, rx = LcgNext(currentSeed)
         let nextSeedY, ry = LcgNext(nextSeedX)
         currentSeed = nextSeedY
-        
+
         let p = Point { x = rx, y = ry }
         let distanceSq = (p.x * p.x) + (p.y * p.y)
-        
+
         if distanceSq <= 1 then
             insideCircle = insideCircle + 1
         end
-        
+
         i = i + 1
     end
-    
+
     let pi = (insideCircle / totalIterations) * 4
+    print("Start performance testing...")
     print("Test complete! The estimated Pi value is: ", pi)
     print("Total processed ", totalIterations, " a struct instance.")
 end

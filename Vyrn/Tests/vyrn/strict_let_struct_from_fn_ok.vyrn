@@ -1,0 +1,12 @@
+-- vyrn: 12 strict
+struct Vec2
+    x: number
+    y: number
+end
+
+def make() -> Vec2
+    return Vec2 { x = 3, y = 4 }
+end
+
+let p: Vec2 = make()
+print(p.x + p.y)

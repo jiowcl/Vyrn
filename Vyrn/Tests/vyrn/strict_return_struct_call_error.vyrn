@@ -1,0 +1,20 @@
+-- vyrn: 12 strict
+struct Vec2
+    x: number
+    y: number
+end
+
+struct Point
+    x: number
+    y: number
+end
+
+def vec() -> Vec2
+    return Vec2 { x = 1, y = 2 }
+end
+
+def point() -> Point
+    return vec()
+end
+
+point()

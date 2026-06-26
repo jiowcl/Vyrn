@@ -1,0 +1,15 @@
+-- vyrn: 12 strict
+struct Vec2
+    x: number
+    y: number
+end
+
+def outer() -> Vec2
+    def inner() -> Vec2
+        return Vec2 { x = 1, y = 2 }
+    end
+    return inner()
+end
+
+let v = outer()
+print(v.x + v.y)
