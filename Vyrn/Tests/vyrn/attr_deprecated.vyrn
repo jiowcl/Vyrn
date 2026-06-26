@@ -1,0 +1,7 @@
+-- vyrn: 12
+[deprecated: "use greet2 instead"]
+def greet(name: string) -> string
+    return "Hello, " .. name
+end
+
+print(greet("Vyrn"))

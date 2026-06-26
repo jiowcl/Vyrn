@@ -1,0 +1,4 @@
+-- vyrn: 12 strict
+def f() -> number
+    return "bad"
+end

@@ -1,0 +1,15 @@
+-- vyrn: 12 strict
+struct Vec2
+    x: number
+    y: number
+end
+
+def outer()
+    let v = Vec2 { x = 1, y = 2 }
+    def inner()
+        v.y = "bad"
+    end
+    inner()
+end
+
+outer()

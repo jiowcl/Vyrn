@@ -1,0 +1,8 @@
+-- vyrn: 10
+enum Color
+    Red
+    Green
+    Blue
+end
+
+print(Color.Red, Color.Green, Color.Blue)

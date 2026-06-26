@@ -1,0 +1,2 @@
+-- vyrn: 12 strict
+let s: string = math.floor(3.7)

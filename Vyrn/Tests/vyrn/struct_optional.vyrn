@@ -1,0 +1,8 @@
+-- vyrn: 10
+struct Point
+    x: number
+    y: number = 0
+end
+
+let p = Point { x = 3 }
+print(p.x, p.y)

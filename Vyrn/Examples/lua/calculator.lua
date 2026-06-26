@@ -1,7 +1,8 @@
 -- Vyrn (LuaLiteVM) expression calculator
 -- Source from https://github.com/airtrack/luna/blob/master/examples/calculator.lua
 
-global C0global C9
+global C0
+global C9
 global C_PLUS
 global C_MINUS
 global C_MUL

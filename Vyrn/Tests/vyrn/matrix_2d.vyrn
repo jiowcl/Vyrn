@@ -1,0 +1,7 @@
+-- vyrn: 9
+let matrixA = {}
+let i = 1
+matrixA[i] = {}
+let j = 2
+matrixA[i][j] = (i + j) * 0.5
+print(matrixA[i][j])

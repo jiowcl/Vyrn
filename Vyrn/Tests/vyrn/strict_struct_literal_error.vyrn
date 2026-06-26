@@ -1,0 +1,7 @@
+-- vyrn: 12 strict
+struct Vec2
+    x: number
+    y: number
+end
+
+let bad = Vec2 { x = 1, y = "nope" }

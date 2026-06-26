@@ -1,0 +1,6 @@
+-- vyrn: 12 strict
+def double(n: number) -> number
+    return n * 2
+end
+
+let x: string = double(3)

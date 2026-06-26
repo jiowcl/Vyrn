@@ -1,0 +1,4 @@
+global C0, C9
+C0 = 48
+C9 = 57
+print(C0, C9)

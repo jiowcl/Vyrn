@@ -1,0 +1,11 @@
+-- vyrn: 12
+struct Point
+    [doc: "x coordinate"]
+    x: number
+    [doc: "y coordinate"]
+    y: number = 0
+end
+
+let p = Point({ x = 3 })
+print(p._fielddocs.x)
+print(p._fielddocs.y)

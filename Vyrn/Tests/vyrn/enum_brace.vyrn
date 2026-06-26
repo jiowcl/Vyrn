@@ -1,0 +1,3 @@
+-- vyrn: 10
+enum Status { Idle, Running, Done }
+print(Status.Idle, Status.Running, Status.Done)

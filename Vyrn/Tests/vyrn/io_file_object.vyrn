@@ -1,0 +1,17 @@
+-- vyrn: 12
+let path = "tests/vyrn/_io_obj_test.txt"
+let f = io.open(path, "w")
+if f == nil then
+    print("open failed")
+else
+    f:write("hello file object\n")
+    f:close()
+end
+let r = io.open(path, "r")
+if r == nil then
+    print("reopen failed")
+else
+    print("type:", io.type(r))
+    print("line:", r:read("*l"))
+    r:close()
+end

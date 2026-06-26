@@ -1,0 +1,8 @@
+-- vyrn: 12 strict
+struct Vec2
+    x: number
+    y: number
+end
+
+let v = Vec2 { x = 3, y = 4 }
+print(v.x, v.y)

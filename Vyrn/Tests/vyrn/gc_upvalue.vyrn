@@ -1,0 +1,11 @@
+-- vyrn: 12
+def make()
+    return { tag = "keep" }
+end
+let kept = make()
+let i = 0
+while i < 5000 do
+    let t = { n = i }
+    i = i + 1
+end
+print(kept.tag)

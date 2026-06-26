@@ -1,0 +1,21 @@
+-- vyrn: 9
+struct Point
+    x: number
+    y: number
+end
+
+def f()
+    let i = 0
+    let sum = 0
+    while i < 2 do
+        let seed = 1
+        seed = seed + 1
+        -- Struct keyword in comment must not break parsing
+        let p = Point { x = 1, y = 2 }
+        sum = sum + p.x + p.y
+        i = i + 1
+    end
+    print(sum)
+end
+
+f()

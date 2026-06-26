@@ -1,0 +1,8 @@
+-- vyrn: 12 strict
+let path = "tests/vyrn/_strict_file_probe2.txt"
+let fw = io.open(path, "w")
+fw:write("x")
+fw:close()
+let fr = io.open(path, "r")
+let bad: number = fr:read("*l")
+fr:close()

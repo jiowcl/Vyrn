@@ -1,0 +1,2 @@
+-- vyrn: 12 strict
+let x: number = "bad"

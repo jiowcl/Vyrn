@@ -1,0 +1,13 @@
+-- vyrn: 12 strict
+struct Vec2
+    x: number
+    y: number
+end
+
+def accept(v: Vec2)
+    print(v.x)
+end
+
+let cb = accept
+let n: number = 1
+cb(n)

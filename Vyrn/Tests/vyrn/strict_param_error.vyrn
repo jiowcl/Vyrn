@@ -1,0 +1,3 @@
+-- vyrn: 12 strict
+def f(n: number = "x")
+end

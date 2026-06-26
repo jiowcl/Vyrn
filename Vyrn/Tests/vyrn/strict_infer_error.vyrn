@@ -1,0 +1,3 @@
+-- vyrn: 12 strict
+let a: string = "x"
+let b: number = a + 1

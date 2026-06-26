@@ -1,0 +1,9 @@
+-- vyrn: 12 strict
+let path = "tests/vyrn/_strict_file_probe.txt"
+let fw = io.open(path, "w")
+fw:write("probe")
+fw:close()
+let fr = io.open(path, "r")
+let line: string = fr:read("*l")
+print(line)
+fr:close()

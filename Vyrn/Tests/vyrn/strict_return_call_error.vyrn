@@ -1,0 +1,8 @@
+-- vyrn: 12 strict
+def inner() -> number
+    return 7
+end
+
+def outer() -> string
+    return inner()
+end

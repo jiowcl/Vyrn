@@ -1,0 +1,3 @@
+-- vyrn: 12 strict
+let n: number = math.floor(3.7)
+print(n)

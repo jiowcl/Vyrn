@@ -1,0 +1,22 @@
+-- vyrn: 12 strict
+struct Vec2
+    x: number
+    y: number
+end
+
+def accept(v: Vec2)
+    print(v.x + v.y)
+end
+
+def outer()
+    let cb = accept
+    def middle()
+        def inner()
+            cb(Vec2 { x = 1, y = 2 })
+        end
+        inner()
+    end
+    middle()
+end
+
+outer()

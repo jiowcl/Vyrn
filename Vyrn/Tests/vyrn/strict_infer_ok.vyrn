@@ -1,0 +1,4 @@
+-- vyrn: 12 strict
+let a: number = 10
+let b: number = a + 2
+print(b)

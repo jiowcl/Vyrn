@@ -1,0 +1,7 @@
+-- vyrn: 12 strict
+def pair() -> number, number
+    return 10, 20
+end
+
+let a: number, b: number = pair()
+print(a, b)

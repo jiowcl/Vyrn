@@ -1,0 +1,3 @@
+-- vyrn: 11
+import { run as greetFn } from "lib.mod_exports"
+print(greetFn("alias"))

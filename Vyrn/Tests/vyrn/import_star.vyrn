@@ -1,0 +1,3 @@
+-- vyrn: 11
+import * as M from "lib.mod_exports"
+print(M.run("star"), M.tag())
