@@ -1,0 +1,7 @@
+-- vyrn: 12
+let t = {}
+t.name = "mix"
+t[1] = 10
+t[2] = 20
+print(t.name)
+print(t[1] + t[2])

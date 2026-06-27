@@ -1,0 +1,14 @@
+-- vyrn: 12 unlimited
+struct Point
+    x: number
+    y: number
+end
+
+let total = 0
+let i = 0
+while i < 10000 do
+    let p = Point { x = 1, y = 2 }
+    total = total + p.x + p.y
+    i = i + 1
+end
+print(total)

@@ -1,0 +1,19 @@
+-- vyrn: 12 strict
+struct Vec2
+    x: number
+    y: number
+end
+
+def make() -> Vec2
+    return Vec2 { x = 4, y = 7 }
+end
+
+def reader()
+    let v = make()
+    def inner()
+        return v.x + v.y
+    end
+    return inner()
+end
+
+print(reader())

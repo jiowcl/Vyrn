@@ -1,0 +1,17 @@
+-- vyrn: 12 strict
+struct Vec2
+    x: number
+    y: number
+end
+
+def make() -> Vec2
+    return Vec2 { x = 2, y = 3 }
+end
+
+def wrap() -> Vec2
+    return make()
+end
+
+let v: Vec2 = wrap()
+print(v.x)
+print(v.y)
