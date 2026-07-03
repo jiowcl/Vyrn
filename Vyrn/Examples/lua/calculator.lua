@@ -26,15 +26,15 @@ C_SPACE = string.byte(' ')
 C_TAB = string.byte('\t')
 ERR_EXP = "error expression"
 
-func is_digit(c)
+function is_digit(c)
     return c >= C0 and c <= C9
 end
 
-func is_space(c)
+function is_space(c)
     return c == C_SPACE or c == C_TAB
 end
 
-func skip_spaces(s, i, len)
+function skip_spaces(s, i, len)
     local c = string.byte(s, i)
     while i <= len and is_space(c) do
         i = i + 1
@@ -45,7 +45,7 @@ func skip_spaces(s, i, len)
     parse_pos = i
 end
 
-func read_number(s, i, len)
+function read_number(s, i, len)
     local num = 0
     local c = string.byte(s, i)
     while i <= len and is_digit(c) do
@@ -59,7 +59,7 @@ func read_number(s, i, len)
     return num
 end
 
-func parse_factor(s, i, len)
+function parse_factor(s, i, len)
     local c
     local num
     local inner
@@ -128,7 +128,7 @@ func parse_factor(s, i, len)
     return ERR_EXP
 end
 
-func parse_term(s, i, len)
+function parse_term(s, i, len)
     local result
     local temp
     local c
@@ -167,7 +167,7 @@ func parse_term(s, i, len)
     return result
 end
 
-func parse_expr(s, i, len)
+function parse_expr(s, i, len)
     local result
     local temp
     local c
@@ -208,7 +208,7 @@ func parse_expr(s, i, len)
     return result
 end
 
-func eval_line(line)
+function eval_line(line)
     local len = string.len(line)
     if len == 0 then
         return nil
@@ -221,7 +221,7 @@ func eval_line(line)
     return result
 end
 
-func run_demo()
+function run_demo()
     print("=== demo mode ===")
     print(eval_line("1+2"))
     print(eval_line("3*4"))
