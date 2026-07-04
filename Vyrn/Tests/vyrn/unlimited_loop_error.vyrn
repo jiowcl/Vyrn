@@ -1,6 +1,8 @@
 -- vyrn: 12
 let i = 0
+
 while i < 150000 do
     i = i + 1
 end
+
 print(i)

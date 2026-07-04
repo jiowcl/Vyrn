@@ -1,0 +1,35 @@
+-- vyrn: 12
+def Mul3x3Bench()
+    let size = 3
+    let matrixA = table.create2d(size, size, 0.0)
+    let matrixB = table.create2d(size, size, 0.0)
+    let matrixC = table.create2d(size, size, 0.0)
+    let i = 1
+    while i <= size do
+        let j = 1
+        while j <= size do
+            table.set2d(matrixA, i, j, size, (i + j) * 0.5)
+            table.set2d(matrixB, i, j, size, (i - j) * 1.2)
+            j = j + 1
+        end
+        i = i + 1
+    end
+    let r = 1
+    while r <= size do
+        let c = 1
+        while c <= size do
+            let k = 1
+            let sum = 0
+            while k <= size do
+                sum = sum + (table.get2d(matrixA, r, k, size) * table.get2d(matrixB, k, c, size))
+                k = k + 1
+            end
+            table.set2d(matrixC, r, c, size, sum)
+            c = c + 1
+        end
+        r = r + 1
+    end
+    print(table.get2d(matrixC, 1, 1, size))
+    print(table.get2d(matrixC, 3, 3, size))
+end
+Mul3x3Bench()

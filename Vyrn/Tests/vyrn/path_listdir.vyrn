@@ -1,0 +1,15 @@
+-- vyrn: 12
+let items = path.listdir("tests/vyrn")
+let i = 1
+let found = false
+
+while i <= #items do
+    if items[i] == "hello.vyrn" then
+        found = true
+    end
+    i = i + 1
+end
+
+if found then
+    print("listdir ok")
+end

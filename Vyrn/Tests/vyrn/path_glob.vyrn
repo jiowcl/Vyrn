@@ -1,0 +1,12 @@
+-- vyrn: 12
+let files = path.glob("tests/vyrn/hello.vyrn")
+
+if #files >= 1 and files[1] == "hello.vyrn" then
+    print("glob ok")
+end
+
+let many = path.glob("tests/vyrn/*.vyrn")
+
+if #many >= 5 then
+    print("glob wildcard ok")
+end

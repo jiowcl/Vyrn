@@ -1,0 +1,45 @@
+-- vyrn: 1
+-- Vyrn 0.1 demo (ported from tests/demo.lua)
+
+let name = "Alice"
+let age = 30
+let is_programmer = true
+let empty_var = nil
+let list = {"apple", "banana", "cherry", false, 42}
+
+def greet(name)
+    return "Hello, " .. name .. "!"
+end
+
+let def add(a, b)
+    return a + b
+end
+
+print(greet("Bob"))
+print("Sum is:", add(10, 20))
+
+for i = 1, 5 do
+    print("Number: " .. i)
+end
+
+def greet_self(self)
+    return "Hi, I am " .. self.name
+end
+
+let person = { name = "Alice", age = 30, greet = greet_self }
+print(person:greet())
+
+print("floor(3.7)=", math.floor(3.7))
+print("len('hello')=", string.len("hello"))
+
+let n = 0
+while n < 3 do
+    print("while n=", n)
+    n++
+end
+
+let m = 1
+repeat
+    print("repeat once more, m=", m)
+    m = m + 1
+until m >= 5

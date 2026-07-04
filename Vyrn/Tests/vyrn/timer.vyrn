@@ -1,0 +1,15 @@
+-- vyrn: 12
+let t0 = timer()
+let i = 0
+
+while i < 10000 do
+    i = i + 1
+end
+
+let elapsed = timer() - t0
+
+if elapsed < 0 then
+    print("bad")
+else
+    print("timer ok")
+end

@@ -1,0 +1,8 @@
+-- vyrn: 12
+if os.execute("cmd /c exit 0") then
+    print("execute ok")
+end
+
+if os.execute() then
+    print("shell ok")
+end

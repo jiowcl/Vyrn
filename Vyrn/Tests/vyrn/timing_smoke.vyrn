@@ -1,6 +1,8 @@
 -- vyrn: 12 timing
 let i = 0
+
 while i < 5000 do
     i = i + 1
 end
+
 print("ok")

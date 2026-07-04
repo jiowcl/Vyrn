@@ -1,6 +1,6 @@
 -- nested functions capture outer locals
 
-func outer()
+function outer()
   local x = 10
   local function inner()
     print(x)
@@ -9,7 +9,7 @@ func outer()
 end
 outer()
 
-func make()
+function make()
   local n = 5
   local function get()
     return n
