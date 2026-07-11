@@ -1,0 +1,10 @@
+start 100
+true 101
+resume 200
+true 210
+false cannot resume dead coroutine
+dead
+true 1
+true 2
+true 3
+dead

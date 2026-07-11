@@ -1,0 +1,7 @@
+-- vyrn: 12
+def pair()
+    return 10, 20
+end
+
+let a, b = pair()
+print(a, b)

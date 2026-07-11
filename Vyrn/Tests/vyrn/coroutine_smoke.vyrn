@@ -1,0 +1,32 @@
+-- vyrn: 12
+
+def worker(x)
+  print("start", x)
+  let a = coroutine.yield(x + 1)
+  print("resume", a)
+  return a + 10
+end
+
+def gen()
+  yield 1
+  yield 2
+  return 3
+end
+
+let co = coroutine.create(worker)
+let ok, v1 = coroutine.resume(co, 100)
+print(ok, v1)
+let ok2, v2 = coroutine.resume(co, 200)
+print(ok2, v2)
+let ok3, v3 = coroutine.resume(co)
+print(ok3, v3)
+print(coroutine.status(co))
+
+let g = coroutine.create(gen)
+let gok1, gv1 = coroutine.resume(g)
+print(gok1, gv1)
+let gok2, gv2 = coroutine.resume(g)
+print(gok2, gv2)
+let gok3, gv3 = coroutine.resume(g)
+print(gok3, gv3)
+print(coroutine.status(g))

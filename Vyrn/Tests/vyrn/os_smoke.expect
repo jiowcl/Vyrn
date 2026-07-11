@@ -1,0 +1,5 @@
+clock ok
+time ok
+difftime 10
+date ok
+getenv ok

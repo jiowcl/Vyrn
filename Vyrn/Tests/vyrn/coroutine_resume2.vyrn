@@ -1,0 +1,11 @@
+-- vyrn: 12
+def gen()
+  print("A")
+  yield 1
+  print("B")
+end
+let g = coroutine.create(gen)
+coroutine.resume(g)
+print("r1")
+coroutine.resume(g)
+print("r2")

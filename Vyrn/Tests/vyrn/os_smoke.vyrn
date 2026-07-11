@@ -1,0 +1,20 @@
+-- vyrn: 12
+let c0 = os.clock()
+let c1 = os.clock()
+print("clock ok")
+
+let t = os.time()
+if t > 1000000000 then
+    print("time ok")
+end
+
+print("difftime", os.difftime(110, 100))
+
+let y = os.date("%Y", t)
+if #y == 4 then
+    print("date ok")
+end
+
+if type(os.getenv("PATH")) == "string" then
+    print("getenv ok")
+end

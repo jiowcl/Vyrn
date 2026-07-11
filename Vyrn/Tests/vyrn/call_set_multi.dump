@@ -1,0 +1,11 @@
+; func <main> params=0 locals=2
+  0: PUSH_CONST a=0 b=0 ; line 6
+  1: STORE_GLOBAL a=7 b=0 ; line 6
+  2: LOAD_GLOBAL a=7 b=0 ; line 6
+  3: CALL_SET_MULTI a=512 b=0 ; line 7
+  4: LOAD_GLOBAL a=0 b=0 ; line 7
+  5: LOAD_LOCAL a=0 b=0 ; line 7
+  6: LOAD_LOCAL a=1 b=0 ; line 7
+  7: CALL a=2 b=0 ; line 7
+  8: POP a=0 b=0 ; line 7
+  9: RETURN a=1 b=0 ; line 7
