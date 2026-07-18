@@ -1,0 +1,92 @@
+-- vyrn: 12
+-- Chat room + ~1s tick broadcast for `vyrn serve`.
+--
+-- Run (from repo root; needs the `serve` subcommand — do NOT run the .vyrn alone):
+--   Vyrn.exe serve examples\vyrn\ws_chat\chat.vyrn --port 8765
+-- Or double-click: examples\vyrn\ws_chat\run.cmd
+-- Then open client.html in a browser (file:// is fine). Open several tabs to chat.
+--
+-- Commands from a client:
+--   /hello          welcome + help (HTML client sends this on connect)
+--   /nick <name>    set display name
+--   /who            how many clients are online
+--   /help           command list
+--   anything else   broadcast as chat
+
+let nicks = {}
+global online = 0
+global tickAccum = 0
+global uptimeSec = 0
+
+def display_name(client_id)
+    let n = nicks[client_id]
+    if n then
+        return n
+    end
+
+    return "guest-" .. client_id
+end
+
+def on_ws_connect(client_id)
+    online = online + 1
+    nicks[client_id] = "guest-" .. client_id
+    -- Connecting client is still handshaking; broadcast reaches already-open peers only.
+    ws.broadcast("[sys] " .. display_name(client_id) .. " joined (" .. online .. " online)")
+
+    return true
+end
+
+def on_ws_close(client_id)
+    let name = display_name(client_id)
+    nicks[client_id] = nil
+    online = online - 1
+    
+    if online < 0 then
+        online = 0
+    end
+
+    ws.broadcast("[sys] " .. name .. " left (" .. online .. " online)")
+end
+
+def on_ws_message(client_id, message)
+    message = string.trim(message)
+    if message == "" then
+        return ""
+    end
+
+    if message == "/hello" or message == "/help" then
+        return "[sys] hi " .. display_name(client_id) .. " | /nick NAME  /who  /help | ticks every ~1s"
+    end
+
+    if string.startswith(message, "/nick ") then
+        let name = string.trim(string.sub(message, 7))
+        if name == "" then
+            return "[sys] usage: /nick NAME"
+        end
+        let old = display_name(client_id)
+        nicks[client_id] = name
+        ws.broadcast("[sys] " .. old .. " is now " .. name)
+        return "[sys] nickname set to " .. name
+    end
+
+    if message == "/who" then
+        return "[sys] " .. online .. " online"
+    end
+
+    if string.startswith(message, "/") then
+        return "[sys] unknown command; try /help"
+    end
+
+    ws.broadcast("[chat] " .. display_name(client_id) .. ": " .. message)
+    return ""
+end
+
+-- ~100ms poll; broadcast once per second so the HTML log stays readable.
+def on_tick(dt)
+    tickAccum = tickAccum + dt
+    if tickAccum >= 1 then
+        tickAccum = tickAccum - 1
+        uptimeSec = uptimeSec + 1
+        ws.broadcast("[tick] uptime " .. uptimeSec .. "s | " .. online .. " online")
+    end
+end

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vyrn WS Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #1a2332;
+      --bg1: #243044;
+      --ink: #e8eef6;
+      --muted: #9aabbf;
+      --line: rgba(232, 238, 246, 0.12);
+      --accent: #3d9b8f;
+      --accent-ink: #07201c;
+      --sys: #c4a35a;
+      --tick: #7a8fa8;
+      --chat: #e8eef6;
+      --danger: #c45c5c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "IBM Plex Sans", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #2e4a5c 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #1f3d36 0%, transparent 50%),
+        linear-gradient(165deg, var(--bg0), #121820 70%);
+    }
+
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-height: 100vh;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 4vw, 2.1rem);
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      margin: 0.35rem 0 0;
+      color: var(--muted);
+      max-width: 36rem;
+      line-height: 1.45;
+    }
+
+    .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border: 1px solid var(--line);
+      background: rgba(18, 24, 32, 0.55);
+      backdrop-filter: blur(8px);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
+      padding: 0.75rem 0.9rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .toolbar label {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    input[type="text"] {
+      font: inherit;
+      color: var(--ink);
+      background: var(--bg1);
+      border: 1px solid var(--line);
+      padding: 0.45rem 0.65rem;
+      min-width: 0;
+    }
+
+    #url { flex: 1; min-width: 12rem; font-family: "IBM Plex Mono", monospace; font-size: 0.9rem; }
+
+    button {
+      font: inherit;
+      font-weight: 600;
+      border: 0;
+      cursor: pointer;
+      padding: 0.45rem 0.9rem;
+      background: var(--accent);
+      color: var(--accent-ink);
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    button:hover { filter: brightness(1.08); }
+    button:active { transform: translateY(1px); }
+    button.ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
+    #status {
+      margin-left: auto;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    #status.ok { color: var(--accent); }
+    #status.bad { color: var(--danger); }
+
+    #tick {
+      display: block;
+      padding: 0.45rem 0.9rem;
+      border-bottom: 1px solid var(--line);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.8rem;
+      color: var(--tick);
+      min-height: 1.2em;
+    }
+
+    #log {
+      flex: 1;
+      overflow: auto;
+      padding: 0.9rem 1rem;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.86rem;
+      line-height: 1.55;
+      min-height: 280px;
+      max-height: 580px;
+    }
+
+    .line { white-space: pre-wrap; word-break: break-word; }
+    .line.sys { color: var(--sys); }
+    .line.tick { color: var(--tick); }
+    .line.chat { color: var(--chat); }
+    .line.local { color: var(--muted); }
+
+    form.composer {
+      display: flex;
+      gap: 0.55rem;
+      padding: 0.75rem 0.9rem;
+      border-top: 1px solid var(--line);
+    }
+
+    #msg { flex: 1; }
+
+    footer {
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
+    footer code {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.8rem;
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Vyrn WS Chat</h1>
+      <p>Native WebSocket chat room: message broadcast + server tick per second. Start the <code>serve</code> then connect.</p>
+    </header>
+
+    <section class="panel" aria-label="chat">
+      <div class="toolbar">
+        <label for="url">URL</label>
+        <input id="url" type="text" value="ws://127.0.0.1:8765" spellcheck="false" />
+        <button type="button" id="connect">Connect</button>
+        <button type="button" class="ghost" id="disconnect">Disconnect</button>
+        <span id="status">disconnected</span>
+      </div>
+      <div id="tick" aria-live="polite">tick: —</div>
+      <div id="log" role="log" aria-live="polite"></div>
+      <form class="composer" id="form">
+        <input id="msg" type="text" placeholder="說點什麼，或 /nick Alice" autocomplete="off" disabled />
+        <button type="submit" id="send" disabled>Send</button>
+      </form>
+    </section>
+
+    <footer>
+      Server: <code>run.cmd</code> or <code>Vyrn.exe serve examples\vyrn\ws_chat\chat.vyrn --port 8765</code>
+      · Command：<code>/nick</code> <code>/who</code> <code>/help</code>
+    </footer>
+  </main>
+
+  <script>
+    const logEl = document.getElementById("log");
+    const tickEl = document.getElementById("tick");
+    const statusEl = document.getElementById("status");
+    const urlEl = document.getElementById("url");
+    const msgEl = document.getElementById("msg");
+    const sendBtn = document.getElementById("send");
+    let socket = null;
+
+    function setConnected(on) {
+      msgEl.disabled = !on;
+      sendBtn.disabled = !on;
+      statusEl.textContent = on ? "connected" : "disconnected";
+      statusEl.className = on ? "ok" : "";
+      if (!on) tickEl.textContent = "tick: —";
+    }
+
+    function classify(text) {
+      if (text.startsWith("[sys]")) return "sys";
+      if (text.startsWith("[chat]")) return "chat";
+      return "chat";
+    }
+
+    function append(text, kind) {
+      const row = document.createElement("div");
+      row.className = "line " + (kind || classify(text));
+      row.textContent = text;
+      logEl.appendChild(row);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function handleMessage(text) {
+      if (text.startsWith("[tick]")) {
+        tickEl.textContent = text;
+        return;
+      }
+      append(text);
+    }
+
+    function disconnect() {
+      if (socket) {
+        socket.close();
+        socket = null;
+      }
+      setConnected(false);
+    }
+
+    document.getElementById("connect").addEventListener("click", () => {
+      disconnect();
+      const url = urlEl.value.trim();
+      append("→ connecting " + url, "local");
+      statusEl.textContent = "connecting…";
+      statusEl.className = "";
+      tickEl.textContent = "tick: —";
+      try {
+        socket = new WebSocket(url);
+      } catch (err) {
+        append("× " + err, "local");
+        statusEl.textContent = "error";
+        statusEl.className = "bad";
+        return;
+      }
+      socket.addEventListener("open", () => {
+        setConnected(true);
+        append("→ connected", "local");
+        socket.send("/hello");
+      });
+      socket.addEventListener("message", (ev) => {
+        handleMessage(String(ev.data));
+      });
+      socket.addEventListener("close", () => {
+        socket = null;
+        setConnected(false);
+        append("→ closed", "local");
+      });
+      socket.addEventListener("error", () => {
+        statusEl.textContent = "error";
+        statusEl.className = "bad";
+        append("× socket error (is serve running?)", "local");
+      });
+    });
+
+    document.getElementById("disconnect").addEventListener("click", disconnect);
+
+    document.getElementById("form").addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      if (!socket || socket.readyState !== WebSocket.OPEN) return;
+      const text = msgEl.value.trim();
+      if (!text) return;
+      socket.send(text);
+      msgEl.value = "";
+      msgEl.focus();
+    });
+  </script>
+</body>
+</html>
