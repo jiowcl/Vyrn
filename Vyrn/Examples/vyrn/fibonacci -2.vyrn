@@ -1,0 +1,26 @@
+-- vyrn: 12 bench timing
+
+-- Fibonacci Sequence Test: Calculate the 35th term (Fibonacci 35).
+def Fib(n: number) -> number
+    let a: number = 0
+    let b: number = 1
+
+    for i = 2, n do
+        let c: number = a + b
+
+        a = b
+        b = c
+    end
+
+    return b
+end
+
+def RunBenchmark()
+    print("Start Fibonacci benchmark...")
+    let result: number = Fib(35)
+
+    -- The correct answer should be 9227465
+    print("Complete! Result: ", result)
+end
+
+RunBenchmark()
