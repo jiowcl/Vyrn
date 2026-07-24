@@ -1,0 +1,20 @@
+-- vyrn: 12
+def sum_all(a, ...)
+  let n = select("#", ...)
+  let total = a
+  let i = 1
+  while i <= n do
+    let x = select(i, ...)
+    total = total + x
+    i = i + 1
+  end
+  return total, n
+end
+
+def forward(...)
+  return select(1, ...)
+end
+
+print("sum", sum_all(10, 1, 2, 3))
+print("fwd", forward(7, 8, 9))
+print("hash", select("#", 1, 2, 3))

@@ -1,0 +1,3 @@
+# mid yield: pair() POP; pcall mid uses TRUNC_LAST_CALL
+POP
+TRUNC_LAST_CALL

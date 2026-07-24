@@ -1,0 +1,65 @@
+-- vyrn: 12
+struct Point
+    x: number
+    y: number
+    def mag(self)
+        return self.x + self.y
+    end
+end
+
+let p = Point { x = 1, y = 2 }
+
+-- Dynamic assign stays on dense field slots
+let kx = "x"
+p[kx] = 7
+print("dyn-set", p.x, p["x"], p[kx])
+
+-- pairs: named fields first; later keys include _typename / methods
+let pit, pst, pvar = pairs(p)
+let k1, v1 = pit(pst, pvar)
+let k2, v2 = pit(pst, k1)
+let k3, v3 = pit(pst, k2)
+let k4, v4 = pit(pst, k3)
+let k5, v5 = pit(pst, k4)
+print("pairs1", k1, v1)
+print("pairs2", k2, v2)
+
+let seenTypename = 0
+let seenMag = 0
+if k3 == "_typename" then
+    seenTypename = 1
+end
+if k4 == "_typename" then
+    seenTypename = 1
+end
+if k5 == "_typename" then
+    seenTypename = 1
+end
+if k3 == "mag" then
+    seenMag = 1
+end
+if k4 == "mag" then
+    seenMag = 1
+end
+if k5 == "mag" then
+    seenMag = 1
+end
+print("pairs-extra", seenTypename, seenMag)
+
+-- ipairs() skips struct field slots (empty on a pure Point)
+let it, st, iv = ipairs(p)
+let ii, vv = it(st, iv)
+print("ipairs-empty", ii)
+
+-- Extra dense slot beyond fields is still visible to ipairs
+p[3] = 99
+let it2, st2, iv2 = ipairs(p)
+let i3, v3b = it2(st2, iv2)
+print("ipairs-extra", i3, v3b)
+
+let fs = table.fields(p)
+print("fields", fs[1], fs[2], fs[3])
+
+let plain = { a = 1, _hidden = 2, b = 3 }
+let ps = table.fields(plain)
+print("plain-fields", ps[1], ps[2], ps[3])

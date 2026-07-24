@@ -1,0 +1,52 @@
+-- vyrn: 12
+def pair()
+  return 1, 2
+end
+
+def triple()
+  return 3, 4, 5
+end
+
+print("user-mid", triple(), 9)
+print("pcall-chain", pcall(pair), pcall(pair))
+print("pcall-nested", pcall(pcall, pair))
+
+def worker()
+  yield "y", "z"
+end
+
+let co1 = coroutine.create(worker)
+print("resume-tail", coroutine.resume(co1))
+
+let co2 = coroutine.create(worker)
+print("resume-mid", coroutine.resume(co2), 9)
+
+def asserted()
+  return true, 11, "ok"
+end
+
+print("assert-tail", assert(asserted()))
+print("assert-mid", assert(asserted()), 9)
+let av, an, astr = assert(asserted())
+print("assert-let", av, an, astr)
+
+def wrapped()
+  yield 7, 8
+end
+
+let wrap1 = coroutine.wrap(wrapped)
+print("wrap-type", type(wrap1))
+print("wrap-tail", wrap1())
+
+let wrap2 = coroutine.wrap(wrapped)
+print("wrap-mid", wrap2(), 9)
+
+def wrapped2()
+  yield 1, 2
+end
+
+let wrap_src = coroutine.wrap(wrapped2)
+let wrap_alias = wrap_src
+print("wrap-assign", wrap_alias())
+print("wrap-direct", coroutine.wrap(wrapped2)())
+print("wrap-direct-mid", coroutine.wrap(wrapped2)(), 9)

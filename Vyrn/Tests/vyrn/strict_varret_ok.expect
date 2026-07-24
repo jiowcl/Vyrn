@@ -1,0 +1,4 @@
+pcall true 7 ok
+assert true 8 assert
+resume true 9 resume
+wrap true 10 wrap

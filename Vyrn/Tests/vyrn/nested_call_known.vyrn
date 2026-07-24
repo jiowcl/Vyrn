@@ -1,0 +1,9 @@
+-- Nested known calls: f(g()) must keep CALL_KNOWN for both (defer stack).
+k = 7
+def g()
+  return k
+end
+def f(x)
+  return x + 1
+end
+print(f(g()))

@@ -1,0 +1,11 @@
+-- vyrn: 12 strict
+def wrap_worker() -> number, string
+  yield 10, "wrap"
+end
+
+def via_wrap() -> bool, string, number
+  let w = coroutine.wrap(wrap_worker)
+  return w()
+end
+
+print(via_wrap())

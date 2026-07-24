@@ -1,0 +1,30 @@
+-- vyrn: 12 strict
+def pair() -> number, string
+  return 7, "ok"
+end
+
+let pok: bool, pn: number, ps: string = pcall(pair)
+print("pcall", pok, pn, ps)
+
+def checked() -> bool, number, string
+  return true, 8, "assert"
+end
+
+let av: bool, an: number, astr: string = assert(checked())
+print("assert", av, an, astr)
+
+def worker()
+  yield 9, "resume"
+end
+
+let co = coroutine.create(worker)
+let rok: bool, rn, rs = coroutine.resume(co)
+print("resume", rok, rn, rs)
+
+def wrap_worker()
+  yield 10, "wrap"
+end
+
+let wf = coroutine.wrap(wrap_worker)
+let wok: bool, wn: number, wstr: string = wf()
+print("wrap", wok, wn, wstr)

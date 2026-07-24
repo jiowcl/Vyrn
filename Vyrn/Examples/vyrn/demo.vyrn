@@ -1,17 +1,17 @@
--- vyrn: 1
--- Vyrn 0.1 demo (ported from tests/demo.lua)
+-- vyrn: 12
+-- Vyrn demo (typed surfaces; loop temps may stay bare)
 
-let name = "Alice"
-let age = 30
-let is_programmer = true
+let name: string = "Alice"
+let age: number = 30
+let is_programmer: boolean = true
 let empty_var = nil
 let list = {"apple", "banana", "cherry", false, 42}
 
-def greet(name)
+def greet(name: string) -> string
     return "Hello, " .. name .. "!"
 end
 
-let def add(a, b)
+let def add(a: number, b: number) -> number
     return a + b
 end
 
@@ -22,7 +22,7 @@ for i = 1, 5 do
     print("Number: " .. i)
 end
 
-def greet_self(self)
+def greet_self(self) -> string
     return "Hi, I am " .. self.name
 end
 
@@ -32,13 +32,13 @@ print(person:greet())
 print("floor(3.7)=", math.floor(3.7))
 print("len('hello')=", string.len("hello"))
 
-let n = 0
+let n: number = 0
 while n < 3 do
     print("while n=", n)
     n++
 end
 
-let m = 1
+let m: number = 1
 repeat
     print("repeat once more, m=", m)
     m = m + 1

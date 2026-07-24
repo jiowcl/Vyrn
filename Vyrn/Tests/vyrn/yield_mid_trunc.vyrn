@@ -1,0 +1,24 @@
+-- vyrn: 12
+def pair()
+  return 1, 2
+end
+
+def worker()
+  yield pair(), 9
+end
+
+def worker_pcall()
+  yield pcall(pair), 8
+end
+
+let co = coroutine.create(worker)
+print("yield-mid", coroutine.resume(co))
+
+let co2 = coroutine.create(worker_pcall)
+print("yield-pcall", coroutine.resume(co2))
+
+def mid_ret()
+  return pair(), 8
+end
+
+print("return-mid", mid_ret())

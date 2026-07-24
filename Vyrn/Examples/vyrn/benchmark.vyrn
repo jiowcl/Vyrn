@@ -9,24 +9,24 @@ struct Point
 end
 
 def LcgNext(seed: number) -> (number, number)
-    let nextSeed = (seed * 1103515245 + 12345) % 2147483647
-    let r = nextSeed / 2147483647
+    let nextSeed: number = (seed * 1103515245 + 12345) % 2147483647
+    let r: number = nextSeed / 2147483647
     return nextSeed, r
 end
 
 def RunBenchmark()
-    let totalIterations = 200000
-    let insideCircle = 0
-    let currentSeed = 12345
+    let totalIterations: number = 200000
+    let insideCircle: number = 0
+    let currentSeed: number = 12345
 
-    let i = 0
+    let i: number = 0
     while i < totalIterations do
         let nextSeedX, rx = LcgNext(currentSeed)
         let nextSeedY, ry = LcgNext(nextSeedX)
         currentSeed = nextSeedY
 
         let p = Point { x = rx, y = ry }
-        let distanceSq = (p.x * p.x) + (p.y * p.y)
+        let distanceSq: number = (p.x * p.x) + (p.y * p.y)
 
         if distanceSq <= 1 then
             insideCircle = insideCircle + 1
@@ -35,7 +35,7 @@ def RunBenchmark()
         i = i + 1
     end
 
-    let pi = (insideCircle / totalIterations) * 4
+    let pi: number = (insideCircle / totalIterations) * 4
     print("Start performance testing...")
     print("Test complete! The estimated Pi value is: ", pi)
     print("Total processed ", totalIterations, " a struct instance.")
