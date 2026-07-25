@@ -328,6 +328,10 @@ REPL / `-e`: typed `let` (`let x: number = 1`) performs runtime type checks on g
 | `--unlimited` | Disable loop, instruction, and call-depth limits (trusted scripts only) |
 | `--strict` | Compile-time literal type checks (`let`/`const`/defaults/`return`) |
 | `--timing` | Print `[timing] elapsed_ms=… instructions=…` after run |
+| `--opcode-hist` | Print opcode execution histogram (top 20; profile only) |
 | `--timeout SEC` | Wall-clock limit (sampled every `#LuaLite_GCInterval` steps) |
 | `--max-loops N` | Override max back-edge / instruction-step loop guard |
 | `--max-ins N` | Override max executed instructions |
+| `build` | Run declarative `build.vyrn` targets (`[build]` / `[skip]`) |
+| `bundle` | Merge entry + dependencies; optional `--tree-shake`, `--source-map` |
+| `serve` | WebSocket server; optional `on_ws_*` / `on_tick` / `ws.*` in script |

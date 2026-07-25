@@ -9,6 +9,8 @@
  * String lifetime: pointers from VyrnValue.str / vyrn_last_error are owned by the
  * DLL and invalidated by the next vyrn_* call that returns or sets a string.
  * Use vyrn_copy_string() to take a durable copy into a caller buffer.
+ *
+ * Author: Ji-Feng Tsai (jiowcl@gmail.com) 
  */
 
 #ifndef VYRN_H
@@ -63,6 +65,7 @@ typedef int (*VyrnHostFn)(void *userdata, const VyrnValue *args, int argc, VyrnV
 typedef void (*VyrnLogFn)(void *userdata, const char *utf8_line);
 
 VYRN_API int         vyrn_abi_version(void);
+VYRN_API const char *vyrn_version(void);          /* product version string; owned by DLL */
 VYRN_API VyrnVM     *vyrn_create(void);
 VYRN_API void        vyrn_destroy(VyrnVM *vm);
 
