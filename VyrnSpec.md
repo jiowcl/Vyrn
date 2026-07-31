@@ -316,6 +316,71 @@ REPL / `-e`: typed `let` (`let x: number = 1`) performs runtime type checks on g
 |---------|-------|
 | Strict struct returns | `return` under `--strict` checks `-> Vec2` at compile time; `return callee()` compares struct return metadata |
 
+## Added in v1.5.9  
+
+| Feature | Syntax | Notes |
+|---------|--------|-------|
+| `vyrn build` | `build [target] [-f build.vyrn] [--force]` | Evaluates `global build` table; runs `cmd` per target; `[skip]` when `outs` are up to date |
+| `vyrn bundle` | `bundle <entry.vyrn> [-o out.vyrn]` | Inlines `require` / `import` graph into one script |
+| `--tree-shake` | bundle flag | Prunes unused `def` exports per named import graph |
+| `--source-map` | bundle flag | Writes `<out>.map` JSON (version 1; stub mappings) |
+| `vyrn serve` | `serve <script.vyrn> [--port N] [--duration SEC]` | WebSocket server on `127.0.0.1`; script defines optional handlers |
+| `on_ws_connect` / `on_ws_message` / `on_ws_close` | global `def` | Message handler return value is sent as text reply; `on_ws_connect` returning `false` responds with HTTP 403 (no upgrade) |
+| `on_tick(dt)` | global `def` | ~100ms poll callback; `dt` in seconds |
+| `ws.send` / `ws.broadcast` | builtins | Push text to one or all connected clients |
+
+## Added in v1.5.10  
+
+| Feature | Syntax | Notes |
+|---------|--------|-------|
+| Opcode histogram | `--opcode-hist` / header `opcode-hist` | Top-20 opcode counts after run; diagnostic only |
+| Increment peephole | `i = i + 1`, `i += 1`, `i -= 1`, `i -= 1` | `INC_LOCAL` / `DEC_LOCAL` (or global) instead of load/add/store |
+
+## Added in v1.5.11  
+
+| Feature | Syntax | Notes |
+|---------|--------|-------|
+| Tuple call fast path | `let a, b = f()` | `CALL_SET_MULTI` when callee return arity matches binding count (single RHS expr) |
+| Observed return arity | `return a, b` | Inferred arity for unannotated `def` used by the fast path |
+
+## Added in v1.5.12  
+
+| Feature | Syntax | Notes |
+|---------|--------|-------|
+| Global tuple call fast path | REPL `let a, b = f()` | `CALL_SET_MULTI_GLOBAL` |
+| Augment peephole | `i += C`, `i = i + C` | constant `C` ≠ 1 |
+| Build mtime skip | `ins = {...}` in target | skip when outs newer than ins + dep outs |
+
+## Added in v1.6.0  
+
+| Feature | Syntax | Notes |
+|---------|--------|-------|
+| Coroutines | `coroutine.create(f)`, `coroutine.resume(co, ...)`, `coroutine.yield(...)`, `coroutine.status(co)` | Table-backed snapshots; main thread save/restore |
+| Yield statement | `yield expr` | Opcode `OP_YIELD` (#56); `yield` outside coroutine is a runtime error |
+
+## Added in v1.6.1  
+
+| Feature | Syntax | Notes |
+|---------|--------|-------|
+| Coroutine wrap | `coroutine.wrap(f)` | Returns a function that resumes the coroutine; same `true, ...` / `false, err` convention as `resume` |
+| Running coroutine | `coroutine.running()` | Returns the active coroutine table, or `nil` on the main thread |
+| Yieldable check | `coroutine.isyieldable()` | `true` while executing inside a coroutine |
+| Error propagation | `coroutine.resume` / wrap call | On error: `false, message`, coroutine status `dead` |
+
+## Added in v1.6.2  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| Multi-return as call arg | `print(f())`, `g(a(), b)` | Last arg expands all returns; earlier multi-return args keep first value only |
+| Coroutine close | `coroutine.close(co)` | Suspended → dead; running → `false, err`; dead → `true` |
+
+## Added in v1.6.3  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| Builtin multi-return args | `print(coroutine.resume(co))` | `returnArity` on builtins; variable builtins use `OP_CALL_MULTRET` |
+| WS + coroutine | `on_ws_message` + `coroutine.resume` | Staged handler |
+
 ## Developer tools  
 
 | Flag | Purpose |

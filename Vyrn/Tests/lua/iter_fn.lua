@@ -1,0 +1,20 @@
+local t = {10, 20, 30}
+local it, state, var = ipairs(t)
+local i1, v1 = it(state, var)
+local i2, v2 = it(state, i1)
+local i3, v3 = it(state, i2)
+local i4, v4 = it(state, i3)
+print("ipairs", i1, v1, i2, v2, i3, v3, i4, v4)
+assert(i1 == 1 and v1 == 10)
+assert(i2 == 2 and v2 == 20)
+assert(i3 == 3 and v3 == 30)
+assert(i4 == nil and v4 == nil)
+
+local m = {a = 1, b = 2}
+local pit, pstate, pvar = pairs(m)
+local k1, val1 = pit(pstate, pvar)
+local k2, val2 = pit(pstate, k1)
+local k3, val3 = pit(pstate, k2)
+print("pairs", k1, val1, k2, val2, k3, val3)
+assert((k1 == "a" and val1 == 1) or (k1 == "b" and val1 == 2))
+assert(k3 == nil and val3 == nil)
