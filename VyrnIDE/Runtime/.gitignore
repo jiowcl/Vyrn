@@ -1,0 +1,4 @@
+# Runtime binaries are synced from the Vyrn core build / release package.
+*
+!.gitignore
+!VERSION

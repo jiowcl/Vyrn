@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://www.purebasic.com/namespace" version="1.0" creator="PureBasic 6.40 (Windows - x64)">
+  <section name="config">
+    <options closefiles="1" openmode="0" name="Vyrn IDE for Vyrn VM Compiler"/>
+  </section>
+  <section name="data">
+    <explorer view="C:\ProgramData\PureBasic\Examples\" pattern="0"/>
+    <log show="1"/>
+    <lastopen date="2026-08-01 15:52" user="使用者" host="DESKTOP-K1RBCTS"/>
+  </section>
+  <section name="files">
+    <file name="VyrnIde.pb">
+      <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="+"/>
+      <fingerprint md5="101f86a92c8cd1d3de62e1bae3017227"/>
+    </file>
+    <file name="Core\Ide_Commands.pbi">
+      <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
+      <fingerprint md5="bff98611dd63aa2ee9e86bfa335995d1"/>
+    </file>
+    <file name="Core\Ide_Editor.pbi">
+      <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
+      <fingerprint md5="d9f36cda6ee1fe5865ea6dc0d4f18fce"/>
+    </file>
+    <file name="Core\Ide_Highlight.pbi">
+      <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
+      <fingerprint md5="cd392d7e3df9cad5ff02f6142a40425d"/>
+    </file>
+    <file name="Core\Ide_Runner.pbi">
+      <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
+      <fingerprint md5="2b49aedb0de20f0f9906b14e4f6faf26"/>
+    </file>
+    <file name="Core\Ide_VyrnNative.pbi">
+      <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
+      <fingerprint md5="bf6290ab41730895159a27bffbc5a26e"/>
+    </file>
+    <file name="Core\Ide_Ui.pbi">
+      <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
+      <fingerprint md5="1dd10b072476e8d6f0d67335e00bf7ad"/>
+    </file>
+  </section>
+  <section name="targets">
+    <target name="Default Target" enabled="1" default="1">
+      <inputfile value="VyrnIde.pb"/>
+      <outputfile value="Output\VyrnIDE.exe"/>
+      <compiler version="PureBasic 6.40 - C Backend (Windows - x64)"/>
+      <executable value="Output\VyrnIDE.exe"/>
+      <options asm="1" thread="1" xpskin="1" dpiaware="1" dllprotection="1" onerror="1" optimizer="1"/>
+      <temporaryexe value="source"/>
+      <versioninfo enable="1">
+        <field0 value="1.0.0.0"/>
+        <field1 value="1.0.0.0"/>
+        <field2 value="Inwazy Technology"/>
+        <field3 value="Vyrn IDE"/>
+        <field4 value="1.0"/>
+        <field5 value="1.0"/>
+        <field6 value="Vyrn IDE for Vyrn Bytecode VM Compiler"/>
+        <field7 value="VyrnIDE"/>
+        <field8 value="VyrnIDE"/>
+        <field9 value="Ji-Feng Tsai"/>
+        <field10 value="Inwazy Technology"/>
+        <field13 value="jiowcl@gmail.com"/>
+        <field14 value="https://inwazy.com"/>
+      </versioninfo>
+    </target>
+  </section>
+</project>
