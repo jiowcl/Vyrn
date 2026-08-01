@@ -5,6 +5,8 @@ VyrnIDE is a lightweight Vyrn programming language editor.
 ![GitHub](https://img.shields.io/github/license/jiowcl/Vyrn.svg)
 ![PureBasic](https://img.shields.io/badge/language-PureBasic-blue.svg)
 
+![Screenshot](./Screenshot/Demo1.png)
+
 ## Environment  
 
 - Windows 11 above (recommend)  
