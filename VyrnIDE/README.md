@@ -1,11 +1,18 @@
 # VyrnIDE  
 
-VyrnIDE is a lightweight Vyrn programming language editor.  
+**VyrnIDE** is the official, ultra-lightweight IDE designed specifically for Vyrn development. Built for speed and simplicity, it allows you to start writing and testing scripts in seconds without any complex environment setup.  
 
 ![GitHub](https://img.shields.io/github/license/jiowcl/Vyrn.svg)
 ![PureBasic](https://img.shields.io/badge/language-PureBasic-blue.svg)
 
-![Screenshot](./Screenshot/Demo1.png)
+![Screenshot](./Screenshot/Demo1.png)  
+
+## Features  
+
+- **Featherweight & Portable**: Single standalone executable with virtually zero memory footprint.
+- **Zero Configuration**: Double-click to open and start coding immediately — no plugins or runtime required.
+- **Custom Syntax Highlighting**: Designed specifically for Vyrn's unique grammar and built-in functions.
+- **Integrated Script Execution**: Write, run, and view output seamlessly within a unified panel.
 
 ## Environment  
 

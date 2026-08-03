@@ -1,11 +1,20 @@
 # Vyrn  
 
-Vyrn (LuaLiteVM) is a concise and elegant Lua-like programming language written in PureBasic. It draws inspiration from other programming languages ​​and has gradually developed its own unique characteristics. Vyrn is designed for small application development and embedded applications.  
+**Tiny, Elegant, and Fast — A Modern Lua-inspired Programming Language Implemented in PureBasic.**  
 
-Vyrn is a very young programming language, and not all Lua syntax is available.  
+**Vyrn** is a concise, lightweight programming language designed for small-scale applications and embedded scripting. Built entirely in **PureBasic**, it brings the familiar elegance of **Lua** while evolving its own unique language characteristics.  
 
 ![GitHub](https://img.shields.io/github/license/jiowcl/Vyrn.svg)
 ![PureBasic](https://img.shields.io/badge/language-PureBasic-blue.svg)
+![Status](https://img.shields.io/badge/Status-Experimental-orange)
+
+## Features  
+
+- **Ultra Lightweight**: Minimal footprint with zero extra dynamic libraries needed.  
+- **Pure $PureBasic Implementation**: Seamlessly embeddable into host applications written in PureBasic or C.  
+- **Lua-Inspired Syntax**: Familiar, clean, and quick to learn for Lua developers.  
+- **Built for Embedding**: Designed specifically for scriptable apps, game engine logic, and small tooling.  
+- **Syntax Highlighting IDE**: Designed specifically for Vyrn's unique grammar and built-in functions.  
 
 ## Environment  
 
