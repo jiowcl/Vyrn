@@ -7,7 +7,7 @@
   <section name="data">
     <explorer view="C:\ProgramData\PureBasic\Examples\" pattern="0"/>
     <log show="1"/>
-    <lastopen date="2026-08-01 15:52" user="使用者" host="DESKTOP-K1RBCTS"/>
+    <lastopen date="2026-08-03 15:17" user="Fred" host="DESKTOP-AMI620D"/>
   </section>
   <section name="files">
     <file name="VyrnIde.pb">
