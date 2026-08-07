@@ -46,6 +46,9 @@ CompilerIf Defined(Ide_VyrnNative, #PB_Constant) = #False
   Global Ide_Fn_WarningCount.Ide_Proto_WarningCount = 0
   Global Ide_Fn_GetWarning.Ide_Proto_GetWarning = 0
   Global Ide_Fn_CopyString.Ide_Proto_CopyString = 0
+
+  Declare.i Ide_Vyrn_TryOpen(path.s)
+  Declare.i Ide_Vyrn_Load()
   
   ; <summary>
   ; Ide_Vyrn_JoinPath
@@ -124,16 +127,7 @@ CompilerIf Defined(Ide_VyrnNative, #PB_Constant) = #False
   ; Ide_Vyrn_Unload
   ; </summary>
   ; <returns>Returns void.</returns>
-  Procedure Ide_Vyrn_Unload()
-    If Ide_Vyrn_Vm <> 0 And Ide_Fn_Destroy <> 0
-      Ide_Fn_Destroy(Ide_Vyrn_Vm)
-      Ide_Vyrn_Vm = 0
-    EndIf
-    
-    If IsLibrary(#Ide_Vyrn_Lib)
-      CloseLibrary(#Ide_Vyrn_Lib)
-    EndIf
-    
+  Procedure Ide_Vyrn_ResetFns()
     Ide_Fn_AbiVersion = 0
     Ide_Fn_Version = 0
     Ide_Fn_Create = 0
@@ -151,6 +145,36 @@ CompilerIf Defined(Ide_VyrnNative, #PB_Constant) = #False
     Ide_Vyrn_DllPath = ""
     Ide_Vyrn_ProductVer = ""
     Ide_Vyrn_Abi = 0
+    Ide_Vyrn_Vm = 0
+  EndProcedure
+
+  Procedure Ide_Vyrn_Unload()
+    If Ide_Vyrn_Vm <> 0 And Ide_Fn_Destroy <> 0
+      Ide_Fn_Destroy(Ide_Vyrn_Vm)
+      Ide_Vyrn_Vm = 0
+    EndIf
+    
+    If IsLibrary(#Ide_Vyrn_Lib)
+      CloseLibrary(#Ide_Vyrn_Lib)
+    EndIf
+    
+    Ide_Vyrn_ResetFns()
+  EndProcedure
+
+  ; After TerminateThread the VM may be corrupt — drop the library without vyrn_destroy.
+  Procedure.i Ide_Vyrn_ForceReload()
+    Protected saved.s = Ide_Vyrn_DllPath
+    Ide_Vyrn_Vm = 0
+    If IsLibrary(#Ide_Vyrn_Lib)
+      CloseLibrary(#Ide_Vyrn_Lib)
+    EndIf
+    Ide_Vyrn_ResetFns()
+    If saved <> "" And FileSize(saved) >= 0
+      If Ide_Vyrn_TryOpen(saved)
+        ProcedureReturn #True
+      EndIf
+    EndIf
+    ProcedureReturn Ide_Vyrn_Load()
   EndProcedure
   
   ; <summary>

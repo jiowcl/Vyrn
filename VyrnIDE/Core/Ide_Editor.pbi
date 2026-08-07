@@ -51,6 +51,60 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   CompilerIf Defined(STYLE_DEFAULT, #PB_Constant) = #False
     #STYLE_DEFAULT = 32
   CompilerEndIf
+  CompilerIf Defined(SC_MARGIN_SYMBOL, #PB_Constant) = #False
+    #SC_MARGIN_SYMBOL = 0
+  CompilerEndIf
+  CompilerIf Defined(SC_MARK_SHORTARROW, #PB_Constant) = #False
+    #SC_MARK_SHORTARROW = 4
+  CompilerEndIf
+  CompilerIf Defined(SC_MARK_BACKGROUND, #PB_Constant) = #False
+    #SC_MARK_BACKGROUND = 22
+  CompilerEndIf
+  CompilerIf Defined(SCI_MARKERDELETEALL, #PB_Constant) = #False
+    #SCI_MARKERDELETEALL = 2045
+  CompilerEndIf
+  CompilerIf Defined(SCI_MARKERDEFINE, #PB_Constant) = #False
+    #SCI_MARKERDEFINE = 2040
+  CompilerEndIf
+  CompilerIf Defined(SCI_MARKERSETFORE, #PB_Constant) = #False
+    #SCI_MARKERSETFORE = 2041
+  CompilerEndIf
+  CompilerIf Defined(SCI_MARKERSETBACK, #PB_Constant) = #False
+    #SCI_MARKERSETBACK = 2042
+  CompilerEndIf
+  CompilerIf Defined(SCI_MARKERADD, #PB_Constant) = #False
+    #SCI_MARKERADD = 2043
+  CompilerEndIf
+  CompilerIf Defined(SCI_SETMARGINMASKN, #PB_Constant) = #False
+    #SCI_SETMARGINMASKN = 2243
+  CompilerEndIf
+  CompilerIf Defined(SCI_GOTOLINE, #PB_Constant) = #False
+    #SCI_GOTOLINE = 2024
+  CompilerEndIf
+  CompilerIf Defined(SCI_ENSUREVISIBLEENFORCEPOLICY, #PB_Constant) = #False
+    #SCI_ENSUREVISIBLEENFORCEPOLICY = 2234
+  CompilerEndIf
+  CompilerIf Defined(SCI_POSITIONFROMLINE, #PB_Constant) = #False
+    #SCI_POSITIONFROMLINE = 2167
+  CompilerEndIf
+  CompilerIf Defined(SCI_GETLINEENDPOSITION, #PB_Constant) = #False
+    #SCI_GETLINEENDPOSITION = 2136
+  CompilerEndIf
+  CompilerIf Defined(SCI_SETSEL, #PB_Constant) = #False
+    #SCI_SETSEL = 2160
+  CompilerEndIf
+  CompilerIf Defined(SCI_SCROLLCARET, #PB_Constant) = #False
+    #SCI_SCROLLCARET = 2169
+  CompilerEndIf
+  CompilerIf Defined(SCI_GETLINECOUNT, #PB_Constant) = #False
+    #SCI_GETLINECOUNT = 2154
+  CompilerEndIf
+
+  #Ide_MarkError = 1
+  #Ide_MarkWarn = 2
+  #Ide_MarkErrorBack = 3
+  #Ide_MarkWarnBack = 4
+  #Ide_MarginSymbol = 1
 
   Global Ide_FilePath.s = ""
   Global Ide_NeedRestyle.i = #False
@@ -98,11 +152,25 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
     ScintillaSendMessage(#GAD_EDITOR, #SCI_SETCODEPAGE, #SC_CP_UTF8)
     ScintillaSendMessage(#GAD_EDITOR, #SCI_SETMARGINTYPEN, 0, #SC_MARGIN_NUMBER)
     ScintillaSendMessage(#GAD_EDITOR, #SCI_SETMARGINWIDTHN, 0, 48)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_SETMARGINTYPEN, #Ide_MarginSymbol, #SC_MARGIN_SYMBOL)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_SETMARGINWIDTHN, #Ide_MarginSymbol, 16)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_SETMARGINMASKN, #Ide_MarginSymbol, (1 << #Ide_MarkError) | (1 << #Ide_MarkWarn))
     ScintillaSendMessage(#GAD_EDITOR, #SCI_SETTABWIDTH, 2)
     ScintillaSendMessage(#GAD_EDITOR, #SCI_SETUSETABS, 0)
     ScintillaSendMessage(#GAD_EDITOR, #SCI_SETSCROLLWIDTHTRACKING, 1)
     ScintillaSendMessage(#GAD_EDITOR, #SCI_SETEOLMODE, #SC_EOL_LF)
     ScintillaSendMessage(#GAD_EDITOR, #SCI_SETMODEVENTMASK, #SC_MOD_INSERTTEXT | #SC_MOD_DELETETEXT)
+
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERDEFINE, #Ide_MarkError, #SC_MARK_SHORTARROW)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERSETFORE, #Ide_MarkError, RGB(200, 0, 0))
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERSETBACK, #Ide_MarkError, RGB(200, 0, 0))
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERDEFINE, #Ide_MarkWarn, #SC_MARK_SHORTARROW)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERSETFORE, #Ide_MarkWarn, RGB(180, 120, 0))
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERSETBACK, #Ide_MarkWarn, RGB(220, 160, 0))
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERDEFINE, #Ide_MarkErrorBack, #SC_MARK_BACKGROUND)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERSETBACK, #Ide_MarkErrorBack, RGB(255, 220, 220))
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERDEFINE, #Ide_MarkWarnBack, #SC_MARK_BACKGROUND)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERSETBACK, #Ide_MarkWarnBack, RGB(255, 244, 200))
 
     *font = UTF8("Consolas")
     
@@ -113,6 +181,44 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
     
     ScintillaSendMessage(#GAD_EDITOR, #SCI_STYLESETSIZE, #STYLE_DEFAULT, 11)
     Ide_Highlight_ApplyStyles(#GAD_EDITOR)
+  EndProcedure
+
+  Procedure Ide_Editor_ClearDiagnostics()
+    If IsGadget(#GAD_EDITOR) = 0
+      ProcedureReturn
+    EndIf
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERDELETEALL, #Ide_MarkError)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERDELETEALL, #Ide_MarkWarn)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERDELETEALL, #Ide_MarkErrorBack)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERDELETEALL, #Ide_MarkWarnBack)
+  EndProcedure
+
+  ; lineNo is 1-based.
+  Procedure Ide_Editor_GotoDiagnostic(lineNo.i, isWarn.i = #False)
+    Protected lineCount.i, line0.i, pos.i, endPos.i
+    If IsGadget(#GAD_EDITOR) = 0 Or lineNo < 1
+      ProcedureReturn
+    EndIf
+    lineCount = ScintillaSendMessage(#GAD_EDITOR, #SCI_GETLINECOUNT)
+    If lineNo > lineCount
+      lineNo = lineCount
+    EndIf
+    line0 = lineNo - 1
+    Ide_Editor_ClearDiagnostics()
+    If isWarn
+      ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERADD, line0, #Ide_MarkWarn)
+      ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERADD, line0, #Ide_MarkWarnBack)
+    Else
+      ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERADD, line0, #Ide_MarkError)
+      ScintillaSendMessage(#GAD_EDITOR, #SCI_MARKERADD, line0, #Ide_MarkErrorBack)
+    EndIf
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_ENSUREVISIBLEENFORCEPOLICY, line0)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_GOTOLINE, line0)
+    pos = ScintillaSendMessage(#GAD_EDITOR, #SCI_POSITIONFROMLINE, line0)
+    endPos = ScintillaSendMessage(#GAD_EDITOR, #SCI_GETLINEENDPOSITION, line0)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_SETSEL, pos, endPos)
+    ScintillaSendMessage(#GAD_EDITOR, #SCI_SCROLLCARET)
+    Ide_Editor_UpdateCaretStatus()
   EndProcedure
   
   ; <summary>

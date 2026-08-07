@@ -7,20 +7,24 @@
   <section name="data">
     <explorer view="C:\ProgramData\PureBasic\Examples\" pattern="0"/>
     <log show="1"/>
-    <lastopen date="2026-08-03 15:17" user="Fred" host="DESKTOP-AMI620D"/>
+    <lastopen date="2026-08-07 19:37" user="使用者" host="DESKTOP-K1RBCTS"/>
   </section>
   <section name="files">
     <file name="VyrnIde.pb">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="+"/>
-      <fingerprint md5="101f86a92c8cd1d3de62e1bae3017227"/>
+      <fingerprint md5="71442e6d18dd3e1b4089763a9faf6e63"/>
     </file>
     <file name="Core\Ide_Commands.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="bff98611dd63aa2ee9e86bfa335995d1"/>
+      <fingerprint md5="f426c82251022f6f2de2fc0a73c091d7"/>
+    </file>
+    <file name="Core\Ide_Diag.pbi">
+      <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
+      <fingerprint md5="f6cfc716cd69896a4a10c2d57673ed9e"/>
     </file>
     <file name="Core\Ide_Editor.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="d9f36cda6ee1fe5865ea6dc0d4f18fce"/>
+      <fingerprint md5="0e6a42a15f66185a2a925dd9bea3c766"/>
     </file>
     <file name="Core\Ide_Highlight.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
@@ -28,15 +32,15 @@
     </file>
     <file name="Core\Ide_Runner.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="2b49aedb0de20f0f9906b14e4f6faf26"/>
+      <fingerprint md5="7e473b1339618e0af9bf1ddd99938cc3"/>
     </file>
     <file name="Core\Ide_VyrnNative.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="bf6290ab41730895159a27bffbc5a26e"/>
+      <fingerprint md5="dea1c9f15fe6f68f1fbfbba58396f7cc"/>
     </file>
     <file name="Core\Ide_Ui.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="1dd10b072476e8d6f0d67335e00bf7ad"/>
+      <fingerprint md5="ed10955e219aa682dd2ea271c22eae0d"/>
     </file>
   </section>
   <section name="targets">

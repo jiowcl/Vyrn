@@ -22,13 +22,10 @@ XIncludeFile ".\Core\Ide_Ui.pbi"
 XIncludeFile ".\Core\Ide_Highlight.pbi"
 XIncludeFile ".\Core\Ide_VyrnNative.pbi"
 XIncludeFile ".\Core\Ide_Editor.pbi"
+XIncludeFile ".\Core\Ide_Diag.pbi"
 XIncludeFile ".\Core\Ide_Runner.pbi"
 XIncludeFile ".\Core\Ide_Commands.pbi"
 
-; <summary>
-; Ide_ErrorHandler
-; </summary>
-; <returns>Returns void.</returns>
 Procedure Ide_ErrorHandler()
   MessageRequester("Vyrn IDE", "Unexpected runtime error:" + Chr(10) + ErrorMessage(), #PB_MessageRequester_Error)
 EndProcedure
@@ -45,14 +42,12 @@ Ide_Ui_Layout()
 Ide_Runner_Init()
 
 If Ide_Vyrn_IsReady() = 0 And Ide_Vyrn_LastError <> ""
-  ; Non-fatal: allow editing; Run will surface the same message.
   Ide_Ui_OutputAppend("[warn] " + ReplaceString(Ide_Vyrn_LastError, Chr(10), " | "))
 EndIf
 
 Define.s bootPath = ""
 If CountProgramParameters() > 0
   bootPath = ProgramParameter(0)
-  
   If FileSize(bootPath) >= 0
     Ide_Editor_LoadFile(bootPath)
   Else
@@ -68,6 +63,7 @@ Define quit.i = #False
 Repeat
   event = WaitWindowEvent(50)
   Ide_Editor_PollRestyle()
+  Ide_Runner_Poll()
 
   Select event
     Case #PB_Event_Menu
@@ -81,12 +77,21 @@ Repeat
           Ide_Cmd_Save()
         Case #GAD_TOOL_RUN
           Ide_Runner_Run()
+        Case #GAD_TOOL_STOP
+          Ide_Runner_Stop()
+        Case #GAD_OUTPUT
+          If EventType() = #PB_EventType_LeftDoubleClick
+            Ide_Runner_JumpFromOutput()
+          EndIf
       EndSelect
 
     Case #PB_Event_SizeWindow
       Ide_Ui_Layout()
 
     Case #PB_Event_CloseWindow
+      If Ide_Runner_IsBusy()
+        Ide_Runner_Stop()
+      EndIf
       If Ide_Editor_ConfirmSaveIfNeeded()
         quit = #True
       EndIf
@@ -96,15 +101,3 @@ Until quit
 
 Ide_Runner_Shutdown()
 End
-
-; IDE Options = PureBasic 6.40 (Windows - x64)
-; CursorPosition = 54
-; FirstLine = 19
-; Folding = -
-; Optimizer
-; EnableAsm
-; EnableXP
-; DPIAware
-; EnableOnError
-; DisableDebugger
-; CompileSourceDirectory

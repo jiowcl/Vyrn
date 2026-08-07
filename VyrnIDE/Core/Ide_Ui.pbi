@@ -17,6 +17,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     #GAD_TOOL_OPEN = 0
     #GAD_TOOL_SAVE
     #GAD_TOOL_RUN
+    #GAD_TOOL_STOP
     #GAD_EDITOR
     #GAD_OUTPUT
     #GAD_STATUS
@@ -39,6 +40,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     #MNU_COPY
     #MNU_PASTE
     #MNU_RUN
+    #MNU_STOP
     #MNU_ABOUT
   EndEnumeration
 
@@ -50,11 +52,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   #Ide_MinOutH = 80
 
   Global Ide_OutputHeight.i = #Ide_DefaultOutH
-  
-  ; <summary>
-  ; Ide_Ui_CreateMenus
-  ; </summary>
-  ; <returns>Returns void.</returns>
+
   Procedure Ide_Ui_CreateMenus()
     CreateMenu(#MENU_MAIN, WindowID(#WIN_IDE))
     MenuTitle("File")
@@ -73,14 +71,11 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     MenuItem(#MNU_PASTE, "Paste" + Chr(9) + "Ctrl+V")
     MenuTitle("Run")
     MenuItem(#MNU_RUN, "Run" + Chr(9) + "F5")
+    MenuItem(#MNU_STOP, "Stop" + Chr(9) + "Shift+F5")
     MenuTitle("Help")
     MenuItem(#MNU_ABOUT, "About Vyrn IDE")
   EndProcedure
-  
-  ; <summary>
-  ; Ide_Ui_Layout
-  ; </summary>
-  ; <returns>Returns void.</returns>
+
   Procedure Ide_Ui_Layout()
     Protected ww.i = WindowWidth(#WIN_IDE)
     Protected wh.i = WindowHeight(#WIN_IDE)
@@ -92,28 +87,23 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     If IsWindow(#WIN_IDE) = 0
       ProcedureReturn
     EndIf
-    
+
     If ww < 200 : ww = 200 : EndIf
     If wh < 240 : wh = 240 : EndIf
 
     maxOut = wh - top - #Ide_StatusH - #Ide_SplitH - #Ide_MinEditorH
-    
     If maxOut < #Ide_MinOutH
       maxOut = #Ide_MinOutH
     EndIf
-    
     If outH > maxOut
       outH = maxOut
     EndIf
-    
     If outH < #Ide_MinOutH
       outH = #Ide_MinOutH
     EndIf
-    
     Ide_OutputHeight = outH
 
     editorH = wh - top - #Ide_SplitH - outH - #Ide_StatusH
-    
     If editorH < #Ide_MinEditorH
       editorH = #Ide_MinEditorH
     EndIf
@@ -121,19 +111,16 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     If IsGadget(#GAD_TOOL_OPEN) : ResizeGadget(#GAD_TOOL_OPEN, 8, 6, 70, 24) : EndIf
     If IsGadget(#GAD_TOOL_SAVE) : ResizeGadget(#GAD_TOOL_SAVE, 86, 6, 70, 24) : EndIf
     If IsGadget(#GAD_TOOL_RUN) : ResizeGadget(#GAD_TOOL_RUN, 164, 6, 70, 24) : EndIf
+    If IsGadget(#GAD_TOOL_STOP) : ResizeGadget(#GAD_TOOL_STOP, 242, 6, 70, 24) : EndIf
     If IsGadget(#GAD_EDITOR) : ResizeGadget(#GAD_EDITOR, 0, top, ww, editorH) : EndIf
     If IsGadget(#GAD_SPLIT) : ResizeGadget(#GAD_SPLIT, 0, top + editorH, ww, #Ide_SplitH) : EndIf
     If IsGadget(#GAD_OUTPUT) : ResizeGadget(#GAD_OUTPUT, 0, top + editorH + #Ide_SplitH, ww, outH) : EndIf
     If IsGadget(#GAD_STATUS) : ResizeGadget(#GAD_STATUS, 0, wh - #Ide_StatusH, ww, #Ide_StatusH) : EndIf
   EndProcedure
-  
-  ; <summary>
-  ; Ide_Ui_CreateWindow
-  ; </summary>
-  ; <returns>Returns integer.</returns>
+
   Procedure.i Ide_Ui_CreateWindow()
     Protected flags.i = #PB_Window_SystemMenu | #PB_Window_MinimizeGadget | #PB_Window_MaximizeGadget | #PB_Window_SizeGadget | #PB_Window_ScreenCentered
-    
+
     If OpenWindow(#WIN_IDE, 0, 0, 960, 640, "Vyrn IDE", flags) = 0
       ProcedureReturn #False
     EndIf
@@ -143,6 +130,8 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     ButtonGadget(#GAD_TOOL_OPEN, 8, 6, 70, 24, "Open")
     ButtonGadget(#GAD_TOOL_SAVE, 86, 6, 70, 24, "Save")
     ButtonGadget(#GAD_TOOL_RUN, 164, 6, 70, 24, "Run")
+    ButtonGadget(#GAD_TOOL_STOP, 242, 6, 70, 24, "Stop")
+    DisableGadget(#GAD_TOOL_STOP, #True)
 
     TextGadget(#GAD_SPLIT, 0, 0, 10, #Ide_SplitH, "", #PB_Text_Border)
     SetGadgetColor(#GAD_SPLIT, #PB_Gadget_BackColor, RGB(200, 200, 200))
@@ -151,47 +140,31 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     TextGadget(#GAD_STATUS, 0, 0, 10, #Ide_StatusH, "Ready", #PB_Text_Border)
 
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_F5, #MNU_RUN)
+    AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Shift | #PB_Shortcut_F5, #MNU_STOP)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_N, #MNU_NEW)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_O, #MNU_OPEN)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_S, #MNU_SAVE)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_Z, #MNU_UNDO)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_Y, #MNU_REDO)
 
+    DisableMenuItem(#MENU_MAIN, #MNU_STOP, #True)
     ProcedureReturn #True
   EndProcedure
-  
-  ; <summary>
-  ; Ide_Ui_SetStatus
-  ; </summary>
-  ; <param name="msg">string</param>
-  ; <returns>Returns void.</returns>
+
   Procedure Ide_Ui_SetStatus(msg.s)
     SetGadgetText(#GAD_STATUS, msg)
   EndProcedure
-  
-  ; <summary>
-  ; Ide_Ui_OutputClear
-  ; </summary>
-  ; <returns>Returns void.</returns>
+
   Procedure Ide_Ui_OutputClear()
     SetGadgetText(#GAD_OUTPUT, "")
   EndProcedure
-  
-  ; <summary>
-  ; Ide_Ui_OutputAppend
-  ; </summary>
-  ; <param name="line">string</param>
-  ; <returns>Returns void.</returns>
+
   Procedure Ide_Ui_OutputAppend(line.s)
     Protected cur.s = GetGadgetText(#GAD_OUTPUT)
-    
     If cur <> "" And Right(cur, 1) <> Chr(10)
       cur = cur + Chr(10)
     EndIf
-    
     SetGadgetText(#GAD_OUTPUT, cur + line + Chr(10))
-    
-    ; Keep caret at end so the panel scrolls with new output.
     CompilerIf #PB_Compiler_OS = #PB_OS_Windows
       SendMessage_(GadgetID(#GAD_OUTPUT), #EM_SETSEL, -1, -1)
       SendMessage_(GadgetID(#GAD_OUTPUT), #EM_SCROLLCARET, 0, 0)
@@ -199,15 +172,3 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
-
-; IDE Options = PureBasic 6.40 (Windows - x64)
-; CursorPosition = 192
-; FirstLine = 151
-; Folding = --
-; Optimizer
-; EnableAsm
-; EnableXP
-; DPIAware
-; EnableOnError
-; DisableDebugger
-; CompileSourceDirectory

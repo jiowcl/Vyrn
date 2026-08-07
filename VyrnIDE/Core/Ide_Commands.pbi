@@ -86,11 +86,15 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
   ; </summary>
   ; <returns>Returns void.</returns>
   Procedure Ide_Cmd_New()
+    If Ide_Runner_IsBusy()
+      MessageRequester("Vyrn IDE", "Stop the running script before creating a new file.", #PB_MessageRequester_Info)
+      ProcedureReturn
+    EndIf
     If Ide_Editor_ConfirmSaveIfNeeded() = 0
       ProcedureReturn
     EndIf
-    
     Ide_Editor_New()
+    Ide_Editor_ClearDiagnostics()
     Ide_Ui_OutputClear()
     Ide_Ui_SetStatus("New file")
   EndProcedure
@@ -101,18 +105,19 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
   ; <returns>Returns void.</returns>
   Procedure Ide_Cmd_Open()
     Protected path.s
-    
+    If Ide_Runner_IsBusy()
+      MessageRequester("Vyrn IDE", "Stop the running script before opening another file.", #PB_MessageRequester_Info)
+      ProcedureReturn
+    EndIf
     If Ide_Editor_ConfirmSaveIfNeeded() = 0
       ProcedureReturn
     EndIf
-    
     path = OpenFileRequester("Open Vyrn script", "", "Vyrn (*.vyrn)|*.vyrn|LuaLite (*.lua)|*.lua|All (*.*)|*.*", 0)
-    
     If path = ""
       ProcedureReturn
     EndIf
-    
     If Ide_Editor_LoadFile(path)
+      Ide_Editor_ClearDiagnostics()
       Ide_Ui_OutputClear()
       Ide_Ui_SetStatus("Opened " + path)
     Else
@@ -159,6 +164,9 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
       Case #MNU_SAVEAS
         Ide_Cmd_SaveAs()
       Case #MNU_EXIT
+        If Ide_Runner_IsBusy()
+          Ide_Runner_Stop()
+        EndIf
         If Ide_Editor_ConfirmSaveIfNeeded()
           End
         EndIf
@@ -174,6 +182,8 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
         Ide_Editor_Paste()
       Case #MNU_RUN
         Ide_Runner_Run()
+      Case #MNU_STOP
+        Ide_Runner_Stop()
       Case #MNU_ABOUT
         Ide_Cmd_About()
     EndSelect
