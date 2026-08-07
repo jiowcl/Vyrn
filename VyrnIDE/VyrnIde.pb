@@ -20,7 +20,7 @@ CompilerEndIf
 
 XIncludeFile ".\Core\Ide_Ui.pbi"
 XIncludeFile ".\Core\Ide_Highlight.pbi"
-XIncludeFile ".\Core\Ide_VyrnNative.pbi"
+XIncludeFile ".\Core\Ide_VyrnNative.pbi" ; -> include/vyrn.pbi + Ide_Vyrn_* aliases
 XIncludeFile ".\Core\Ide_Editor.pbi"
 XIncludeFile ".\Core\Ide_Diag.pbi"
 XIncludeFile ".\Core\Ide_Runner.pbi"

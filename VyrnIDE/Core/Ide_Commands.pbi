@@ -90,9 +90,11 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
       MessageRequester("Vyrn IDE", "Stop the running script before creating a new file.", #PB_MessageRequester_Info)
       ProcedureReturn
     EndIf
+    
     If Ide_Editor_ConfirmSaveIfNeeded() = 0
       ProcedureReturn
     EndIf
+    
     Ide_Editor_New()
     Ide_Editor_ClearDiagnostics()
     Ide_Ui_OutputClear()
@@ -105,17 +107,22 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
   ; <returns>Returns void.</returns>
   Procedure Ide_Cmd_Open()
     Protected path.s
+    
     If Ide_Runner_IsBusy()
       MessageRequester("Vyrn IDE", "Stop the running script before opening another file.", #PB_MessageRequester_Info)
       ProcedureReturn
     EndIf
+    
     If Ide_Editor_ConfirmSaveIfNeeded() = 0
       ProcedureReturn
     EndIf
+    
     path = OpenFileRequester("Open Vyrn script", "", "Vyrn (*.vyrn)|*.vyrn|LuaLite (*.lua)|*.lua|All (*.*)|*.*", 0)
+    
     If path = ""
       ProcedureReturn
     EndIf
+    
     If Ide_Editor_LoadFile(path)
       Ide_Editor_ClearDiagnostics()
       Ide_Ui_OutputClear()
@@ -192,8 +199,7 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
 CompilerEndIf
 
 ; IDE Options = PureBasic 6.40 (Windows - x64)
-; CursorPosition = 136
-; FirstLine = 111
+; CursorPosition = 92
 ; Folding = --
 ; Optimizer
 ; EnableAsm

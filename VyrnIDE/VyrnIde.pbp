@@ -7,20 +7,20 @@
   <section name="data">
     <explorer view="C:\ProgramData\PureBasic\Examples\" pattern="0"/>
     <log show="1"/>
-    <lastopen date="2026-08-07 19:37" user="使用者" host="DESKTOP-K1RBCTS"/>
+    <lastopen date="2026-08-07 20:00" user="使用者" host="DESKTOP-K1RBCTS"/>
   </section>
   <section name="files">
     <file name="VyrnIde.pb">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="+"/>
-      <fingerprint md5="71442e6d18dd3e1b4089763a9faf6e63"/>
+      <fingerprint md5="90fbe502a8556725bb24d1e3a9e73ccc"/>
     </file>
     <file name="Core\Ide_Commands.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="f426c82251022f6f2de2fc0a73c091d7"/>
+      <fingerprint md5="5a3d56122a8f318c1dad3107333fa853"/>
     </file>
     <file name="Core\Ide_Diag.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="f6cfc716cd69896a4a10c2d57673ed9e"/>
+      <fingerprint md5="ba762a0287e5869917021ca6900759fe"/>
     </file>
     <file name="Core\Ide_Editor.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
@@ -32,15 +32,15 @@
     </file>
     <file name="Core\Ide_Runner.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="7e473b1339618e0af9bf1ddd99938cc3"/>
+      <fingerprint md5="28dba739ed5d75a9b7102b6898292a83"/>
     </file>
     <file name="Core\Ide_VyrnNative.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="dea1c9f15fe6f68f1fbfbba58396f7cc"/>
+      <fingerprint md5="4db513a5299f9a02a41dcce248a33dd5"/>
     </file>
     <file name="Core\Ide_Ui.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="ed10955e219aa682dd2ea271c22eae0d"/>
+      <fingerprint md5="93eb3d2157d84f7640a58c6b9f524c0b"/>
     </file>
   </section>
   <section name="targets">

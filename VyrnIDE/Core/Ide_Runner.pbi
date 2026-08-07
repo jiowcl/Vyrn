@@ -36,20 +36,36 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
 
   Declare Ide_Runner_SetUiRunning(running.i)
   Declare Ide_Runner_Enqueue(kind.i, text.s)
-
+  
+  ; <summary>
+  ; Ide_Runner_PrintLog
+  ; </summary>
+  ; <param name="*userdata">pointer</param>
+  ; <param name="*msg">pointer</param>
+  ; <returns>Returns void.</returns>
   ProcedureC Ide_Runner_PrintLog(*userdata, *msg)
     Protected line.s
+    
     If *msg = 0
       ProcedureReturn
     EndIf
+    
     line = PeekS(*msg, -1, #PB_UTF8)
+    
     Ide_Runner_Enqueue(#Ide_OutKind_Print, line)
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_Enqueue
+  ; </summary>
+  ; <param name="kind">integer</param>
+  ; <param name="text">string</param>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Enqueue(kind.i, text.s)
     If Ide_RunMutex = 0
       ProcedureReturn
     EndIf
+    
     LockMutex(Ide_RunMutex)
     LastElement(Ide_OutQueue())
     AddElement(Ide_OutQueue())
@@ -57,96 +73,150 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     Ide_OutQueue()\text = text
     UnlockMutex(Ide_RunMutex)
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_ClearQueue
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_ClearQueue()
     If Ide_RunMutex = 0
       ProcedureReturn
     EndIf
+    
     LockMutex(Ide_RunMutex)
     ClearList(Ide_OutQueue())
     UnlockMutex(Ide_RunMutex)
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_SetUiRunning
+  ; </summary>
+  ; <param name="running">integer</param>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_SetUiRunning(running.i)
     If IsGadget(#GAD_TOOL_RUN)
       DisableGadget(#GAD_TOOL_RUN, running)
     EndIf
+    
     If IsGadget(#GAD_TOOL_STOP)
       DisableGadget(#GAD_TOOL_STOP, Bool(running = 0))
     EndIf
+    
     DisableMenuItem(#MENU_MAIN, #MNU_RUN, running)
     DisableMenuItem(#MENU_MAIN, #MNU_STOP, Bool(running = 0))
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_IsBusy
+  ; </summary>
+  ; <returns>Returns integer.</returns>
   Procedure.i Ide_Runner_IsBusy()
     ProcedureReturn Ide_RunBusy
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_Init
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Init()
     If Ide_RunnerReady
       ProcedureReturn
     EndIf
+    
     If Ide_RunMutex = 0
       Ide_RunMutex = CreateMutex()
     EndIf
+    
     Ide_Runner_SetUiRunning(#False)
+    
     If Ide_Vyrn_Ensure()
       Ide_Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
       Ide_Ui_SetStatus("Ready | Vyrn " + Ide_Vyrn_ProductVersion() + " (ABI " + Str(Ide_Vyrn_Abi) + ")")
     Else
       Ide_Ui_SetStatus("Ready | Vyrn.dll not loaded — editing only")
     EndIf
+    
     Ide_RunnerReady = #True
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_Shutdown
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Shutdown()
     If Ide_RunBusy And Ide_RunThread
       If IsThread(Ide_RunThread)
         KillThread(Ide_RunThread)
       EndIf
+      
       Ide_RunBusy = #False
       Ide_RunThread = 0
+      
       Ide_Vyrn_ForceReload()
     EndIf
+    
     Ide_Vyrn_Unload()
     Ide_RunnerReady = #False
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_ShowDllError
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_ShowDllError()
     Protected msg.s = Ide_Vyrn_LastError
+    
     If msg = ""
       msg = "Vyrn.dll is not available."
     EndIf
+    
     Ide_Ui_OutputAppend("[error] " + ReplaceString(msg, Chr(10), " | "))
     MessageRequester("Vyrn IDE", msg, #PB_MessageRequester_Error)
     Ide_Ui_SetStatus("Ready | Vyrn.dll not loaded")
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_Thread
+  ; </summary>
+  ; <param name="*unused">pointer</param>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Thread(*unused)
     Protected ok.i, i.i, n.i, w.s
+    
     Ide_Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
+    
     If Ide_RunUseEval
       ok = Ide_Vyrn_Eval(Ide_RunSource)
     Else
       ok = Ide_Vyrn_RunFile(Ide_RunPath)
     EndIf
+    
     Ide_RunElapsed = ElapsedMilliseconds() - Ide_RunT0
     Ide_RunOk = ok
+    
     If ok = 0
       Ide_RunErr = Ide_Vyrn_LastError
     Else
       Ide_RunErr = ""
     EndIf
+    
     n = Ide_Vyrn_WarningCount()
+    
     For i = 0 To n - 1
       w = Ide_Vyrn_GetWarning(i)
+      
       If w <> ""
         Ide_Runner_Enqueue(#Ide_OutKind_Warn, w)
       EndIf
     Next
+    
     Ide_RunDone = #True
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_Finish
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Finish()
     Protected jumpMsg.s = "", jumpWarn.i = #False
     Ide_RunBusy = #False
@@ -177,27 +247,38 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     If jumpMsg <> ""
       Ide_Diag_JumpFromMessage(jumpMsg, #False)
     EndIf
+    
     Ide_Editor_UpdateCaretStatus()
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_DrainQueue
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_DrainQueue()
     Protected kind.i, text.s
     Protected NewList localQ.Ide_OutItem()
+    
     If Ide_RunMutex = 0
       ProcedureReturn
     EndIf
+    
     LockMutex(Ide_RunMutex)
+    
     ForEach Ide_OutQueue()
       AddElement(localQ())
       localQ()\kind = Ide_OutQueue()\kind
       localQ()\text = Ide_OutQueue()\text
     Next
+    
     ClearList(Ide_OutQueue())
     UnlockMutex(Ide_RunMutex)
 
     ForEach localQ()
+      
       kind = localQ()\kind
       text = localQ()\text
+      
       Select kind
         Case #Ide_OutKind_Warn
           Ide_Ui_OutputAppend("[warn] " + text)
@@ -214,27 +295,40 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
       EndSelect
     Next
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_Poll
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Poll()
     Ide_Runner_DrainQueue()
+    
     If Ide_RunBusy And Ide_RunDone
       Ide_RunDone = #False
       Ide_Runner_DrainQueue()
       Ide_Runner_Finish()
     EndIf
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_Stop
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Stop()
     If Ide_RunBusy = 0
       ProcedureReturn
     EndIf
+    
     Ide_RunStopped = #True
     Ide_RunDone = #False
+    
     If Ide_RunThread And IsThread(Ide_RunThread)
       KillThread(Ide_RunThread)
     EndIf
+    
     Ide_RunThread = 0
     Ide_RunBusy = #False
+    
     Ide_Vyrn_ForceReload()
     Ide_Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
     Ide_Runner_ClearQueue()
@@ -242,24 +336,34 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     Ide_Ui_OutputAppend("[stopped] execution terminated")
     Ide_Ui_SetStatus("Ready | last run stopped")
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_JumpFromOutput
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_JumpFromOutput()
     Protected hwnd.i, lineIdx.i, lineStart.i, lineLen.i, *buf, text.s
+    
     If IsGadget(#GAD_OUTPUT) = 0
       ProcedureReturn
     EndIf
+    
     CompilerIf #PB_Compiler_OS = #PB_OS_Windows
       hwnd = GadgetID(#GAD_OUTPUT)
       lineIdx = SendMessage_(hwnd, #EM_LINEFROMCHAR, -1, 0)
       lineStart = SendMessage_(hwnd, #EM_LINEINDEX, lineIdx, 0)
       lineLen = SendMessage_(hwnd, #EM_LINELENGTH, lineStart, 0)
+      
       If lineLen < 0
         ProcedureReturn
       EndIf
+      
       *buf = AllocateMemory(lineLen + 4)
+      
       If *buf = 0
         ProcedureReturn
       EndIf
+      
       PokeW(*buf, lineLen + 1)
       SendMessage_(hwnd, #EM_GETLINE, lineIdx, *buf)
       text = PeekS(*buf, -1, #PB_Unicode)
@@ -267,16 +371,22 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     CompilerElse
       text = ""
     CompilerEndIf
+    
     If text = ""
       ProcedureReturn
     EndIf
+    
     If FindString(LCase(text), "[warn]", 1)
       Ide_Diag_JumpFromMessage(text, #True)
     Else
       Ide_Diag_JumpFromMessage(text, #False)
     EndIf
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Runner_Run
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Run()
     Protected path.s, text.s, useEval.i
 
@@ -292,6 +402,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
       Ide_Runner_ShowDllError()
       ProcedureReturn
     EndIf
+    
     Ide_Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
 
     text = Ide_Editor_GetText()
@@ -305,6 +416,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
         Ide_Editor_UpdateCaretStatus()
         ProcedureReturn
       EndIf
+      
       path = Ide_FilePath
     Else
       useEval = #True
@@ -327,6 +439,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     Ide_Runner_SetUiRunning(#True)
 
     Ide_RunThread = CreateThread(@Ide_Runner_Thread(), 0)
+    
     If Ide_RunThread = 0
       Ide_RunBusy = #False
       Ide_Runner_SetUiRunning(#False)
@@ -336,3 +449,15 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+
+; IDE Options = PureBasic 6.40 (Windows - x64)
+; CursorPosition = 441
+; FirstLine = 401
+; Folding = ---
+; Optimizer
+; EnableAsm
+; EnableXP
+; DPIAware
+; EnableOnError
+; DisableDebugger
+; CompileSourceDirectory

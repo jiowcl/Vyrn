@@ -52,7 +52,11 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   #Ide_MinOutH = 80
 
   Global Ide_OutputHeight.i = #Ide_DefaultOutH
-
+  
+  ; <summary>
+  ; Ide_Ui_CreateMenus
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Ui_CreateMenus()
     CreateMenu(#MENU_MAIN, WindowID(#WIN_IDE))
     MenuTitle("File")
@@ -75,7 +79,11 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     MenuTitle("Help")
     MenuItem(#MNU_ABOUT, "About Vyrn IDE")
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Ui_Layout
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Ui_Layout()
     Protected ww.i = WindowWidth(#WIN_IDE)
     Protected wh.i = WindowHeight(#WIN_IDE)
@@ -92,18 +100,23 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     If wh < 240 : wh = 240 : EndIf
 
     maxOut = wh - top - #Ide_StatusH - #Ide_SplitH - #Ide_MinEditorH
+    
     If maxOut < #Ide_MinOutH
       maxOut = #Ide_MinOutH
     EndIf
+    
     If outH > maxOut
       outH = maxOut
     EndIf
+    
     If outH < #Ide_MinOutH
       outH = #Ide_MinOutH
     EndIf
+    
     Ide_OutputHeight = outH
 
     editorH = wh - top - #Ide_SplitH - outH - #Ide_StatusH
+    
     If editorH < #Ide_MinEditorH
       editorH = #Ide_MinEditorH
     EndIf
@@ -148,23 +161,41 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_Y, #MNU_REDO)
 
     DisableMenuItem(#MENU_MAIN, #MNU_STOP, #True)
+    
     ProcedureReturn #True
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Ui_SetStatus
+  ; </summary>
+  ; <param name="msg">string</param>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Ui_SetStatus(msg.s)
     SetGadgetText(#GAD_STATUS, msg)
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Ui_OutputClear
+  ; </summary>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Ui_OutputClear()
     SetGadgetText(#GAD_OUTPUT, "")
   EndProcedure
-
+  
+  ; <summary>
+  ; Ide_Ui_OutputAppend
+  ; </summary>
+  ; <param name="line">string</param>
+  ; <returns>Returns void.</returns>
   Procedure Ide_Ui_OutputAppend(line.s)
     Protected cur.s = GetGadgetText(#GAD_OUTPUT)
+    
     If cur <> "" And Right(cur, 1) <> Chr(10)
       cur = cur + Chr(10)
     EndIf
+    
     SetGadgetText(#GAD_OUTPUT, cur + line + Chr(10))
+    
     CompilerIf #PB_Compiler_OS = #PB_OS_Windows
       SendMessage_(GadgetID(#GAD_OUTPUT), #EM_SETSEL, -1, -1)
       SendMessage_(GadgetID(#GAD_OUTPUT), #EM_SCROLLCARET, 0, 0)
@@ -172,3 +203,14 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+
+; IDE Options = PureBasic 6.40 (Windows - x64)
+; CursorPosition = 58
+; Folding = --
+; Optimizer
+; EnableAsm
+; EnableXP
+; DPIAware
+; EnableOnError
+; DisableDebugger
+; CompileSourceDirectory
