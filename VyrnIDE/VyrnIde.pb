@@ -26,6 +26,9 @@ XIncludeFile ".\Core\Ide_Diag.pbi"
 XIncludeFile ".\Core\Ide_Runner.pbi"
 XIncludeFile ".\Core\Ide_Commands.pbi"
 
+; <summary>
+; Global OnError handler: show Unexpected runtime error dialog.
+; </summary>
 Procedure Ide_ErrorHandler()
   MessageRequester("Vyrn IDE", "Unexpected runtime error:" + Chr(10) + ErrorMessage(), #PB_MessageRequester_Error)
 EndProcedure
@@ -48,6 +51,7 @@ EndIf
 Define.s bootPath = ""
 If CountProgramParameters() > 0
   bootPath = ProgramParameter(0)
+  
   If FileSize(bootPath) >= 0
     Ide_Editor_LoadFile(bootPath)
   Else
@@ -114,7 +118,8 @@ Ide_Runner_Shutdown()
 End
 
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 20
+; CursorPosition = 53
+; FirstLine = 69
 ; Folding = -
 ; Optimizer
 ; EnableAsm

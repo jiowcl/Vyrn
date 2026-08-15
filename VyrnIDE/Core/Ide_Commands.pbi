@@ -10,9 +10,9 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
   #Ide_Commands = #True
   
   ; <summary>
-  ; Ide_Cmd_Save
+  ; Save the active tab to its path, or prompt for a path when untitled.
   ; </summary>
-  ; <returns>Returns integer.</returns>
+  ; <returns>#True on success; #False on cancel or write failure.</returns>
   Procedure.i Ide_Cmd_Save()
     Protected path.s
     
@@ -49,9 +49,9 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Cmd_SaveAs
+  ; Prompt for a new path and save the active tab (Save As).
   ; </summary>
-  ; <returns>Returns integer.</returns>
+  ; <returns>#True on success; #False on cancel or write failure.</returns>
   Procedure.i Ide_Cmd_SaveAs()
     Protected path.s
     Protected start.s = Ide_FilePath
@@ -81,6 +81,9 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
     ProcedureReturn #False
   EndProcedure
   
+  ; <summary>
+  ; Open a new untitled buffer; blocked while a script is running.
+  ; </summary>
   Procedure Ide_Cmd_New()
     If Ide_Runner_IsBusy()
       MessageRequester("Vyrn IDE", "Stop the running script before creating a new file.", #PB_MessageRequester_Info)
@@ -90,6 +93,9 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
     Ide_Ui_SetStatus("New file")
   EndProcedure
 
+  ; <summary>
+  ; Open a .vyrn/.lua file via requester; blocked while a script is running.
+  ; </summary>
   Procedure Ide_Cmd_Open()
     Protected path.s
     If Ide_Runner_IsBusy()
@@ -107,6 +113,9 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
     EndIf
   EndProcedure
 
+  ; <summary>
+  ; Close the active tab after optional save prompt; blocked while running.
+  ; </summary>
   Procedure Ide_Cmd_CloseTab()
     If Ide_Runner_IsBusy()
       MessageRequester("Vyrn IDE", "Stop the running script before closing a tab.", #PB_MessageRequester_Info)
@@ -115,15 +124,18 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
     Ide_Editor_CloseTab()
   EndProcedure
 
+  ; <summary>
+  ; Show the find bar (and focus replace field when requested).
+  ; </summary>
+  ; <param name="showReplace">#True to focus the replace string gadget.</param>
   Procedure Ide_Cmd_ShowFind(showReplace.i = #False)
     Ide_Ui_ShowFind(showReplace)
     Ide_Editor_ResizeEditors()
   EndProcedure
   
   ; <summary>
-  ; Ide_Cmd_About
+  ; Show About dialog with author, runtime version, ABI, and DLL path.
   ; </summary>
-  ; <returns>Returns void.</returns>
   Procedure Ide_Cmd_About()
     Protected msg.s
     Protected dllHint.s
@@ -144,10 +156,9 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Cmd_Dispatch
+  ; Route a menu/toolbar/shortcut id (#MNU_*) to the matching command.
   ; </summary>
-  ; <param name="menuId">integer</param>
-  ; <returns>Returns void.</returns>
+  ; <param name="menuId">Menu constant such as #MNU_SAVE or #MNU_RUN.</param>
   Procedure Ide_Cmd_Dispatch(menuId.i)
     Select menuId
       Case #MNU_NEW

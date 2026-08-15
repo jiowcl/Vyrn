@@ -10,8 +10,10 @@ CompilerIf Defined(Ide_Diag, #PB_Constant) = #False
   #Ide_Diag = #True
 
   ; <summary>
-  ; Strip [error]/[warn]/>>> prefixes for parsing.
+  ; Remove leading [error]/[warn]/>>> prefixes before line parsing.
   ; </summary>
+  ; <param name="msg">Raw diagnostic or output line.</param>
+  ; <returns>Trimmed message body without the known prefix.</returns>
   Procedure.s Ide_Diag_StripPrefix(msg.s)
     Protected s.s = Trim(msg)
     
@@ -27,9 +29,11 @@ CompilerIf Defined(Ide_Diag, #PB_Constant) = #False
   EndProcedure
 
   ; <summary>
-  ; Parse 1-based source line from Vyrn diagnostics.
-  ; Supports: path:line: msg | line N: msg | &lt;eval&gt;:N: msg
+  ; Extract a 1-based source line from a Vyrn diagnostic message.
+  ; Supports: path:line: msg | line N: msg | &lt;eval&gt;:N: msg (skips Windows drive letters).
   ; </summary>
+  ; <param name="msg">Diagnostic text (with or without [error]/[warn] prefix).</param>
+  ; <returns>1-based line number, or 0 if none found.</returns>
   Procedure.i Ide_Diag_ParseLine(msg.s)
     Protected s.s = Ide_Diag_StripPrefix(msg)
     Protected i.i, j.i, n.i, c.i, best.i, drive.i
@@ -104,10 +108,13 @@ CompilerIf Defined(Ide_Diag, #PB_Constant) = #False
   EndProcedure
 
   ; <summary>
-  ; Jump editor to diagnostic line when parse succeeds.
+  ; Jump the editor to the line encoded in a diagnostic message, if parseable.
   ; </summary>
+  ; <param name="msg">Diagnostic or output line containing a source location.</param>
+  ; <param name="isWarn">#True to mark as warning; #False for error markers.</param>
   Procedure Ide_Diag_JumpFromMessage(msg.s, isWarn.i = #False)
     Protected line.i = Ide_Diag_ParseLine(msg)
+    
     If line > 0
       Ide_Editor_GotoDiagnostic(line, isWarn)
     EndIf
@@ -115,8 +122,9 @@ CompilerIf Defined(Ide_Diag, #PB_Constant) = #False
 
 CompilerEndIf
 
-; IDE Options = PureBasic 6.40 (Windows - x64)
-; CursorPosition = 16
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 116
+; FirstLine = 73
 ; Folding = -
 ; Optimizer
 ; EnableAsm

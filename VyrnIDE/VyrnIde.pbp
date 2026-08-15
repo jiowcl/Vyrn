@@ -7,36 +7,36 @@
   <section name="data">
     <explorer view="C:\ProgramData\PureBasic\Examples\" pattern="0"/>
     <log show="1"/>
-    <lastopen date="2026-08-15 10:44" user="使用者" host="DESKTOP-K1RBCTS"/>
+    <lastopen date="2026-08-15 11:04" user="使用者" host="DESKTOP-K1RBCTS"/>
   </section>
   <section name="files">
     <file name="VyrnIde.pb">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="+"/>
-      <fingerprint md5="8c983804c3b9bed6c18b6c1d9049094f"/>
+      <fingerprint md5="d1d92730122d6e5fc2559596db2d4a58"/>
     </file>
     <file name="Core\Ide_Commands.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="e1a6393183dce6e89f2ffd231158757e"/>
+      <fingerprint md5="a6164980e7c2213381b579cd6d85576a"/>
     </file>
     <file name="Core\Ide_Diag.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="ba762a0287e5869917021ca6900759fe"/>
+      <fingerprint md5="776a1de0fe317cf1879523e45764a92c"/>
     </file>
     <file name="Core\Ide_Editor.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="bddad4e85dae7b8dfc5479976e275c48"/>
+      <fingerprint md5="164a215ad3b96810c10a3df056e31e79"/>
     </file>
     <file name="Core\Ide_Highlight.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="bac50f5e563e7bd4fb74a6e801515bf5"/>
+      <fingerprint md5="4a65a0c1cb8b666fbef871ed8a03b1b9"/>
     </file>
     <file name="Core\Ide_Runner.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="735732431a1868de52a355fc7a0b31d4"/>
+      <fingerprint md5="55305b7ebfb6cbadd37ac09c696dc6f2"/>
     </file>
     <file name="Core\Ide_Ui.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="95c1fe96cb3ad538761ad2a3f8466dfe"/>
+      <fingerprint md5="24b08eab64ba044520e4d24a381ad338"/>
     </file>
     <file name="..\Vyrn\Native\include\vyrn.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>

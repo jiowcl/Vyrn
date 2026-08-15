@@ -78,6 +78,9 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   Global Ide_EditorW.i = 100
   Global Ide_EditorH.i = 100
 
+  ; <summary>
+  ; Build the main menu bar (File / Edit / View / Run / Help) and accelerators labels.
+  ; </summary>
   Procedure Ide_Ui_CreateMenus()
     CreateMenu(#MENU_MAIN, WindowID(#WIN_IDE))
     MenuTitle("File")
@@ -112,6 +115,10 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     MenuItem(#MNU_ABOUT, "About Vyrn IDE")
   EndProcedure
 
+  ; <summary>
+  ; Height reserved for the find/replace bar when it is visible.
+  ; </summary>
+  ; <returns>#Ide_FindH when visible; otherwise 0.</returns>
   Procedure.i Ide_Ui_FindBarH()
     If Ide_FindVisible
       ProcedureReturn #Ide_FindH
@@ -119,6 +126,9 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     ProcedureReturn 0
   EndProcedure
 
+  ; <summary>
+  ; Relayout toolbar, find bar, tab panel, splitter, output, and status for the window size.
+  ; </summary>
   Procedure Ide_Ui_Layout()
     Protected ww.i = WindowWidth(#WIN_IDE)
     Protected wh.i = WindowHeight(#WIN_IDE)
@@ -148,6 +158,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     Ide_OutputHeight = outH
 
     editorH = wh - top - findH - #Ide_SplitH - outH - #Ide_StatusH
+    
     If editorH < #Ide_MinEditorH
       editorH = #Ide_MinEditorH
     EndIf
@@ -181,8 +192,12 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     Ide_EditorH = editorH
   EndProcedure
 
+  ; <summary>
+  ; Apply light/dark chrome colors to window, splitter, output, status, and theme menu check.
+  ; </summary>
   Procedure Ide_Ui_ApplyChrome()
     Protected bg.i, fg.i, split.i, outBg.i, outFg.i
+    
     If Ide_Theme_Dark
       bg = RGB(32, 32, 32)
       fg = RGB(220, 220, 220)
@@ -196,23 +211,32 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
       outBg = RGB(252, 252, 252)
       outFg = RGB(30, 30, 30)
     EndIf
+    
     If IsWindow(#WIN_IDE)
       SetWindowColor(#WIN_IDE, bg)
     EndIf
+    
     If IsGadget(#GAD_SPLIT)
       SetGadgetColor(#GAD_SPLIT, #PB_Gadget_BackColor, split)
     EndIf
+    
     If IsGadget(#GAD_OUTPUT)
       SetGadgetColor(#GAD_OUTPUT, #PB_Gadget_BackColor, outBg)
       SetGadgetColor(#GAD_OUTPUT, #PB_Gadget_FrontColor, outFg)
     EndIf
+    
     If IsGadget(#GAD_STATUS)
       SetGadgetColor(#GAD_STATUS, #PB_Gadget_BackColor, bg)
       SetGadgetColor(#GAD_STATUS, #PB_Gadget_FrontColor, fg)
     EndIf
+    
     SetMenuItemState(#MENU_MAIN, #MNU_THEME, Ide_Theme_Dark)
   EndProcedure
 
+  ; <summary>
+  ; Create the main IDE window, gadgets, menus, and keyboard shortcuts.
+  ; </summary>
+  ; <returns>#True on success; #False if OpenWindow fails.</returns>
   Procedure.i Ide_Ui_CreateWindow()
     Protected flags.i = #PB_Window_SystemMenu | #PB_Window_MinimizeGadget | #PB_Window_MaximizeGadget | #PB_Window_SizeGadget | #PB_Window_ScreenCentered
 
@@ -265,32 +289,52 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
 
     DisableMenuItem(#MENU_MAIN, #MNU_STOP, #True)
     Ide_Ui_ApplyChrome()
+    
     ProcedureReturn #True
   EndProcedure
 
+  ; <summary>
+  ; Set the status bar text.
+  ; </summary>
+  ; <param name="msg">Status message to display.</param>
   Procedure Ide_Ui_SetStatus(msg.s)
     SetGadgetText(#GAD_STATUS, msg)
   EndProcedure
 
+  ; <summary>
+  ; Clear the read-only output pane.
+  ; </summary>
   Procedure Ide_Ui_OutputClear()
     SetGadgetText(#GAD_OUTPUT, "")
   EndProcedure
 
+  ; <summary>
+  ; Append a line to the output pane and scroll to the end (Windows).
+  ; </summary>
+  ; <param name="line">Text to append (a newline is added).</param>
   Procedure Ide_Ui_OutputAppend(line.s)
     Protected cur.s = GetGadgetText(#GAD_OUTPUT)
+    
     If cur <> "" And Right(cur, 1) <> Chr(10)
       cur = cur + Chr(10)
     EndIf
+    
     SetGadgetText(#GAD_OUTPUT, cur + line + Chr(10))
+    
     CompilerIf #PB_Compiler_OS = #PB_OS_Windows
       SendMessage_(GadgetID(#GAD_OUTPUT), #EM_SETSEL, -1, -1)
       SendMessage_(GadgetID(#GAD_OUTPUT), #EM_SCROLLCARET, 0, 0)
     CompilerEndIf
   EndProcedure
 
+  ; <summary>
+  ; Show the find bar and focus find or replace field.
+  ; </summary>
+  ; <param name="showReplace">#True to focus replace; #False to focus find.</param>
   Procedure Ide_Ui_ShowFind(showReplace.i = #False)
     Ide_FindVisible = #True
     Ide_Ui_Layout()
+    
     If showReplace And IsGadget(#GAD_REPLACE_STR)
       SetActiveGadget(#GAD_REPLACE_STR)
     ElseIf IsGadget(#GAD_FIND_STR)
@@ -299,3 +343,17 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 341
+; FirstLine = 295
+; Folding = --
+; Optimizer
+; EnableAsm
+; EnableXP
+; DPIAware
+; DllProtection
+; EnableOnError
+; DisableDebugger
+; CompileSourceDirectory
+; Compiler = PureBasic 6.41 - C Backend (Windows - x64)

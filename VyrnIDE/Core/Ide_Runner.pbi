@@ -38,11 +38,10 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   Declare Ide_Runner_Enqueue(kind.i, text.s)
   
   ; <summary>
-  ; Ide_Runner_PrintLog
+  ; Vyrn.dll print logger callback; enqueues UTF-8 print lines for the UI thread.
   ; </summary>
-  ; <param name="*userdata">pointer</param>
-  ; <param name="*msg">pointer</param>
-  ; <returns>Returns void.</returns>
+  ; <param name="*userdata">Host userdata (unused).</param>
+  ; <param name="*msg">Null-terminated UTF-8 message from the runtime.</param>
   ProcedureC Ide_Runner_PrintLog(*userdata, *msg)
     Protected line.s
     
@@ -56,11 +55,10 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_Enqueue
+  ; Append one output item to the thread-safe run queue.
   ; </summary>
-  ; <param name="kind">integer</param>
-  ; <param name="text">string</param>
-  ; <returns>Returns void.</returns>
+  ; <param name="kind">#Ide_OutKind_Print / Warn / Error / Info.</param>
+  ; <param name="text">Line text to show in the output pane.</param>
   Procedure Ide_Runner_Enqueue(kind.i, text.s)
     If Ide_RunMutex = 0
       ProcedureReturn
@@ -75,9 +73,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_ClearQueue
+  ; Clear all pending output queue items under the run mutex.
   ; </summary>
-  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_ClearQueue()
     If Ide_RunMutex = 0
       ProcedureReturn
@@ -89,10 +86,9 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_SetUiRunning
+  ; Enable/disable Run and Stop toolbar buttons and menu items.
   ; </summary>
-  ; <param name="running">integer</param>
-  ; <returns>Returns void.</returns>
+  ; <param name="running">#True while a script thread is active.</param>
   Procedure Ide_Runner_SetUiRunning(running.i)
     If IsGadget(#GAD_TOOL_RUN)
       DisableGadget(#GAD_TOOL_RUN, running)
@@ -107,17 +103,16 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_IsBusy
+  ; Whether a background run thread is currently active.
   ; </summary>
-  ; <returns>Returns integer.</returns>
+  ; <returns>#True if busy; otherwise #False.</returns>
   Procedure.i Ide_Runner_IsBusy()
     ProcedureReturn Ide_RunBusy
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_Init
+  ; One-time runner setup: mutex, UI state, Vyrn.dll load, and print logger.
   ; </summary>
-  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Init()
     If Ide_RunnerReady
       ProcedureReturn
@@ -140,15 +135,16 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_Shutdown
+  ; Cancel any active run, wait briefly for the thread, then unload Vyrn.dll.
   ; </summary>
-  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Shutdown()
     If Ide_RunBusy And Ide_RunThread
       Vyrn_RequestCancel()
+      
       If IsThread(Ide_RunThread)
         WaitThread(Ide_RunThread, 5000)
       EndIf
+      
       Ide_RunBusy = #False
       Ide_RunThread = 0
     EndIf
@@ -158,9 +154,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_ShowDllError
+  ; Report that Vyrn.dll is unavailable: output line, dialog, and status bar.
   ; </summary>
-  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_ShowDllError()
     Protected msg.s = Vyrn_LastError
     
@@ -174,10 +169,9 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_Thread
+  ; Background thread body: RunFile or Eval, then enqueue warnings and mark done.
   ; </summary>
-  ; <param name="*unused">pointer</param>
-  ; <returns>Returns void.</returns>
+  ; <param name="*unused">CreateThread userdata (unused).</param>
   Procedure Ide_Runner_Thread(*unused)
     Protected ok.i, i.i, n.i, w.s
     
@@ -212,9 +206,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_Finish
+  ; UI-thread completion: update output/status, jump to error line, restore Run UI.
   ; </summary>
-  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Finish()
     Protected jumpMsg.s = "", jumpWarn.i = #False
     Ide_RunBusy = #False
@@ -223,9 +216,11 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
 
     If Ide_RunStopped Or LCase(Ide_RunErr) = "cancelled"
       Ide_RunStopped = #True
+      
       If Vyrn_Reset()
         Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
       EndIf
+      
       Ide_Ui_OutputAppend("[stopped] execution cancelled")
       Ide_Ui_SetStatus("Ready | last run stopped")
       Ide_RunStopped = #False
@@ -243,6 +238,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
       Else
         Ide_Ui_OutputAppend("[error] run failed")
       EndIf
+      
       Ide_Ui_SetStatus("Ready | last run failed")
     EndIf
 
@@ -254,9 +250,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_DrainQueue
+  ; Move queued run output to the output pane; jump on warn/error lines with locations.
   ; </summary>
-  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_DrainQueue()
     Protected kind.i, text.s
     Protected NewList localQ.Ide_OutItem()
@@ -299,9 +294,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_Poll
+  ; Poll from the main loop: drain output and finish when the run thread completes.
   ; </summary>
-  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Poll()
     Ide_Runner_DrainQueue()
     
@@ -313,13 +307,13 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_Stop
+  ; Request cancel of the active run via Vyrn_RequestCancel.
   ; </summary>
-  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Stop()
     If Ide_RunBusy = 0
       ProcedureReturn
     EndIf
+    
     If Ide_RunStopped
       ProcedureReturn
     EndIf
@@ -333,9 +327,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_JumpFromOutput
+  ; On double-click in the output pane, jump to the line referenced by that text.
   ; </summary>
-  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_JumpFromOutput()
     Protected hwnd.i, lineIdx.i, lineStart.i, lineLen.i, *buf, text.s
     
@@ -379,9 +372,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   EndProcedure
   
   ; <summary>
-  ; Ide_Runner_Run
+  ; Start a background run of the active buffer (saved file or Eval for untitled).
   ; </summary>
-  ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Run()
     Protected path.s, text.s, useEval.i
 
@@ -409,6 +401,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
       If Ide_Editor_SaveTo(Ide_FilePath) = 0
         Ide_Ui_OutputAppend("[error] could not save " + Ide_FilePath)
         Ide_Editor_UpdateCaretStatus()
+        
         ProcedureReturn
       EndIf
       
@@ -445,9 +438,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
 
 CompilerEndIf
 
-; IDE Options = PureBasic 6.40 (Windows - x64)
-; CursorPosition = 441
-; FirstLine = 401
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 142
 ; Folding = ---
 ; Optimizer
 ; EnableAsm
