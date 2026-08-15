@@ -381,6 +381,208 @@ REPL / `-e`: typed `let` (`let x: number = 1`) performs runtime type checks on g
 | Builtin multi-return args | `print(coroutine.resume(co))` | `returnArity` on builtins; variable builtins use `OP_CALL_MULTRET` |
 | WS + coroutine | `on_ws_message` + `coroutine.resume` | Staged handler |
 
+## Added in v1.6.5  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| Non-callable call error | `x()` when `x` is not a function | Runtime `attempt to call a <type> value` (tables included) |
+| Statement-bound postfix calls | `f(x)` or `(cb)(p)` then newline `(...)` | Expression statements (IDENT-led and paren-led) do not glue a next-line `(...)` / `{...}` onto the previous result |
+| Upvalue call without meta warn | `w()` when upvalue lacks callable/FuncId meta | Compile-time `[warn]`; as of 1.6.6 call-arg sites also expand via conservative VAR |
+| Non-tail return truncation | `return f(), g` / `yield f(), g` | Mid multi-return expressions keep only the first result |
+| Late upvalue FuncId/struct | `cb = accept` then nested `cb(p)` under `--strict` | Store refreshes FuncId / file / struct metadata for later call sites |
+| Strict multi-return bytecode | `CALL_MULTRET` / `TRUNC_LAST_CALL` | Nested builtin calls compile explicit stack behavior; `OP_CALL` no longer scans for a misplaced function |
+
+## Added in v1.6.6  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| Call-before-bind wrap expand | `print(w())` before `w = coroutine.wrap(f)` | No-meta upvalue calls use conservative VAR (`_varret_unknown`) + `[warn]`; outer call gets `CALL_MULTRET` |
+| Indirect no-meta hygiene | `(w)()`, `w{}` | Flag cleared on `.` / `[]`; paren/brace call sites warn like IDENT |
+| File-start LineBound | first stmt `print(...)` | Regression for `TokPos=0` / `CurLine` |
+| `select` / `unpack` | `select(n, a, b, ...)`, `select("#", ...)`, `table.unpack` / `unpack` | Explicit-arg `select` (no `...` varargs yet); VAR arity |
+| Strict wrap/upvalue matrix | `strict_wrap_upvalue_matrix` | Early / late / before-bind / paren / late FuncId |
+
+## Added in v1.6.7  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| Varargs | `def f(a, ...)`, `...`, `select("#", ...)` | Extras packed into `__va`; `OP_UNPACK_LOCAL` expands |
+| Strict no-meta upvalue | statement / `return w()` under strict | Hard error; call-arg sites still warn + conservative VAR |
+| Runtime type checks | `OP_CHECK_TYPE` / `OP_CHECK_RET` | Emitted only under `--strict` / `vyrn: N strict` (non-strict annotations are unchecked at runtime) |
+| `table.pack` / `next` | `table.pack(...)`, `next(t [, k])` | Pack sets `n`; `next` is VAR multi-ret |
+| WS client timeouts | test runner TcpClient | 5s connect/read |
+
+## Added in v1.6.8  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| Struct dense-only SET | `OP_SET_STRUCT_FIELD` | No string dual-write; `.field` still dense get |
+| Struct `t["x"]` / `pairs` | StructMeta + TableGet/NextPair | Named keys via `_typename`; compile-known `t["field"]` → struct field ops |
+| Dense-only follow-ups | method / REPL / wrap | `self` typed; methods after fields; REPL keeps struct meta; user `wrap` ≠ builtin |
+| Leaf user-call setup | VM | Skip pack/param copy when non-vararg and args complete |
+| Numeric opcode fast path | VM | In-place number arith; insn map base cache |
+
+## Added in v1.6.9  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| `ipairs` skips struct fields | `ipairs(p)` | Starts after field count; pure structs yield nothing; use `pairs` for names |
+| Strict bracket field assign | `p["x"] = v` under `--strict` | Same field-type check as `p.x = v` when key is a string literal |
+| Dense-only edge tests | `struct_dense_compat`, REPL chunks | Dynamic keys, pairs meta, ipairs extra slot |
+| Struct field bench | `bench_struct_field.vyrn` | Hot `.field` / dense literal path |
+
+## Added in v1.6.10  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| `table.fields(t)` | `table.fields(p)` | Struct → ordered names; plain table → non-`_` string keys; ID `-270` |
+| Table hash overflow band | bootstrap libs | Overflow starts past inline metas; no stale get from empty probe slots |
+| Bench limits | `bench_limits.txt` | Caps for `bench_struct_field`, `bench_multret_wrap`, tighter `benchmark.vyrn` |
+| `--dump` dense slots | `; dense N name` | 1-based dense index for `GET/SET_STRUCT_FIELD` |
+| Strict dynamic bracket | `p[k]=v` under `--strict` | Non-literal / unknown key → hard error; literal known fields still type-check |
+| `_typename` | StructMeta | Runtime identity for `pairs` / type checks; omitted from `table.fields` |
+
+## Added in v1.6.11  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| Native DLL C ABI 2 | `include/vyrn.h` / `Vyrn.dll` | multi-ret, globals, table get/set, limits, print logger |
+| Embed host ID range | `-200..-263` | Excluded from `Builtin_IdToSlot` so host callbacks dispatch correctly |
+
+## Added in v1.6.12  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| Native DLL C ABI 3 | `include/vyrn.h` / `Vyrn.dll` | error codes, `vyrn_copy_string`, coroutine host APIs |
+| C++ full demo | `examples/native/cpp/demo.cpp` | multi / table / logger / coroutine / error codes |
+
+## Added in v1.6.13  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| StructMeta cache | table meta | `tid→smid` cache; refresh on `_typename` set / clear |
+| GC mark by metaIdx | GC | alive/marked arrays; no list scan per `MarkTable` |
+| Faster call/return stack | VM | in-place RETURN/YIELD; move returns onto call slot; PlaceReturnsAt for builtins |
+| Flat user CALL dispatch | VM | Ordinary script `OP_CALL*` continue in the same `RunFunc` loop (no nested host call); `pcall` / host invoke still nest |
+| `OP_CALL_KNOWN` | VM / compiler | Known non-closure `def`/`let` callee: skip callee load; insn `b` = funcId |
+| `OP_LE_LOCAL_K_JMP` | VM / peephole | `local[a&255] <= const[(a>>8)&255]`; else jump to `b` |
+| `OP_LE_LOCAL_I_JMP` | VM / peephole | same with u8 immediate in `a` mid-byte |
+| `OP_LOAD_LOCAL_SUB_K` | VM / peephole | push `local[a] - const[b]` |
+| `OP_LOAD_LOCAL_SUB_I` | VM / peephole | push `local[a] - b` (u8 imm) |
+| `OP_RETURN_LOCAL` | VM / peephole | return `local[a]` (fused load+return) |
+| `OP_CALL_KNOWN_1` | VM / peephole | `CALL_KNOWN` with argc=1; `a`=funcId |
+| `OP_CALL2_ADD_KNOWN` | VM / peephole | `f(local-imm1)+f(local-imm2)`; `a`=funcId, `b` packs lid/imm1/imm2 |
+| `OP_CALL2_ADD_RET` | VM / peephole | same as `CALL2_ADD_KNOWN`, then return 1 from the current frame |
+| `fastBaseImm` | Compiler / VM | Prologue `LE_LOCAL_I_JMP`+`RETURN_LOCAL` → call sites skip frame when arg ≤ imm |
+| `OP_LE_JMP_FALSE` / `OP_LT_JMP_FALSE` | VM / peephole | pop2 + compare; jump to `a` if false (`b=1` swaps for GE/GT) |
+| Stack Drop / PushNumber | VM | POP/jumps avoid CopyValue; LEN/PUSH_*/LOAD_* write stack directly |
+| LOAD_LOCAL number fast-path | VM | number locals/globals/enclosing via `PushNumber` |
+| get2d/set2d RB emit | Compiler | bare-ident + row-base → no POP/SWAP reshape |
+| Power-of-2 table hash | `HashStringKey` / probe | `& (cap-1)` when capacity is 2ⁿ; number keys skip string `KeyEquals` |
+| Dense / string GET_TABLE | VM | peek-stack dense number path; separate string-key branch |
+| SET_TABLE / SET_STRUCT_FIELD peek | VM | leave table on stack; dense number → `TableSetDense` |
+| GET2D_RB dense number | VM | peek + `TryGetDenseNumber` (no triple Pop) |
+| Skip get2d/set2d method load | Compiler | inline path does not emit `table.get2d` GET_TABLE |
+| `OP_GET2D_RB_LLL` / `SET2D_RB_LLLL` | peephole | locals-packed 2D get/set (no LOAD×3/4) |
+| `OP_GET_TABLE_LL` / `SET_TABLE_LL_K` | peephole | `t[k]` / `t[k]=const` from local lids |
+| `OP_ACCUM_MUL_GET2D_LLL` | peephole | `sum += get2d_lll * get2d_lll` |
+| `OP_STORE_MUL_LOCAL_SUB_I` | peephole | `local[dst]=(local[sub]-imm)*local[mul]` |
+| `OP_LE_LOCAL_LOCAL_JMP` / `INC_LOCAL_JMP` | peephole | counted-loop compare / inc+back-edge |
+| `OP_ADD_LOCAL_LOCAL_STORE` | peephole | `local[dst]+=local[src]` |
+| Nil-stub call elision | Compiler | empty `return` funcs skip args; `PUSH_NIL`+`POP` deleted |
+| CALL_KNOWN fallback insert | Compiler | if upvalues appear during args, insert callee LOAD before args |
+| CALL_KNOWN nested defer | Compiler | `f(g())` stacks deferred callee loads so both sites can emit `CALL_KNOWN` |
+| Dense number CopyValue skip | Value | `TableSetDense` / `TableTryGetDense` avoid string field assign |
+| Open-address hash probe | Value | first empty slot ends probe (no tombstones) |
+| GC clear marks | GC | scan `TableAlive[]` instead of `ForEach` tables list |
+| In-place CONCAT | `OP_CONCAT` | `string..string` / `string..number` / `number..string` without generic BinaryOp |
+
+## Added in v1.6.26  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| `tonumber` | `tonumber(v [, base])` | Decimal string or integer with base 2..36 |
+| math | `max`/`min` n-arg; `log`/`exp`/`log10`; `math.huge` | Complements existing `math.pi` |
+| path | `isdir` / `isfile` / `ext` / `mkdir` | Windows helpers |
+| table | `keys` / `values` / `copy` | Shallow copy for number/string keys |
+
+## Added in v1.6.27  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| string | `contains` / `match` / find+gsub multi-ret | Plain substring (not Lua patterns) |
+| math | `modf` / `atan`[,`atan2`] | Multi-ret `modf` |
+| table | `slice` / `move` | Lua-like array helpers |
+
+## Added in v1.6.28  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| string | `byte` range multi-ret | Cap `#LuaLite_MaxReturnTypes`; OOB → nil |
+| table | `clear` | Keeps table alive |
+| os | `exit([code])` | CLI process exit; unsafe in embeds |
+| io.lines | eager table | Documented (not Lua iterator); strip `\r` |
+| Strict wrap returns | `return w()` | Inner FuncId stashed on wrap binding |
+| EQ peepholes | `EQ_JMP_FALSE` / `GET_TABLE_LL_EQ_K_JMP` | Sieve-style `t[k] == const` |
+| Version SoT | `VERSION` file | Aligns Dialect / NuGet / pack_release |
+
+## Added in v1.6.29  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| table.insert mid | `insert(t,pos,v)` | Shifts array tail |
+| math.random fix | `random(m,n)` | Inclusive `m..n` |
+| math | `asin` / `acos` / `clamp` | Domain-checked inverse trig |
+| path.cwd | `path.cwd()` | GetCurrentDirectory |
+| Typed yield | `yield` under `--strict` | Matches `->` / `return` checks |
+| SET_TABLE_LL_K_ADD | peephole | Sieve clear stride |
+| vyrn_version | native API | Product string; ABI stays 3 |
+
+## Added in v1.6.30  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| Console flush | Runtime / CLI | Avoids missing `[timing]` under redirected stdout |
+| create→resume types | `coroutine.create` + typed `resume` | Stashes worker FuncId for `--strict` |
+| Stdlib boundary | Builtins.md | Explicit out-of-scope: `debug.*`, `string.pack`, … |
+
+## Added in v1.6.31  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| create rebind types | `co = coroutine.create(g)` | Infer-stash `coroutine.thread` + worker FuncId |
+| Embed error table | `VYRN_ERR_*` | Documented in Embed.md |
+| typed_tour coroutines | examples/vyrn | yield / wrap / resume / rebind |
+
+## Added in v1.6.33  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| Minigame isolation | embed host | Continue after `on_tick` script error |
+
+## Added in v1.6.35  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| math | `sign` / `lerp` / `remap` / `atan2` | Game-tick helpers; `atan2` ≡ two-arg `atan` |
+| path | `mkdirs` / `rmdir` | Recursive parents / recursive remove |
+| xpcall / GC | `xpcall`, `collectgarbage` | msgh on failure; `count` = live table count |
+
+## Added in v1.6.36  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| CLI smoke timeouts | run_tests | External process + WS port poll |
+| IDE compile gate | `build_ide.ps1` | Local full gate / `vyrn-pb`; not on SaaS runners |
+| Cooperative cancel | `vyrn_request_cancel` | ABI 5; IDE Stop; `VYRN_ERR_CANCELLED` |
+
+## Added in v1.6.37  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| string | `replace` / `padleft` / `padright` | Plain replace with optional count; pad helpers |
+| table / path | `table.assign` / `path.abspath` | Shallow merge into dst; absolute path |
+
 ## Developer tools  
 
 | Flag | Purpose |
