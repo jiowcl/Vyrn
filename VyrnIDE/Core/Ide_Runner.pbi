@@ -129,9 +129,9 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     
     Ide_Runner_SetUiRunning(#False)
     
-    If Ide_Vyrn_Ensure()
-      Ide_Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
-      Ide_Ui_SetStatus("Ready | Vyrn " + Ide_Vyrn_ProductVersion() + " (ABI " + Str(Ide_Vyrn_Abi) + ")")
+    If Vyrn_Ensure()
+      Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
+      Ide_Ui_SetStatus("Ready | Vyrn " + Vyrn_ProductVersion() + " (ABI " + Str(Vyrn_Abi) + ")")
     Else
       Ide_Ui_SetStatus("Ready | Vyrn.dll not loaded — editing only")
     EndIf
@@ -145,17 +145,15 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   ; <returns>Returns void.</returns>
   Procedure Ide_Runner_Shutdown()
     If Ide_RunBusy And Ide_RunThread
+      Vyrn_RequestCancel()
       If IsThread(Ide_RunThread)
-        KillThread(Ide_RunThread)
+        WaitThread(Ide_RunThread, 5000)
       EndIf
-      
       Ide_RunBusy = #False
       Ide_RunThread = 0
-      
-      Ide_Vyrn_ForceReload()
     EndIf
-    
-    Ide_Vyrn_Unload()
+
+    Vyrn_Unload()
     Ide_RunnerReady = #False
   EndProcedure
   
@@ -164,7 +162,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   ; </summary>
   ; <returns>Returns void.</returns>
   Procedure Ide_Runner_ShowDllError()
-    Protected msg.s = Ide_Vyrn_LastError
+    Protected msg.s = Vyrn_LastError
     
     If msg = ""
       msg = "Vyrn.dll is not available."
@@ -183,27 +181,27 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   Procedure Ide_Runner_Thread(*unused)
     Protected ok.i, i.i, n.i, w.s
     
-    Ide_Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
+    Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
     
     If Ide_RunUseEval
-      ok = Ide_Vyrn_Eval(Ide_RunSource)
+      ok = Vyrn_Eval(Ide_RunSource)
     Else
-      ok = Ide_Vyrn_RunFile(Ide_RunPath)
+      ok = Vyrn_RunFile(Ide_RunPath)
     EndIf
     
     Ide_RunElapsed = ElapsedMilliseconds() - Ide_RunT0
     Ide_RunOk = ok
     
     If ok = 0
-      Ide_RunErr = Ide_Vyrn_LastError
+      Ide_RunErr = Vyrn_LastError
     Else
       Ide_RunErr = ""
     EndIf
     
-    n = Ide_Vyrn_WarningCount()
+    n = Vyrn_WarningCount()
     
     For i = 0 To n - 1
-      w = Ide_Vyrn_GetWarning(i)
+      w = Vyrn_GetWarning(i)
       
       If w <> ""
         Ide_Runner_Enqueue(#Ide_OutKind_Warn, w)
@@ -223,8 +221,12 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     Ide_RunThread = 0
     Ide_Runner_SetUiRunning(#False)
 
-    If Ide_RunStopped
-      Ide_Ui_OutputAppend("[stopped] execution terminated")
+    If Ide_RunStopped Or LCase(Ide_RunErr) = "cancelled"
+      Ide_RunStopped = #True
+      If Vyrn_Reset()
+        Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
+      EndIf
+      Ide_Ui_OutputAppend("[stopped] execution cancelled")
       Ide_Ui_SetStatus("Ready | last run stopped")
       Ide_RunStopped = #False
       Ide_Editor_UpdateCaretStatus()
@@ -233,7 +235,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
 
     If Ide_RunOk
       Ide_Ui_OutputAppend("[ok] finished in " + Str(Ide_RunElapsed) + " ms")
-      Ide_Ui_SetStatus("Ready | last run ok (" + Str(Ide_RunElapsed) + " ms) | Vyrn " + Ide_Vyrn_ProductVersion())
+      Ide_Ui_SetStatus("Ready | last run ok (" + Str(Ide_RunElapsed) + " ms) | Vyrn " + Vyrn_ProductVersion())
     Else
       If Ide_RunErr <> ""
         Ide_Ui_OutputAppend("[error] " + Ide_RunErr)
@@ -318,23 +320,16 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     If Ide_RunBusy = 0
       ProcedureReturn
     EndIf
-    
-    Ide_RunStopped = #True
-    Ide_RunDone = #False
-    
-    If Ide_RunThread And IsThread(Ide_RunThread)
-      KillThread(Ide_RunThread)
+    If Ide_RunStopped
+      ProcedureReturn
     EndIf
-    
-    Ide_RunThread = 0
-    Ide_RunBusy = #False
-    
-    Ide_Vyrn_ForceReload()
-    Ide_Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
-    Ide_Runner_ClearQueue()
-    Ide_Runner_SetUiRunning(#False)
-    Ide_Ui_OutputAppend("[stopped] execution terminated")
-    Ide_Ui_SetStatus("Ready | last run stopped")
+
+    Ide_RunStopped = #True
+    If Vyrn_RequestCancel() = 0
+      Ide_Ui_SetStatus("Stopping... (cancel unavailable)")
+    Else
+      Ide_Ui_SetStatus("Stopping...")
+    EndIf
   EndProcedure
   
   ; <summary>
@@ -398,12 +393,12 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     Ide_Ui_OutputClear()
     Ide_Editor_ClearDiagnostics()
 
-    If Ide_Vyrn_Ensure() = 0
+    If Vyrn_Ensure() = 0
       Ide_Runner_ShowDllError()
       ProcedureReturn
     EndIf
     
-    Ide_Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
+    Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
 
     text = Ide_Editor_GetText()
     useEval = #False

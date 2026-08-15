@@ -13,6 +13,7 @@
 - **Zero Configuration**: Double-click to open and start coding immediately — no plugins or runtime required.
 - **Custom Syntax Highlighting**: Designed specifically for Vyrn's unique grammar and built-in functions.
 - **Integrated Script Execution**: Write, run, and view output seamlessly within a unified panel.
+- **Multi-File Support**: Open and navigate across multiple files seamlessly with zero impact on performance.
 
 ## Environment  
 
@@ -26,7 +27,7 @@ Module features require PureBasic 5.20 and above.
 
 ## License  
 
-Copyright (c) 2016-2026 Ji-Feng Tsai.  
+Copyright (c) 2026 Ji-Feng Tsai.  
 Code released under the MIT license.  
 
 ## Donation  

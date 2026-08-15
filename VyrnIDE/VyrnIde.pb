@@ -3,7 +3,7 @@
 ;  Code released under the MIT license.
 ;--------------------------------------------------------------------------------------------
 
-; Vyrn IDE - simple editor with syntax highlight + Run (via Vyrn.dll)
+; Vyrn IDE - editor with tabs, find/replace, highlight + Run (via Vyrn.dll)
 ; PureBasic 6.40 (Windows x64)
 ;
 ; Build:
@@ -18,9 +18,9 @@ CompilerElse
   End
 CompilerEndIf
 
+XIncludeFile "..\Vyrn\Native\include\vyrn.pbi"
 XIncludeFile ".\Core\Ide_Ui.pbi"
 XIncludeFile ".\Core\Ide_Highlight.pbi"
-XIncludeFile ".\Core\Ide_VyrnNative.pbi" ; -> include/vyrn.pbi + Ide_Vyrn_* aliases
 XIncludeFile ".\Core\Ide_Editor.pbi"
 XIncludeFile ".\Core\Ide_Diag.pbi"
 XIncludeFile ".\Core\Ide_Runner.pbi"
@@ -41,8 +41,8 @@ Ide_Editor_Create()
 Ide_Ui_Layout()
 Ide_Runner_Init()
 
-If Ide_Vyrn_IsReady() = 0 And Ide_Vyrn_LastError <> ""
-  Ide_Ui_OutputAppend("[warn] " + ReplaceString(Ide_Vyrn_LastError, Chr(10), " | "))
+If Vyrn_IsReady() = 0 And Vyrn_LastError <> ""
+  Ide_Ui_OutputAppend("[warn] " + ReplaceString(Vyrn_LastError, Chr(10), " | "))
 EndIf
 
 Define.s bootPath = ""
@@ -56,6 +56,8 @@ If CountProgramParameters() > 0
 Else
   Ide_Editor_New()
 EndIf
+
+Ide_Editor_ResizeEditors()
 
 Define event.i
 Define quit.i = #False
@@ -79,6 +81,14 @@ Repeat
           Ide_Runner_Run()
         Case #GAD_TOOL_STOP
           Ide_Runner_Stop()
+        Case #GAD_TABS
+          Ide_Editor_SyncActive()
+        Case #GAD_FIND_NEXT
+          Ide_Editor_FindNext()
+        Case #GAD_REPLACE
+          Ide_Editor_ReplaceOnce()
+        Case #GAD_REPLACE_ALL
+          Ide_Editor_ReplaceAll()
         Case #GAD_OUTPUT
           If EventType() = #PB_EventType_LeftDoubleClick
             Ide_Runner_JumpFromOutput()
@@ -87,12 +97,13 @@ Repeat
 
     Case #PB_Event_SizeWindow
       Ide_Ui_Layout()
+      Ide_Editor_ResizeEditors()
 
     Case #PB_Event_CloseWindow
       If Ide_Runner_IsBusy()
         Ide_Runner_Stop()
       EndIf
-      If Ide_Editor_ConfirmSaveIfNeeded()
+      If Ide_Editor_ConfirmSaveAll()
         quit = #True
       EndIf
   EndSelect
@@ -101,3 +112,16 @@ Until quit
 
 Ide_Runner_Shutdown()
 End
+
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 20
+; Folding = -
+; Optimizer
+; EnableAsm
+; EnableXP
+; DPIAware
+; DllProtection
+; EnableOnError
+; DisableDebugger
+; CompileSourceDirectory
+; Compiler = PureBasic 6.41 - C Backend (Windows - x64)

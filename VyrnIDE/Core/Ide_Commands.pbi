@@ -81,55 +81,43 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
     ProcedureReturn #False
   EndProcedure
   
-  ; <summary>
-  ; Ide_Cmd_New
-  ; </summary>
-  ; <returns>Returns void.</returns>
   Procedure Ide_Cmd_New()
     If Ide_Runner_IsBusy()
       MessageRequester("Vyrn IDE", "Stop the running script before creating a new file.", #PB_MessageRequester_Info)
       ProcedureReturn
     EndIf
-    
-    If Ide_Editor_ConfirmSaveIfNeeded() = 0
-      ProcedureReturn
-    EndIf
-    
     Ide_Editor_New()
-    Ide_Editor_ClearDiagnostics()
-    Ide_Ui_OutputClear()
     Ide_Ui_SetStatus("New file")
   EndProcedure
-  
-  ; <summary>
-  ; Ide_Cmd_Open
-  ; </summary>
-  ; <returns>Returns void.</returns>
+
   Procedure Ide_Cmd_Open()
     Protected path.s
-    
     If Ide_Runner_IsBusy()
       MessageRequester("Vyrn IDE", "Stop the running script before opening another file.", #PB_MessageRequester_Info)
       ProcedureReturn
     EndIf
-    
-    If Ide_Editor_ConfirmSaveIfNeeded() = 0
-      ProcedureReturn
-    EndIf
-    
     path = OpenFileRequester("Open Vyrn script", "", "Vyrn (*.vyrn)|*.vyrn|LuaLite (*.lua)|*.lua|All (*.*)|*.*", 0)
-    
     If path = ""
       ProcedureReturn
     EndIf
-    
     If Ide_Editor_LoadFile(path)
-      Ide_Editor_ClearDiagnostics()
-      Ide_Ui_OutputClear()
       Ide_Ui_SetStatus("Opened " + path)
     Else
       MessageRequester("Vyrn IDE", "Failed to open:" + Chr(10) + path, #PB_MessageRequester_Error)
     EndIf
+  EndProcedure
+
+  Procedure Ide_Cmd_CloseTab()
+    If Ide_Runner_IsBusy()
+      MessageRequester("Vyrn IDE", "Stop the running script before closing a tab.", #PB_MessageRequester_Info)
+      ProcedureReturn
+    EndIf
+    Ide_Editor_CloseTab()
+  EndProcedure
+
+  Procedure Ide_Cmd_ShowFind(showReplace.i = #False)
+    Ide_Ui_ShowFind(showReplace)
+    Ide_Editor_ResizeEditors()
   EndProcedure
   
   ; <summary>
@@ -140,17 +128,17 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
     Protected msg.s
     Protected dllHint.s
 
-    If Ide_Vyrn_DllPath <> ""
-      dllHint = Ide_Vyrn_DllPath
+    If Vyrn_DllPath <> ""
+      dllHint = Vyrn_DllPath
     Else
       dllHint = "(not loaded)"
     EndIf
 
     msg = "Vyrn IDE" + Chr(10) + Chr(10)
     msg = msg + "Author: Jiowcl - Ji-Feng Tsai (jiowcl@gmail.com)" + Chr(10)
-    msg = msg + "Runtime: Vyrn " + Ide_Vyrn_ProductVersion() + " (ABI " + Str(Ide_Vyrn_Abi) + ")" + Chr(10)
+    msg = msg + "Runtime: Vyrn " + Vyrn_ProductVersion() + " (ABI " + Str(Vyrn_Abi) + ")" + Chr(10)
     msg = msg + "DLL: " + dllHint + Chr(10) + Chr(10)
-    msg = msg + "Edit .vyrn scripts with syntax highlighting and run them via Vyrn.dll."
+    msg = msg + "Edit .vyrn scripts with tabs, find/replace, and run them via Vyrn.dll."
 
     MessageRequester("About Vyrn IDE", msg, #PB_MessageRequester_Info)
   EndProcedure
@@ -170,11 +158,13 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
         Ide_Cmd_Save()
       Case #MNU_SAVEAS
         Ide_Cmd_SaveAs()
+      Case #MNU_CLOSE
+        Ide_Cmd_CloseTab()
       Case #MNU_EXIT
         If Ide_Runner_IsBusy()
           Ide_Runner_Stop()
         EndIf
-        If Ide_Editor_ConfirmSaveIfNeeded()
+        If Ide_Editor_ConfirmSaveAll()
           End
         EndIf
       Case #MNU_UNDO
@@ -187,6 +177,23 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
         Ide_Editor_Copy()
       Case #MNU_PASTE
         Ide_Editor_Paste()
+      Case #MNU_FIND
+        Ide_Cmd_ShowFind(#False)
+      Case #MNU_FINDNEXT
+        If Ide_FindVisible = 0
+          Ide_Cmd_ShowFind(#False)
+        EndIf
+        Ide_Editor_FindNext()
+      Case #MNU_REPLACE
+        Ide_Cmd_ShowFind(#True)
+      Case #MNU_ZOOMIN
+        Ide_Editor_ZoomIn()
+      Case #MNU_ZOOMOUT
+        Ide_Editor_ZoomOut()
+      Case #MNU_ZOOMRESET
+        Ide_Editor_ZoomReset()
+      Case #MNU_THEME
+        Ide_Editor_ToggleTheme()
       Case #MNU_RUN
         Ide_Runner_Run()
       Case #MNU_STOP
