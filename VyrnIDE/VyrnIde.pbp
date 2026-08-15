@@ -7,7 +7,7 @@
   <section name="data">
     <explorer view="C:\ProgramData\PureBasic\Examples\" pattern="0"/>
     <log show="1"/>
-    <lastopen date="2026-08-15 10:07" user="使用者" host="DESKTOP-K1RBCTS"/>
+    <lastopen date="2026-08-15 10:44" user="使用者" host="DESKTOP-K1RBCTS"/>
   </section>
   <section name="files">
     <file name="VyrnIde.pb">
@@ -40,7 +40,7 @@
     </file>
     <file name="..\Vyrn\Native\include\vyrn.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="bb2178f3386e55fd4aa19c265a99e1ca"/>
+      <fingerprint md5="88f4d319764b68bd5070d17d479eda7a"/>
     </file>
   </section>
   <section name="targets">
