@@ -86,7 +86,6 @@ Code released under the MIT license.
 ## TODO  
 
 - Built-in Functions (IO, File, Socket, etc)  
-- Compile-time Strict  
 - Error Handling  
 - More examples  
 

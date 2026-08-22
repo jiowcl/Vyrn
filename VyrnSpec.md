@@ -590,6 +590,13 @@ REPL / `-e`: typed `let` (`let x: number = 1`) performs runtime type checks on g
 | raw* | `rawget` / `rawset` / `rawequal` | Direct table access; identity eq for tables/funcs |
 | os.setenv | `os.setenv(name, value\|nil)` | CLI only; DLL/IDE reject like `os.exit` |
 
+## Added in v1.6.39  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| path | `path.chdir` | Change cwd |
+| io | `file:seek` / `io.seek` | Byte seek set/cur/end |
+
 ## Developer tools  
 
 | Flag | Purpose |
