@@ -19,7 +19,7 @@
 ## Environment  
 
 - Windows 11 above (recommend)  
-- PureBasic 6.40 above (recommend)  
+- PureBasic 6.41 above (recommend)  
 
 ## How to Build  
 
