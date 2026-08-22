@@ -583,6 +583,13 @@ REPL / `-e`: typed `let` (`let x: number = 1`) performs runtime type checks on g
 | string | `replace` / `padleft` / `padright` | Plain replace with optional count; pad helpers |
 | table / path | `table.assign` / `path.abspath` | Shallow merge into dst; absolute path |
 
+## Added in v1.6.38  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| raw* | `rawget` / `rawset` / `rawequal` | Direct table access; identity eq for tables/funcs |
+| os.setenv | `os.setenv(name, value\|nil)` | CLI only; DLL/IDE reject like `os.exit` |
+
 ## Developer tools  
 
 | Flag | Purpose |
