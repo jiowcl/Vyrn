@@ -1,3 +1,18 @@
+/* Vyrn native C ABI (Vyrn.dll) — for C, C++, and C# P/Invoke.
+ * ABI version: vyrn_abi_version() == 3
+ *
+ * Calling convention: cdecl (ProcedureCDLL).
+ * Strings: UTF-8, NUL-terminated.
+ * One VM instance per process (handle is still required).
+ * Target: Windows x64 (PureBasic 6.40 build).
+ *
+ * String lifetime: pointers from VyrnValue.str / vyrn_last_error are owned by the
+ * DLL and invalidated by the next vyrn_* call that returns or sets a string.
+ * Use vyrn_copy_string() to take a durable copy into a caller buffer.
+ *
+ * Author: Ji-Feng Tsai (jiowcl@gmail.com) 
+ */
+
 #ifndef VYRN_H
 #define VYRN_H
 

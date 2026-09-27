@@ -597,6 +597,14 @@ REPL / `-e`: typed `let` (`let x: number = 1`) performs runtime type checks on g
 | path | `path.chdir` | Change cwd |
 | io | `file:seek` / `io.seek` | Byte seek set/cur/end |
 
+## Added in v1.6.40  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| Upvalue mutate | `++` / `+=` / `x = x ± N` | Unified `EmitNameNumericDelta`; no `INC_GLOBAL` shadow |
+| WS surface | `send` string id / `send_binary` / HTTP www | Opcode-2 + max-clients refuse |
+| Native header | `include/vyrn.h` | File banner: ABI, string lifetime |
+
 ## Developer tools  
 
 | Flag | Purpose |
