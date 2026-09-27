@@ -1,18 +1,3 @@
-/* Vyrn native C ABI (Vyrn.dll) — for C, C++, and C# P/Invoke.
- * ABI version: vyrn_abi_version() == 3
- *
- * Calling convention: cdecl (ProcedureCDLL).
- * Strings: UTF-8, NUL-terminated.
- * One VM instance per process (handle is still required).
- * Target: Windows x64 (PureBasic 6.40 build).
- *
- * String lifetime: pointers from VyrnValue.str / vyrn_last_error are owned by the
- * DLL and invalidated by the next vyrn_* call that returns or sets a string.
- * Use vyrn_copy_string() to take a durable copy into a caller buffer.
- *
- * Author: Ji-Feng Tsai (jiowcl@gmail.com) 
- */
-
 #ifndef VYRN_H
 #define VYRN_H
 
@@ -32,7 +17,7 @@ extern "C" {
 #  define VYRN_API
 #endif
 
-#define VYRN_ABI_VERSION 3
+#define VYRN_ABI_VERSION 5
 
 #define VYRN_TYPE_NIL    0
 #define VYRN_TYPE_BOOL   1
@@ -51,6 +36,7 @@ extern "C" {
 #define VYRN_ERR_TYPE            5
 #define VYRN_ERR_ARG             6
 #define VYRN_ERR_OTHER           7
+#define VYRN_ERR_CANCELLED       8
 
 typedef struct VyrnVM VyrnVM;
 
@@ -68,6 +54,11 @@ VYRN_API int         vyrn_abi_version(void);
 VYRN_API const char *vyrn_version(void);          /* product version string; owned by DLL */
 VYRN_API VyrnVM     *vyrn_create(void);
 VYRN_API void        vyrn_destroy(VyrnVM *vm);
+
+/* Cooperative cancel: abort the in-flight vyrn_run_file / vyrn_eval / call.
+   Safe to call from another thread. The running call returns 0 with
+   VYRN_ERR_CANCELLED. Does not unload the DLL. */
+VYRN_API int         vyrn_request_cancel(VyrnVM *vm);
 
 VYRN_API int         vyrn_set_limits(VyrnVM *vm, int max_loops, int max_calls, int max_ins);
 VYRN_API int         vyrn_set_print_logger(VyrnVM *vm, VyrnLogFn fn, void *userdata);
@@ -103,6 +94,10 @@ VYRN_API int         vyrn_coroutine_finished(VyrnVM *vm);  /* 1 if last resume f
 
 VYRN_API const char *vyrn_last_error(VyrnVM *vm);          /* never NULL */
 VYRN_API int         vyrn_last_error_code(VyrnVM *vm);      /* VYRN_ERR_* */
+
+/* Compile/run warnings from the last vyrn_run_file / vyrn_eval (legacy keywords, etc.). */
+VYRN_API int         vyrn_warning_count(VyrnVM *vm);
+VYRN_API const char *vyrn_get_warning(VyrnVM *vm, int index); /* never NULL; short-lived */
 
 /* Durable UTF-8 copy. Returns bytes needed including NUL. Truncates if buf too small. */
 VYRN_API int         vyrn_copy_string(const char *src, char *buf, int buf_size);
