@@ -4,7 +4,7 @@
 ;--------------------------------------------------------------------------------------------
 
 ; Vyrn IDE - editor with tabs, find/replace, highlight + Run (via Vyrn.dll)
-; PureBasic 6.40 (Windows x64)
+; PureBasic 6.41 (Windows x64/x86)
 ;
 ; Build:
 ;   .\scripts\build_ide.ps1
@@ -51,7 +51,6 @@ EndIf
 Define.s bootPath = ""
 If CountProgramParameters() > 0
   bootPath = ProgramParameter(0)
-  
   If FileSize(bootPath) >= 0
     Ide_Editor_LoadFile(bootPath)
   Else
@@ -85,6 +84,8 @@ Repeat
           Ide_Runner_Run()
         Case #GAD_TOOL_STOP
           Ide_Runner_Stop()
+        Case #GAD_TOOL_SYNC
+          Ide_Runner_SyncRuntime()
         Case #GAD_TABS
           Ide_Editor_SyncActive()
         Case #GAD_FIND_NEXT
@@ -118,15 +119,11 @@ Ide_Runner_Shutdown()
 End
 
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 53
-; FirstLine = 69
+; CursorPosition = 20
+; FirstLine = 16
 ; Folding = -
 ; Optimizer
-; EnableAsm
-; EnableXP
-; DPIAware
-; DllProtection
+; EnableThread
 ; EnableOnError
-; DisableDebugger
 ; CompileSourceDirectory
-; Compiler = PureBasic 6.41 - C Backend (Windows - x64)
+; Compiler = PureBasic 6.40 - C Backend (Windows - x64)

@@ -4,7 +4,7 @@
 ;--------------------------------------------------------------------------------------------
 
 ; Vyrn IDE - window layout, gadget IDs, menus
-; PureBasic 6.40
+; PureBasic 6.41
 
 CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   #Ide_Ui = #True
@@ -18,6 +18,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     #GAD_TOOL_SAVE
     #GAD_TOOL_RUN
     #GAD_TOOL_STOP
+    #GAD_TOOL_SYNC
     #GAD_TABS
     #GAD_FIND_STR
     #GAD_FIND_NEXT
@@ -61,6 +62,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     #MNU_THEME
     #MNU_RUN
     #MNU_STOP
+    #MNU_SYNC_RUNTIME
     #MNU_ABOUT
   EndEnumeration
 
@@ -109,8 +111,10 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     MenuBar()
     MenuItem(#MNU_THEME, "Dark Theme")
     MenuTitle("Run")
-    MenuItem(#MNU_RUN, "Run" + Chr(9) + "F5")
+    MenuItem(#MNU_RUN, "Run Current" + Chr(9) + "F5")
     MenuItem(#MNU_STOP, "Stop" + Chr(9) + "Shift+F5")
+    MenuTitle("Tools")
+    MenuItem(#MNU_SYNC_RUNTIME, "Sync Runtime DLL" + Chr(9) + "Ctrl+Shift+R")
     MenuTitle("Help")
     MenuItem(#MNU_ABOUT, "About Vyrn IDE")
   EndProcedure
@@ -167,6 +171,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     If IsGadget(#GAD_TOOL_SAVE) : ResizeGadget(#GAD_TOOL_SAVE, 86, 6, 70, 24) : EndIf
     If IsGadget(#GAD_TOOL_RUN) : ResizeGadget(#GAD_TOOL_RUN, 164, 6, 70, 24) : EndIf
     If IsGadget(#GAD_TOOL_STOP) : ResizeGadget(#GAD_TOOL_STOP, 242, 6, 70, 24) : EndIf
+    If IsGadget(#GAD_TOOL_SYNC) : ResizeGadget(#GAD_TOOL_SYNC, 320, 6, 70, 24) : EndIf
 
     If IsGadget(#GAD_FIND_STR)
       HideGadget(#GAD_FIND_STR, Bool(Ide_FindVisible = 0))
@@ -250,6 +255,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     ButtonGadget(#GAD_TOOL_SAVE, 86, 6, 70, 24, "Save")
     ButtonGadget(#GAD_TOOL_RUN, 164, 6, 70, 24, "Run")
     ButtonGadget(#GAD_TOOL_STOP, 242, 6, 70, 24, "Stop")
+    ButtonGadget(#GAD_TOOL_SYNC, 320, 6, 70, 24, "Sync")
     DisableGadget(#GAD_TOOL_STOP, #True)
 
     StringGadget(#GAD_FIND_STR, 8, 40, 180, 22, "")
@@ -274,6 +280,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
 
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_F5, #MNU_RUN)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Shift | #PB_Shortcut_F5, #MNU_STOP)
+    AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_Shift | #PB_Shortcut_R, #MNU_SYNC_RUNTIME)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_N, #MNU_NEW)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_O, #MNU_OPEN)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_S, #MNU_SAVE)

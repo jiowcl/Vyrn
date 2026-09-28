@@ -207,6 +207,8 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
         Ide_Editor_ToggleTheme()
       Case #MNU_RUN
         Ide_Runner_Run()
+      Case #MNU_SYNC_RUNTIME
+        Ide_Runner_SyncRuntime()
       Case #MNU_STOP
         Ide_Runner_Stop()
       Case #MNU_ABOUT

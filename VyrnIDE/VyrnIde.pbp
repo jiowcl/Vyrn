@@ -7,20 +7,20 @@
   <section name="data">
     <explorer view="C:\ProgramData\PureBasic\Examples\" pattern="0"/>
     <log show="1"/>
-    <lastopen date="2026-08-15 11:04" user="使用者" host="DESKTOP-K1RBCTS"/>
+    <lastopen date="2026-09-28 21:07" user="Fred" host="DESKTOP-AMI620D"/>
   </section>
   <section name="files">
     <file name="VyrnIde.pb">
-      <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="+"/>
-      <fingerprint md5="d1d92730122d6e5fc2559596db2d4a58"/>
+      <config load="0" scan="1" panel="1" warn="1" lastopen="1" sortindex="2" panelstate="+"/>
+      <fingerprint md5="21c1bf149a938f83e9f7fc175248cb9d"/>
     </file>
     <file name="Core\Ide_Commands.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="a6164980e7c2213381b579cd6d85576a"/>
+      <fingerprint md5="a3cc57d0c894e971ae630afe273fea77"/>
     </file>
     <file name="Core\Ide_Diag.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="776a1de0fe317cf1879523e45764a92c"/>
+      <fingerprint md5="2027eb68bb35c028f5117456b8eeda89"/>
     </file>
     <file name="Core\Ide_Editor.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
@@ -32,22 +32,22 @@
     </file>
     <file name="Core\Ide_Runner.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="55305b7ebfb6cbadd37ac09c696dc6f2"/>
+      <fingerprint md5="5202a82c4b5b16ccb6867d43112e6244"/>
     </file>
     <file name="Core\Ide_Ui.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="24b08eab64ba044520e4d24a381ad338"/>
+      <fingerprint md5="603b66e9d6314370cf05f314f56a011c"/>
     </file>
     <file name="..\Vyrn\Native\include\vyrn.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="88f4d319764b68bd5070d17d479eda7a"/>
+      <fingerprint md5="52998f39fd74e73a9bb845c7ce5ffce0"/>
     </file>
   </section>
   <section name="targets">
     <target name="Default Target" enabled="1" default="1">
       <inputfile value="VyrnIde.pb"/>
       <outputfile value="Output\VyrnIDE.exe"/>
-      <compiler version="PureBasic 6.40 - C Backend (Windows - x64)"/>
+      <compiler version="PureBasic 6.41 - C Backend (Windows - x64)"/>
       <executable value="Output\VyrnIDE.exe"/>
       <options asm="1" thread="1" xpskin="1" dpiaware="1" dllprotection="1" onerror="1" optimizer="1"/>
       <temporaryexe value="source"/>

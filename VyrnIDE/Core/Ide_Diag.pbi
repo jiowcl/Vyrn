@@ -4,7 +4,7 @@
 ;--------------------------------------------------------------------------------------------
 
 ; Vyrn IDE - parse compiler/runtime diagnostics and jump to source lines
-; PureBasic 6.40
+; PureBasic 6.41
 
 CompilerIf Defined(Ide_Diag, #PB_Constant) = #False
   #Ide_Diag = #True
@@ -112,8 +112,80 @@ CompilerIf Defined(Ide_Diag, #PB_Constant) = #False
   ; </summary>
   ; <param name="msg">Diagnostic or output line containing a source location.</param>
   ; <param name="isWarn">#True to mark as warning; #False for error markers.</param>
-  Procedure Ide_Diag_JumpFromMessage(msg.s, isWarn.i = #False)
+  ; <summary>
+  ; Also accept path(line): msg and (line N) forms used by some host/tooling paths.
+  ; </summary>
+  Procedure.i Ide_Diag_ParseLineExtra(msg.s)
+    Protected s.s = Ide_Diag_StripPrefix(msg)
+    Protected i.i, j.i, n.i, c.i
+    ; "path(12): ..." or "name.vyrn(12):"
+    For i = 1 To Len(s) - 2
+      If Mid(s, i, 1) <> "("
+        Continue
+      EndIf
+      j = i + 1
+      n = 0
+      While j <= Len(s)
+        c = Asc(Mid(s, j, 1))
+        If c >= '0' And c <= '9'
+          n = n * 10 + (c - '0')
+          j = j + 1
+        Else
+          Break
+        EndIf
+      Wend
+      If n > 0 And j <= Len(s) And Mid(s, j, 1) = ")"
+        ProcedureReturn n
+      EndIf
+    Next
+    ProcedureReturn 0
+  EndProcedure
+
+  ; <summary>
+  ; Parse line from CLI-like diagnostics; tries primary then extra forms.
+  ; </summary>
+  ; <param name="msg">Diagnostic or output line containing a source location.</param>
+  Procedure.i Ide_Diag_ParseLineAny(msg.s)
     Protected line.i = Ide_Diag_ParseLine(msg)
+    If line > 0
+      ProcedureReturn line
+    EndIf
+    ProcedureReturn Ide_Diag_ParseLineExtra(msg)
+  EndProcedure
+
+  ; <summary>
+  ; Append one diagnostic to the output pane in CLI-like form and jump when possible.
+  ; Mirrors `path:line: message` / `line N: message` from Vyrn_FormatError.
+  ; </summary>
+  ; <param name="msg">Diagnostic or output line containing a source location.</param>
+  ; <param name="isWarn">#True to mark as warning; #False for error markers.</param>
+  Procedure Ide_Diag_EmitCliLike(msg.s, isWarn.i = #False)
+    Protected body.s = Ide_Diag_StripPrefix(msg)
+    Protected prefix.s
+    Protected line.i
+    If body = ""
+      ProcedureReturn
+    EndIf
+    If isWarn
+      prefix = "[warn] "
+    Else
+      prefix = "[error] "
+    EndIf
+    Ide_Ui_OutputAppend(prefix + body)
+    line = Ide_Diag_ParseLineAny(body)
+    If line > 0
+      Ide_Editor_GotoDiagnostic(line, isWarn)
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; Ide_Diag_JumpFromMessage
+  ; Mirrors `path:line: message` / `line N: message` from Vyrn_FormatError.
+  ; </summary>
+  ; <param name="msg">Diagnostic or output line containing a source location.</param>
+  ; <param name="isWarn">#True to mark as warning; #False for error markers.</param>
+  Procedure Ide_Diag_JumpFromMessage(msg.s, isWarn.i = #False)
+    Protected line.i = Ide_Diag_ParseLineAny(msg)
     
     If line > 0
       Ide_Editor_GotoDiagnostic(line, isWarn)

@@ -4,7 +4,7 @@
 ;--------------------------------------------------------------------------------------------
 
 ; PureBasic dynamic loader for Vyrn.dll (ABI 5) — companion to include/vyrn.h
-; PureBasic 6.40 (Windows x64)
+; PureBasic 6.41 (Windows x64/x86)
 ;
 ; Usage:
 ;   XIncludeFile "include\vyrn.pbi"   ; path relative to your source

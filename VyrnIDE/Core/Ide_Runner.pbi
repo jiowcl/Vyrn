@@ -4,7 +4,7 @@
 ;--------------------------------------------------------------------------------------------
 
 ; Vyrn IDE - background Run via Vyrn.dll + output queue + Stop
-; PureBasic 6.40
+; PureBasic 6.41
 
 CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   #Ide_Runner = #True
@@ -210,6 +210,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   ; </summary>
   Procedure Ide_Runner_Finish()
     Protected jumpMsg.s = "", jumpWarn.i = #False
+    Protected errCode.i = 0
+    Protected chunk.s, pos.i, eol.i
     Ide_RunBusy = #False
     Ide_RunThread = 0
     Ide_Runner_SetUiRunning(#False)
@@ -233,17 +235,33 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
       Ide_Ui_SetStatus("Ready | last run ok (" + Str(Ide_RunElapsed) + " ms) | Vyrn " + Vyrn_ProductVersion())
     Else
       If Ide_RunErr <> ""
-        Ide_Ui_OutputAppend("[error] " + Ide_RunErr)
-        jumpMsg = Ide_RunErr
+        pos = 1
+        While pos <= Len(Ide_RunErr)
+          eol = FindString(Ide_RunErr, Chr(10), pos)
+          If eol = 0
+            chunk = Mid(Ide_RunErr, pos)
+            pos = Len(Ide_RunErr) + 1
+          Else
+            chunk = Mid(Ide_RunErr, pos, eol - pos)
+            pos = eol + 1
+          EndIf
+          chunk = Trim(ReplaceString(chunk, Chr(13), ""))
+          If chunk <> ""
+            Ide_Diag_EmitCliLike(chunk, #False)
+            If jumpMsg = ""
+              jumpMsg = chunk
+            EndIf
+          EndIf
+        Wend
+        errCode = Vyrn_LastErrorCode()
+        If errCode <> 0
+          Ide_Ui_OutputAppend("[error] code=" + Str(errCode))
+        EndIf
       Else
         Ide_Ui_OutputAppend("[error] run failed")
       EndIf
       
       Ide_Ui_SetStatus("Ready | last run failed")
-    EndIf
-
-    If jumpMsg <> ""
-      Ide_Diag_JumpFromMessage(jumpMsg, #False)
     EndIf
     
     Ide_Editor_UpdateCaretStatus()
@@ -411,8 +429,12 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
       path = "<buffer>"
     EndIf
 
-    Ide_Ui_OutputAppend(">>> " + path)
-    Ide_Ui_SetStatus("Running...")
+    If useEval
+      Ide_Ui_OutputAppend(">>> <buffer> (Eval current buffer)")
+    Else
+      Ide_Ui_OutputAppend(">>> " + path)
+    EndIf
+    Ide_Ui_SetStatus("Running " + path + " ...")
     Ide_Runner_ClearQueue()
     Ide_RunUseEval = useEval
     Ide_RunPath = path
@@ -434,6 +456,35 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
       Ide_Ui_OutputAppend("[error] could not start run thread")
       Ide_Ui_SetStatus("Ready | run thread failed")
     EndIf
+  EndProcedure
+
+
+  ; <summary>
+  ; Reload Vyrn.dll from the search path (exe dir / Runtime / VYRN_DLL).
+  ; Use after scripts\sync_ide_runtime.ps1 or build_ide.ps1 updates the DLL beside the IDE.
+  ; </summary>
+  Procedure.i Ide_Runner_SyncRuntime()
+    Protected ok.i
+    If Ide_RunBusy
+      MessageRequester("Vyrn IDE", "Stop the running script before syncing the runtime.", #PB_MessageRequester_Info)
+      ProcedureReturn #False
+    EndIf
+    Ide_Runner_Init()
+    Vyrn_Unload()
+    Ide_RunnerReady = #False
+    ok = Vyrn_Load()
+    If ok = 0
+      ok = Vyrn_ForceReload()
+    EndIf
+    If ok
+      Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
+      Ide_RunnerReady = #True
+      Ide_Ui_OutputAppend("[ok] runtime synced: " + Vyrn_DllPath + " | Vyrn " + Vyrn_ProductVersion() + " (ABI " + Str(Vyrn_Abi) + ")")
+      Ide_Ui_SetStatus("Ready | runtime synced | Vyrn " + Vyrn_ProductVersion() + " (ABI " + Str(Vyrn_Abi) + ")")
+      ProcedureReturn #True
+    EndIf
+    Ide_Runner_ShowDllError()
+    ProcedureReturn #False
   EndProcedure
 
 CompilerEndIf
