@@ -605,6 +605,14 @@ REPL / `-e`: typed `let` (`let x: number = 1`) performs runtime type checks on g
 | WS surface | `send` string id / `send_binary` / HTTP www | Opcode-2 + max-clients refuse |
 | Native header | `include/vyrn.h` | File banner: ABI, string lifetime |
 
+## Added in v1.6.41  
+
+| Feature | Syntax / API | Notes |
+|---------|--------------|-------|
+| path size/mtime/copy | `path.size` / `mtime` / `copy` | File metadata + copy |
+| file:read byte count | `f:read(n)` / `io.read(n)` | Lua-like; legacy `io.read(handle, mode)` kept |
+| WS handshake hygiene | serve accept path | Id assigned on upgrade; probes skip `on_ws_close` |
+
 ## Developer tools  
 
 | Flag | Purpose |
