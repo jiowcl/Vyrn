@@ -1,0 +1,46 @@
+-- vyrn: 12 strict
+-- Typed tour: annotations are checked under strict.
+-- Run: bin\LuaLiteVM_build.exe examples\vyrn\typed_tour.vyrn
+
+struct Point
+    x: number
+    y: number
+end
+
+def dist(p: Point) -> number
+    return math.sqrt(p.x * p.x + p.y * p.y)
+end
+
+def add(a: number, b: number) -> number
+    return a + b
+end
+
+let origin: Point = Point { x = 0, y = 0 }
+let p: Point = Point { x = 3, y = 4 }
+let d: number = dist(p)
+let sum: number = add(d, origin.x)
+
+print(sum)
+print(string.contains("vyrn", "yr"))
+
+-- Typed yield / wrap / create+resume (payload must match ->)
+def gen() -> number, string
+    yield 1, "a"
+    return 2, "b"
+end
+
+let w = coroutine.wrap(gen)
+let wok: bool, wn: number, ws: string = w()
+print("wrap", wok, wn, ws)
+
+let co = coroutine.create(gen)
+let ok: bool, n: number, s: string = coroutine.resume(co)
+print("resume", ok, n, s)
+
+-- Rebind create: typed resume follows the new worker
+def gen_str() -> string
+    yield "z"
+end
+co = coroutine.create(gen_str)
+let ok2: bool, s2: string = coroutine.resume(co)
+print("rebind", ok2, s2)

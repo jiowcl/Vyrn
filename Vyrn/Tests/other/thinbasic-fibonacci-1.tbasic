@@ -1,0 +1,30 @@
+﻿' Fibonacci Sequence Test: Calculate the 35th term (Fibonacci 35).
+
+Uses "Console"
+
+FUNCTION Fib(BYVAL n AS LONG) AS LONG
+  IF n <= 1 THEN
+    FUNCTION = n
+  ELSE
+    FUNCTION = Fib(n - 1) + Fib(n - 2)
+  END IF
+END FUNCTION
+
+SUB RunBenchmark()
+  DIM result AS LONG
+  Dim T1, T2 As QUAD
+  
+  HiResTimer_Init
+  
+  T1 = HiResTimer_Get
+  PRINTL "Start Fibonacci benchmark..."
+  result = Fib(35)
+  PRINTL "Complete! Result: " & result   ' The correct answer should be 9227465
+  T2 = HiResTimer_Get
+  
+  PRINTL "Time: " & FORMAT$(T2-T1, "#0")
+END SUB
+
+RunBenchmark()
+
+Console_Read

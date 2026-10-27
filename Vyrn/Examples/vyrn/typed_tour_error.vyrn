@@ -1,0 +1,10 @@
+-- vyrn: 12 strict
+-- Strict tour: intentional type error (expect runtime / compile check fail).
+-- Run: bin\LuaLiteVM_build.exe examples\vyrn\typed_tour_error.vyrn
+-- Expected: type error on bad argument to `add`.
+
+def add(a: number, b: number) -> number
+    return a + b
+end
+
+print(add(1, "nope"))
