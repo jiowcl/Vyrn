@@ -1,0 +1,27 @@
+' Fibonacci Sequence Test: Calculate the 35th term (Fibonacci 35) - Recursive version
+
+RunBenchmark
+
+Function Fib(ByVal n As Long) As Long
+  If n <= 1
+    Fib = n
+  Else
+    Fib = Fib(n - 1) + Fib(n - 2)
+  EndIf
+EndFunc
+
+Procedure RunBenchmark
+  Local result As Long
+  Local t1#, t2#, msg$
+
+  t1# = Timer
+  result = Fib(35)
+  t2# = Timer
+
+  msg$ = "Complete! Result: " + Str$(result) + #13
+  msg$ = msg$ + "Time: " + Format(Round((t2# - t1#) * 1000)) + " ms"
+  ' The correct answer should be 9227465
+
+  Message msg$
+'##E#
+EndProcedure

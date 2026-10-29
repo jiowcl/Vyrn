@@ -1,0 +1,36 @@
+' Fibonacci Sequence Test: Calculate the 35th term (Fibonacci 35).
+
+RunBenchmark
+
+Function Fib(ByVal n As Long) As Long
+  Local a As Long, b As Long, c As Long, i As Long
+  a = 0
+  b = 1
+
+  If n <= 1
+    Fib = n
+  Else
+    For i = 2 To n
+      c = a + b
+      a = b
+      b = c
+    Next i
+    Fib = b
+  EndIf
+EndFunc
+
+Procedure RunBenchmark
+  Local result As Long
+  Local t1#, t2#, msg$
+
+  t1# = Timer
+  result = Fib(35)
+  t2# = Timer
+
+  msg$ = "Complete! Result: " + Str$(result) + #13
+  msg$ = msg$ + "Time: " + Format(Round((t2# - t1#) * 1000)) + " ms"
+  ' The correct answer should be 9227465
+
+  Message msg$
+'##E#
+EndProcedure
