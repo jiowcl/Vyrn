@@ -9,8 +9,12 @@ endfunc
 
 function RunBenchmark()
     pln "Start Fibonacci benchmark..."
+    start = clock()
     result = Fib(35)
+    elapsed = clock() - start 
     pln "Complete! Result: " + result ' The correct answer should be 9227465
+    pln "Time taken: " + elapsed + " ms"
+    pln "Time taken: " + (elapsed / 1000) + " seconds"
 endfunc
 
 RunBenchmark()
