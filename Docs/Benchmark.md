@@ -59,6 +59,8 @@ def Fib(n: number) -> number
 end
 ```
 
+Test Result  
+
 | Run | Time (ms) | Instructions |
 | --- | --- | --- |
 | 1 | 1,523 | 21,979,531 |
@@ -68,7 +70,7 @@ end
 | 5 | 1,551 | 21,979,531 |
 | Avg | 1,593 | --- |
 
-Observation: Vyrn is approximately 34× faster than ThinBasic on this recursive workload (assuming ThinBasic raw units ≈ microseconds → ~54.5 s vs Vyrn 1.59 s).  
+Observation: Vyrn is approximately 34× faster than ThinBasic on this recursive workload.  
 
 Note: This test is for reference only; Vyrn does not yet possess the full range of features found in ThinBasic.  
 
@@ -90,6 +92,8 @@ FUNCTION FibIter(BYVAL n AS LONG) AS LONG
   FUNCTION = a
 END FUNCTION
 ```
+
+Test Result  
 
 | Run | Time (raw) |
 | --- | --- |
@@ -116,6 +120,8 @@ def Fib(n: number) -> number
     return b
 end
 ```
+
+Test Result  
 
 | Run | Time (ms) | Instructions |
 | --- | --- | --- |
