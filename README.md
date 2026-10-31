@@ -71,13 +71,27 @@ print(calculate_bonus(100))
 More examples are in `examples/vyrn/`.  
 For a full typing demonstration see `examples/vyrn/typed_tour.vyrn` (uses -- vyrn: 12 strict).  
 
+## Language Snapshot  
+
+| Feature | Notes |
+| --- | --- |
+| `def` / `let` / `elif` / `const` / `continue` | Modern keywords (legacy `function` / `local` / `elseif` still accepted) |
+| Optional types | `def f(x: number) -> string`, multi-return, typed destructuring |
+| `struct` / `enum` | Typed constructors, methods, optional fields |
+| `match` | Pattern matching (desugars to `if`/`elif`) |
+| String interpolation | `"Hello, {name}!"` |
+| Closures & upvalues | Full lexical capture, shared upvalues |
+| Varargs | `def f(a, ...)`, `select`, `table.pack` / `unpack` |
+| Protected calls | `pcall`, `xpcall`, `error`, `assert` |
+| Coroutines | Full subset + `yield` statement |
+
 ## History  
 
 - 2016: Vyrn (LuaLiteVM) was initially written in `PowerBasic 10.04`.  
 - 2018: Rewritten in `FreeBasic 1.05` using `FBEdit`.  
 - 2024: Rewritten in the latest version of `PureBasic` and renamed to `Vyrn`.  
 - 2025: Optional `typing`, `structs/enums`, `coroutines`, `strict mode`, `build/bundle/serve`, native `C ABI`, extensive stdlib and performance work.  
-- 2026: Released the official standalone Vyrn IDE (syntax highlighting, code editing, run/debug integration)  
+- 2026: Released the official standalone Vyrn IDE (syntax highlighting, code editing, run/debug integration).  
 
 ## Credits  
 
