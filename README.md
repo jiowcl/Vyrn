@@ -13,12 +13,14 @@
 - **Ultra Lightweight**: Minimal footprint with zero extra dynamic libraries needed.  
 - **Pure $PureBasic Implementation**: Seamlessly embeddable into host applications written in PureBasic or C.  
 - **Lua-Inspired Syntax**: Familiar, clean, and quick to learn for Lua developers.  
+- **Optional Typing**: `parameter` / `return` / `binding` / `struct annotations` (runtime checks; `--strict` for compile-time).  
 - **Built for Embedding**: Designed specifically for scriptable apps, game engine logic, and small tooling.  
+- **Developer Tooling**: `vyrn build`, `vyrn bundle` (tree-shake + source-map), `vyrn serve` (WebSocket), REPL, `--dump`, `--strict`, `--bench`, `--timing`.  
 - **Syntax Highlighting IDE**: Designed specifically for Vyrn's unique grammar and built-in functions.  
 
 ## Environment  
 
-- Windows 11 above (recommend)  
+- Windows 10/11 above (recommend)  
 - PureBasic 6.41 above (recommend)  
 
 ## How to Build  
@@ -66,11 +68,16 @@ print(calculate_bonus(100))
 -- 110
 ```
 
+More examples are in `examples/vyrn/`.  
+For a full typing demonstration see `examples/vyrn/typed_tour.vyrn` (uses -- vyrn: 12 strict).  
+
 ## History  
 
 - 2016: Vyrn (LuaLiteVM) was initially written in `PowerBasic 10.04`.  
 - 2018: Rewritten in `FreeBasic 1.05` using `FBEdit`.  
 - 2024: Rewritten in the latest version of `PureBasic` and renamed to `Vyrn`.  
+- 2025: Optional `typing`, `structs/enums`, `coroutines`, `strict mode`, `build/bundle/serve`, native `C ABI`, extensive stdlib and performance work.  
+- 2026: Released the official standalone Vyrn IDE (syntax highlighting, code editing, run/debug integration)  
 
 ## Credits  
 
@@ -82,12 +89,6 @@ print(calculate_bonus(100))
 
 Copyright (c) 2016-2026 Ji-Feng Tsai.  
 Code released under the MIT license.  
-
-## TODO  
-
-- Built-in Functions (IO, File, Socket, etc)  
-- Error Handling  
-- More examples  
 
 ## Donation  
 
