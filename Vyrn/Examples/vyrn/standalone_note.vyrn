@@ -1,0 +1,7 @@
+-- vyrn: 12
+-- Tiny pointer sample for Vyrn.Standalone (full VM via Vyrn.dll).
+
+print("=== standalone_note ===")
+print("Use Vyrn.Standalone when you need full stdlib (require, path, ws, ...).")
+print("Use Vyrn.Compile only for @compile-safe scripts — see compile_safe_hello.vyrn.")
+print("=== done ===")

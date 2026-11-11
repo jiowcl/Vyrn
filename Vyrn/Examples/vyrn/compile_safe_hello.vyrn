@@ -1,0 +1,6 @@
+-- @compile-safe
+-- vyrn: 12
+-- Minimal ship_compile-capable hello.
+
+let name: string = "Vyrn.Compile"
+print("Hello, " .. name .. "!")

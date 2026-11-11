@@ -1,0 +1,8 @@
+-- vyrn: 12
+-- Vyrn.Standalone product sample (full stdlib via bundled Vyrn.dll).
+
+print("=== standalone_demo ===")
+print("path.exists('.') =>", path.exists("."))
+print("math.sqrt(9) =>", math.sqrt(9))
+print("type(require) =>", type(require))
+print("=== done ===")

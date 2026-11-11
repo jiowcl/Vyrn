@@ -1,0 +1,5 @@
+-- Example: compile-safe string + table subset
+print(string.upper("hi"))
+let xs = {"a", "b"}
+table.insert(xs, "c")
+print(table.concat(xs, "-"))
