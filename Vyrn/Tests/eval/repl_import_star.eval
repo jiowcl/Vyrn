@@ -1,0 +1,2 @@
+import * as E from "tests.eval.lib.exports"
+print(E.run("repl"))

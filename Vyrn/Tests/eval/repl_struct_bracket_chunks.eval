@@ -1,0 +1,21 @@
+-- vyrn: 12
+struct Point
+    x: number
+    y: number
+end
+---
+let p = Point { x = 4, y = 5 }
+---
+print(p["x"])
+---
+let k = "y"
+print(p[k])
+---
+let f, s, v = pairs(p)
+let a, b = f(s, v)
+print(a, b)
+---
+let fs = table.fields(p)
+print(fs[1], fs[2])
+---
+print(p.x, p.y)

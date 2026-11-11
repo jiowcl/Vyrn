@@ -1,0 +1,6 @@
+let x = 1
+def inner()
+    x = 2
+end
+inner()
+print(x)

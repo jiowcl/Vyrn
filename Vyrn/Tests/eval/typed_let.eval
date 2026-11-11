@@ -1,0 +1,4 @@
+let n: number = 42
+print(n)
+let s: string = "hi"
+print(s)

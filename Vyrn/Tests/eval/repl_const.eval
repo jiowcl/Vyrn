@@ -1,0 +1,4 @@
+const MAX: number = 100
+print(MAX)
+const LABEL: string = "repl"
+print(LABEL)

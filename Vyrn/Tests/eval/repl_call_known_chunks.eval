@@ -1,0 +1,8 @@
+-- vyrn: 12
+-- Cross-chunk known call: define in one eval, call in the next (session).
+def add1(x)
+  return x + 1
+end
+---
+print(add1(41))
+print(add1(0))

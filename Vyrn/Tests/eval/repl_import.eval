@@ -1,0 +1,2 @@
+import echo from "tests.eval.lib.echo"
+print(echo("repl"))

@@ -1,0 +1,4 @@
+def greet(name = "world")
+    print("hi " .. name)
+end
+greet()

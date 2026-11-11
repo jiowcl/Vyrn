@@ -1,0 +1,11 @@
+-- vyrn: 12
+-- REPL/eval: recursive CALL_KNOWN must work across chunk (def then call).
+def Fib(n)
+  if n <= 1 then
+    return n
+  end
+  return Fib(n - 1) + Fib(n - 2)
+end
+print(Fib(10))
+print(Fib(0))
+print(Fib(1))

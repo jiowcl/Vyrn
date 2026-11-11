@@ -1,0 +1,9 @@
+let f = def(x)
+    return x * 3
+end
+print(f(7))
+
+let make = def(n)
+    return def(x) return x + n end
+end
+print(make(10)(5))

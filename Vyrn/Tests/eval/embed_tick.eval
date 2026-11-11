@@ -1,0 +1,7 @@
+let state = 0
+def on_tick(dt)
+    state = state + dt * 10
+    return state
+end
+print(on_tick(0.5))
+print(on_tick(0.5))

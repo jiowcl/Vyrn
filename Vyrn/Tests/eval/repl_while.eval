@@ -1,0 +1,5 @@
+let total = 0
+while total < 10 do
+    total = total + 3
+end
+print(total)

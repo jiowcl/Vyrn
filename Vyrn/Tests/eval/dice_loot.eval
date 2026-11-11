@@ -1,0 +1,21 @@
+math.randomseed(99)
+let gold = 0
+let gem = 0
+let faces = {1, 2, 3, 4, 5, 6}
+def roll_face()
+    return faces[math.random(1, 6)]
+end
+def apply_loot(face)
+    if face >= 5 then
+        gem = gem + 1
+    else
+        gold = gold + face
+    end
+end
+let it, s, v = ipairs(faces)
+let i, face = it(s, v)
+print("ipairs", i, face)
+print(roll_face())
+apply_loot(roll_face())
+apply_loot(roll_face())
+print("gold=" .. gold .. ",gem=" .. gem)

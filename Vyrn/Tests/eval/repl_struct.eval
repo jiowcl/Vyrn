@@ -1,0 +1,6 @@
+struct Pair
+    x: number
+    y: number
+end
+let p = Pair { x = 1, y = 2 }
+print(p.x, p.y)

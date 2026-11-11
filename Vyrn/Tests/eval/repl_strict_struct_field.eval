@@ -1,0 +1,8 @@
+-- vyrn: 12 strict
+struct Point
+    x: number
+    y: number
+end
+
+let p = Point { x = 9, y = 1 }
+print(p.x)

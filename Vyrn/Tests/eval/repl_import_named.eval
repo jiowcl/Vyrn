@@ -1,0 +1,2 @@
+import { run } from "tests.eval.lib.exports"
+print(run("repl"))
