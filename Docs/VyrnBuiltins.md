@@ -18,7 +18,7 @@ Unless noted, missing or wrong-typed arguments yield `nil` (or an error string v
 | `assert(v [, msg])` | `v, ...` | Error if `v` is `nil`/`false` |
 | `timer()` | number | High-resolution elapsed seconds (monotonic) |
 | `collectgarbage([opt])` | bool\|number\|nil | `"collect"` (default) → run GC, `true`; `"count"` → approximate heap in KB (1.6.79: PB VM sums table headers + hash/dense storage; libvyrnrt also adds string bytes, so values are the same order of magnitude but not equal across runtimes) |
-| `select(index, ...)` / `select("#", ...)` | var | Lua-style select; `select("#")` with no varargs is `0` (1.6.77). When there are no variable parameters `select("#")` 為 `0`。 |
+| `select(index, ...)` / `select("#", ...)` | var | Lua-style select; `select("#")` with no varargs is `0` (1.6.77). When there are no variable parameters `select("#")` is `0`。 |
 | `rawget(t, k)` | value\|nil | Direct table get (`TableGet`); no metamethods (Vyrn has none); StructMeta field bridge same as `t[k]` |
 | `rawset(t, k, v)` | table | Direct table set; returns `t`; key must be number or string |
 | `rawequal(a, b)` | bool | Strict equality; tables/functions by identity (unlike `==`, which is false for tables) |
