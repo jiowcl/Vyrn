@@ -1,0 +1,29 @@
+-- vyrn: 12
+-- Gemini streamGenerateContent SSE example (1.6.128).
+-- Uses opts.on_chunk + http.sse_events. Reads GEMINI_API_KEY (required) and
+-- optional GEMINI_BASE_URL / GEMINI_MODEL / GEMINI_PROMPT.
+-- Never hardcodes secrets. Needs --allow-net. Not run against the real API in CI;
+-- see tests/vyrn/http_sse.vyrn.
+
+let api = require("clients")
+
+let key = os.getenv("GEMINI_API_KEY") or ""
+if key == "" then
+  print("gemini_stream: GEMINI_API_KEY is not set. Export a key (never commit it) and rerun with --allow-net.")
+  os.exit(0)
+end
+
+let model = os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
+let text, err = api.gemini_stream({
+  key = key,
+  base = os.getenv("GEMINI_BASE_URL") or "https://generativelanguage.googleapis.com",
+  model = model,
+  prompt = os.getenv("GEMINI_PROMPT") or "Say hello in one short sentence."
+})
+if not text then
+  print("gemini_stream: " .. tostring(err))
+  os.exit(1)
+end
+print(text)
+print("")
+print("gemini_stream: done (" .. tostring(#text) .. " chars)")

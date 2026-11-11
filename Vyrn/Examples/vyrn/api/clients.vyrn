@@ -1,0 +1,353 @@
+-- vyrn: 12
+-- Shared OpenAI Chat Completions + Gemini generateContent helpers (1.6.125; image input 1.6.126).
+-- Used by the CLI examples and by tests/vyrn/api_clients.vyrn (loopback mock).
+-- Does not read API keys itself; the caller passes opts.key / opts.base.
+-- Image: set opts.image_path (read via crypto.tobase64_file) or opts.image_b64,
+-- and optional opts.image_mime (default image/png).
+
+def is_disabled_net(err)
+  let s = tostring(err)
+  return string.find(s, "network access is disabled", 1, true) ~= nil
+end
+
+def resolve_image(opts)
+  let mime = opts.image_mime or "image/png"
+  let b64 = opts.image_b64 or ""
+  let p = opts.image_path or ""
+  if b64 == "" and p ~= "" then
+    let enc, e = crypto.tobase64_file(p)
+    if not enc then
+      return nil, nil, e
+    end
+    b64 = enc
+  end
+  if b64 == "" then
+    return nil, mime, nil
+  end
+  return b64, mime, nil
+end
+
+def openai_chat(opts)
+  if type(opts) ~= "table" then
+    return nil, "openai_chat: options table expected"
+  end
+  let key = opts.key or ""
+  let base = opts.base or "https://api.openai.com"
+  let model = opts.model or "gpt-4o-mini"
+  let prompt = opts.prompt or "Say hello in one word."
+  let timeout = opts.timeout or 30
+  if key == "" then
+    return nil, "missing API key"
+  end
+  let img, mime, ierr = resolve_image(opts)
+  if ierr then
+    return nil, ierr
+  end
+  let url = base .. "/v1/chat/completions"
+  let hdr = {}
+  hdr["Authorization"] = "Bearer " .. key
+  hdr["Content-Type"] = "application/json"
+  let content
+  if img then
+    content = {
+      { type = "text", text = prompt },
+      { type = "image_url", image_url = { url = "data:" .. mime .. ";base64," .. img } }
+    }
+  else
+    content = prompt
+  end
+  let body = json.encode({
+    model = model,
+    messages = {
+      { role = "user", content = content }
+    }
+  })
+  let r, err = http.request({ method = "POST", url = url, headers = hdr, body = body, timeout = timeout })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+  end
+  let data, jerr = json.decode(r.body)
+  if not data then
+    return nil, jerr
+  end
+  let choices = data.choices
+  if type(choices) ~= "table" or type(choices[1]) ~= "table" then
+    return nil, "unexpected OpenAI response"
+  end
+  let msg = choices[1].message
+  if type(msg) ~= "table" then
+    return nil, "unexpected OpenAI response"
+  end
+  return msg.content
+end
+
+def gemini_generate(opts)
+  if type(opts) ~= "table" then
+    return nil, "gemini_generate: options table expected"
+  end
+  let key = opts.key or ""
+  let base = opts.base or "https://generativelanguage.googleapis.com"
+  let model = opts.model or "gemini-2.5-flash"
+  let prompt = opts.prompt or "Say hello in one word."
+  let timeout = opts.timeout or 30
+  if key == "" then
+    return nil, "missing API key"
+  end
+  let img, mime, ierr = resolve_image(opts)
+  if ierr then
+    return nil, ierr
+  end
+  let url = base .. "/v1beta/models/" .. model .. ":generateContent"
+  let hdr = {}
+  hdr["x-goog-api-key"] = key
+  hdr["Content-Type"] = "application/json"
+  let parts = { { text = prompt } }
+  if img then
+    parts[#parts + 1] = { inline_data = { mime_type = mime, data = img } }
+  end
+  let body = json.encode({
+    contents = {
+      { parts = parts }
+    }
+  })
+  let r, err = http.request({ method = "POST", url = url, headers = hdr, body = body, timeout = timeout })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+  end
+  let data, jerr = json.decode(r.body)
+  if not data then
+    return nil, jerr
+  end
+  let cands = data.candidates
+  if type(cands) ~= "table" or type(cands[1]) ~= "table" then
+    return nil, "unexpected Gemini response"
+  end
+  let content = cands[1].content
+  if type(content) ~= "table" or type(content.parts) ~= "table" or type(content.parts[1]) ~= "table" then
+    return nil, "unexpected Gemini response"
+  end
+  return content.parts[1].text
+end
+
+def openai_files_upload(opts)
+  if type(opts) ~= "table" then
+    return nil, "openai_files_upload: options table expected"
+  end
+  let key = opts.key or ""
+  let base = opts.base or "https://api.openai.com"
+  let path = opts.path or ""
+  let purpose = opts.purpose or "assistants"
+  let timeout = opts.timeout or 30
+  let filename = opts.filename
+  let content_type = opts.content_type or "application/octet-stream"
+  if key == "" then
+    return nil, "missing API key"
+  end
+  if path == "" then
+    return nil, "missing file path"
+  end
+  let hdr = {}
+  hdr["Authorization"] = "Bearer " .. key
+  let r, err = http.request({
+    method = "POST",
+    url = base .. "/v1/files",
+    headers = hdr,
+    timeout = timeout,
+    multipart = {
+      {name = "purpose", value = purpose},
+      {name = "file", path = path, filename = filename, content_type = content_type}
+    }
+  })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+  end
+  let data, jerr = json.decode(r.body)
+  if not data then
+    return nil, jerr
+  end
+  return data
+end
+
+def gemini_files_upload(opts)
+  if type(opts) ~= "table" then
+    return nil, "gemini_files_upload: options table expected"
+  end
+  let key = opts.key or ""
+  let base = opts.base or "https://generativelanguage.googleapis.com"
+  let path = opts.path or ""
+  let timeout = opts.timeout or 30
+  let filename = opts.filename
+  let content_type = opts.content_type or "application/octet-stream"
+  if key == "" then
+    return nil, "missing API key"
+  end
+  if path == "" then
+    return nil, "missing file path"
+  end
+  let hdr = {}
+  hdr["x-goog-api-key"] = key
+  let r, err = http.request({
+    method = "POST",
+    url = base .. "/upload/v1beta/files",
+    headers = hdr,
+    timeout = timeout,
+    multipart = {
+      {name = "file", path = path, filename = filename, content_type = content_type}
+    }
+  })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+  end
+  let data, jerr = json.decode(r.body)
+  if not data then
+    return nil, jerr
+  end
+  return data
+end
+
+
+-- 1.6.128: streaming helpers. on_delta(piece) is optional. [DONE] is handled here.
+def openai_chat_stream(opts)
+  if type(opts) ~= "table" then
+    return nil, "openai_chat_stream: options table expected"
+  end
+  let key = opts.key or ""
+  let base = opts.base or "https://api.openai.com"
+  let model = opts.model or "gpt-4o-mini"
+  let prompt = opts.prompt or "Say hello in one word."
+  let timeout = opts.timeout or 60
+  if key == "" then
+    return nil, "missing API key"
+  end
+  let url = base .. "/v1/chat/completions"
+  let hdr = {}
+  hdr["Authorization"] = "Bearer " .. key
+  hdr["Content-Type"] = "application/json"
+  let payload = {
+    model = model,
+    stream = true,
+    messages = {
+      { role = "user", content = prompt }
+    }
+  }
+  let acc = ""
+  let text = ""
+  let r, err = http.request({
+    method = "POST",
+    url = url,
+    headers = hdr,
+    body = json.encode(payload),
+    timeout = timeout,
+    on_chunk = function(chunk)
+      acc = acc .. chunk
+      let evs, rest = http.sse_events(acc)
+      acc = rest
+      let i = 1
+      while i <= #evs do
+        let d = evs[i].data
+        if d == "[DONE]" then
+          return false
+        end
+        let obj, je = json.decode(d)
+        if obj and obj.choices and obj.choices[1] and obj.choices[1].delta then
+          let piece = obj.choices[1].delta.content or ""
+          text = text .. piece
+          if type(opts.on_delta) == "function" and piece ~= "" then
+            opts.on_delta(piece)
+          end
+        end
+        i = i + 1
+      end
+    end
+  })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status)
+  end
+  return text
+end
+
+def gemini_stream(opts)
+  if type(opts) ~= "table" then
+    return nil, "gemini_stream: options table expected"
+  end
+  let key = opts.key or ""
+  let base = opts.base or "https://generativelanguage.googleapis.com"
+  let model = opts.model or "gemini-2.0-flash"
+  let prompt = opts.prompt or "Say hello in one word."
+  let timeout = opts.timeout or 60
+  if key == "" then
+    return nil, "missing API key"
+  end
+  let url = base .. "/v1beta/models/" .. model .. ":streamGenerateContent?alt=sse"
+  let hdr = {}
+  hdr["x-goog-api-key"] = key
+  hdr["Content-Type"] = "application/json"
+  let payload = {
+    contents = {
+      { role = "user", parts = { { text = prompt } } }
+    }
+  }
+  let acc = ""
+  let text = ""
+  let r, err = http.request({
+    method = "POST",
+    url = url,
+    headers = hdr,
+    body = json.encode(payload),
+    timeout = timeout,
+    on_chunk = function(chunk)
+      acc = acc .. chunk
+      let evs, rest = http.sse_events(acc)
+      acc = rest
+      let i = 1
+      while i <= #evs do
+        if evs[i].data ~= "" then
+          let obj, je = json.decode(evs[i].data)
+          if obj and obj.candidates and obj.candidates[1] and obj.candidates[1].content then
+            let parts = obj.candidates[1].content.parts
+            if parts and parts[1] and parts[1].text then
+              let piece = parts[1].text
+              text = text .. piece
+              if type(opts.on_delta) == "function" then
+                opts.on_delta(piece)
+              end
+            end
+          end
+        end
+        i = i + 1
+      end
+    end
+  })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status)
+  end
+  return text
+end
+
+let M = {}
+M.openai_chat = openai_chat
+M.gemini_generate = gemini_generate
+M.openai_files_upload = openai_files_upload
+M.gemini_files_upload = gemini_files_upload
+M.openai_chat_stream = openai_chat_stream
+M.gemini_stream = gemini_stream
+M.is_disabled_net = is_disabled_net
+return M

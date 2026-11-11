@@ -1,0 +1,56 @@
+-- vyrn: 12
+-- Gemini generateContent image-input example (1.6.126).
+-- Sends inline_data built with crypto.tobase64_file. Reads GEMINI_API_KEY
+-- (required) and optional GEMINI_BASE_URL / GEMINI_MODEL / GEMINI_IMAGE.
+-- Never hardcodes secrets. Needs --allow-net. Not run against the real API in CI;
+-- see tests/vyrn/api_clients.vyrn.
+
+let api = require("clients")
+
+def find_image()
+  let envp = os.getenv("GEMINI_IMAGE") or ""
+  if envp ~= "" then return envp end
+  let cands = {
+    "sample.png",
+    path.join("examples", "vyrn", "api", "sample.png")
+  }
+  let i = 1
+  while i <= #cands do
+    if path.isfile(cands[i]) then return cands[i] end
+    i = i + 1
+  end
+  return nil
+end
+
+let key = os.getenv("GEMINI_API_KEY") or ""
+if key == "" then
+  print("gemini_generate_image: GEMINI_API_KEY is not set. Export a key (never commit it) and rerun with --allow-net.")
+  os.exit(0)
+end
+
+let img = find_image()
+if not img then
+  print("gemini_generate_image: sample.png not found (run from the repo root or examples/vyrn/api).")
+  os.exit(1)
+end
+
+let opts = {
+  key = key,
+  base = os.getenv("GEMINI_BASE_URL") or "https://generativelanguage.googleapis.com",
+  model = os.getenv("GEMINI_MODEL") or "gemini-2.5-flash",
+  prompt = "Describe this image in one sentence.",
+  image_path = img,
+  image_mime = "image/png",
+  timeout = 30
+}
+
+let text, err = api.gemini_generate(opts)
+if not text then
+  if api.is_disabled_net(err) then
+    print("gemini_generate_image: network access is disabled. Rerun with --allow-net (prefer --allow-net=generativelanguage.googleapis.com).")
+    os.exit(0)
+  end
+  print("gemini_generate_image: " .. tostring(err))
+  os.exit(1)
+end
+print(text)

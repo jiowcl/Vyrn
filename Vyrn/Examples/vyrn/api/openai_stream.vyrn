@@ -1,0 +1,28 @@
+-- vyrn: 12
+-- OpenAI Chat Completions streaming example (1.6.128).
+-- Uses opts.on_chunk + http.sse_events. Reads OPENAI_API_KEY (required) and
+-- optional OPENAI_BASE_URL / OPENAI_MODEL / OPENAI_PROMPT.
+-- Never hardcodes secrets. Needs --allow-net. Not run against the real API in CI;
+-- see tests/vyrn/http_sse.vyrn.
+
+let api = require("clients")
+
+let key = os.getenv("OPENAI_API_KEY") or ""
+if key == "" then
+  print("openai_stream: OPENAI_API_KEY is not set. Export a key (never commit it) and rerun with --allow-net.")
+  os.exit(0)
+end
+
+let text, err = api.openai_chat_stream({
+  key = key,
+  base = os.getenv("OPENAI_BASE_URL") or "https://api.openai.com",
+  model = os.getenv("OPENAI_MODEL") or "gpt-4o-mini",
+  prompt = os.getenv("OPENAI_PROMPT") or "Say hello in one short sentence."
+})
+if not text then
+  print("openai_stream: " .. tostring(err))
+  os.exit(1)
+end
+print(text)
+print("")
+print("openai_stream: done (" .. tostring(#text) .. " chars)")

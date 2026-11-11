@@ -1,0 +1,32 @@
+-- vyrn: 12
+-- Gemini generateContent client example (1.6.125).
+-- Reads GEMINI_API_KEY (required) and optional GEMINI_BASE_URL / GEMINI_MODEL.
+-- Never hardcodes secrets. Needs --allow-net (or a host allowlist that includes the API host).
+-- This file is not run against the real API in CI; see tests/vyrn/api_clients.vyrn.
+
+let api = require("clients")
+
+let key = os.getenv("GEMINI_API_KEY") or ""
+if key == "" then
+  print("gemini_generate: GEMINI_API_KEY is not set. Export a key (never commit it) and rerun with --allow-net.")
+  os.exit(0)
+end
+
+let opts = {
+  key = key,
+  base = os.getenv("GEMINI_BASE_URL") or "https://generativelanguage.googleapis.com",
+  model = os.getenv("GEMINI_MODEL") or "gemini-2.5-flash",
+  prompt = "Say hello in one word.",
+  timeout = 30
+}
+
+let text, err = api.gemini_generate(opts)
+if not text then
+  if api.is_disabled_net(err) then
+    print("gemini_generate: network access is disabled. Rerun with --allow-net (prefer --allow-net=generativelanguage.googleapis.com).")
+    os.exit(0)
+  end
+  print("gemini_generate: " .. tostring(err))
+  os.exit(1)
+end
+print(text)

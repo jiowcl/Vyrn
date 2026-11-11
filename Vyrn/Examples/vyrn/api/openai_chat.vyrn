@@ -1,0 +1,33 @@
+-- vyrn: 12
+-- OpenAI Chat Completions client example (1.6.125).
+-- Reads OPENAI_API_KEY (required) and optional OPENAI_BASE_URL / OPENAI_MODEL.
+-- Never hardcodes secrets. Needs --allow-net (or a host allowlist that includes the API host).
+-- This file is not run against the real API in CI; see tests/vyrn/api_clients.vyrn.
+
+let api = require("clients")
+
+let key = os.getenv("OPENAI_API_KEY") or ""
+if key == "" then
+  print("openai_chat: OPENAI_API_KEY is not set. Export a key (never commit it) and rerun with --allow-net.")
+  os.exit(0)
+end
+
+let prompt = "Say hello in one word."
+let opts = {
+  key = key,
+  base = os.getenv("OPENAI_BASE_URL") or "https://api.openai.com",
+  model = os.getenv("OPENAI_MODEL") or "gpt-4o-mini",
+  prompt = prompt,
+  timeout = 30
+}
+
+let text, err = api.openai_chat(opts)
+if not text then
+  if api.is_disabled_net(err) then
+    print("openai_chat: network access is disabled. Rerun with --allow-net (prefer --allow-net=api.openai.com).")
+    os.exit(0)
+  end
+  print("openai_chat: " .. tostring(err))
+  os.exit(1)
+end
+print(text)

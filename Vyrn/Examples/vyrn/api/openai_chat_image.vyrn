@@ -1,0 +1,56 @@
+-- vyrn: 12
+-- OpenAI Chat Completions image-input example (1.6.126).
+-- Sends a data URL built with crypto.tobase64_file. Reads OPENAI_API_KEY
+-- (required) and optional OPENAI_BASE_URL / OPENAI_MODEL / OPENAI_IMAGE.
+-- Never hardcodes secrets. Needs --allow-net. Not run against the real API in CI;
+-- see tests/vyrn/api_clients.vyrn.
+
+let api = require("clients")
+
+def find_image()
+  let envp = os.getenv("OPENAI_IMAGE") or ""
+  if envp ~= "" then return envp end
+  let cands = {
+    "sample.png",
+    path.join("examples", "vyrn", "api", "sample.png")
+  }
+  let i = 1
+  while i <= #cands do
+    if path.isfile(cands[i]) then return cands[i] end
+    i = i + 1
+  end
+  return nil
+end
+
+let key = os.getenv("OPENAI_API_KEY") or ""
+if key == "" then
+  print("openai_chat_image: OPENAI_API_KEY is not set. Export a key (never commit it) and rerun with --allow-net.")
+  os.exit(0)
+end
+
+let img = find_image()
+if not img then
+  print("openai_chat_image: sample.png not found (run from the repo root or examples/vyrn/api).")
+  os.exit(1)
+end
+
+let opts = {
+  key = key,
+  base = os.getenv("OPENAI_BASE_URL") or "https://api.openai.com",
+  model = os.getenv("OPENAI_MODEL") or "gpt-4o-mini",
+  prompt = "Describe this image in one sentence.",
+  image_path = img,
+  image_mime = "image/png",
+  timeout = 30
+}
+
+let text, err = api.openai_chat(opts)
+if not text then
+  if api.is_disabled_net(err) then
+    print("openai_chat_image: network access is disabled. Rerun with --allow-net (prefer --allow-net=api.openai.com).")
+    os.exit(0)
+  end
+  print("openai_chat_image: " .. tostring(err))
+  os.exit(1)
+end
+print(text)

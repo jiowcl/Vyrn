@@ -1,0 +1,53 @@
+-- vyrn: 12
+-- OpenAI Files API upload example (1.6.127).
+-- Uses http.request opts.multipart so the file is read natively (NUL-safe).
+-- Reads OPENAI_API_KEY (required) and optional OPENAI_BASE_URL / OPENAI_FILE / OPENAI_PURPOSE.
+-- Never hardcodes secrets. Needs --allow-net. Not run against the real API in CI;
+-- see tests/vyrn/http_multipart.vyrn.
+
+let api = require("clients")
+
+def find_file()
+  let envp = os.getenv("OPENAI_FILE") or ""
+  if envp ~= "" then return envp end
+  let cands = {
+    "sample.png",
+    path.join("examples", "vyrn", "api", "sample.png")
+  }
+  let i = 1
+  while i <= #cands do
+    if path.isfile(cands[i]) then return cands[i] end
+    i = i + 1
+  end
+  return nil
+end
+
+let key = os.getenv("OPENAI_API_KEY") or ""
+if key == "" then
+  print("openai_files: OPENAI_API_KEY is not set. Export a key (never commit it) and rerun with --allow-net.")
+  os.exit(0)
+end
+
+let f = find_file()
+if not f then
+  print("openai_files: sample.png not found (run from the repo root or examples/vyrn/api).")
+  os.exit(1)
+end
+
+let data, err = api.openai_files_upload({
+  key = key,
+  base = os.getenv("OPENAI_BASE_URL") or "https://api.openai.com",
+  path = f,
+  purpose = os.getenv("OPENAI_PURPOSE") or "assistants",
+  content_type = "image/png",
+  timeout = 30
+})
+if not data then
+  if api.is_disabled_net(err) then
+    print("openai_files: network access is disabled. Rerun with --allow-net (prefer --allow-net=api.openai.com).")
+    os.exit(0)
+  end
+  print("openai_files: " .. tostring(err))
+  os.exit(1)
+end
+print(data.id, data.filename, data.bytes)
