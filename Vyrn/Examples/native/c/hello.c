@@ -1,6 +1,6 @@
 /**
  * @file hello.c
- * @brief Minimal C host implementation for Vyrn.dll/LibVyrn.dll.
+ * @brief Minimal C host implementation for Vyrn.dll (ABI 6).
  *
  * Demonstrates the basic setup required to load and execute Vyrn.dll
  * with minimal boilerplate code.
@@ -28,6 +28,7 @@
 
 #ifdef _WIN32
 #  include <windows.h>
+/** Load Vyrn.dll via LoadLibraryA (Windows smoke sample). @param path DLL path. @return Module handle or NULL. */
 static void *LoadVyrn(const char *path) {
   return (void *)LoadLibraryA(path);
 }
@@ -50,7 +51,7 @@ typedef const char *(*fn_err)(VyrnVM *);
  * @param args The arguments to the function.
  * @param argc The number of arguments.
  * @param out The output value.
- * @return The number of output values.
+ * @return Non-zero on success.
  */
 static int HostScale(void *userdata, const VyrnValue *args, int argc, VyrnValue *out) {
   (void)userdata;

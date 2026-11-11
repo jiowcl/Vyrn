@@ -1,6 +1,6 @@
 /**
  * @file demo.c
- * @brief Full C host implementation for Vyrn.dll/LibVyrn.dll (ABI 3).
+ * @brief Full C host implementation for Vyrn.dll (ABI 6).
  *
  * Demonstrates the following host capabilities:
  * - Multi-return values
@@ -28,6 +28,7 @@
 
 #ifdef _WIN32
 #  include <windows.h>
+/** Load Vyrn.dll via LoadLibraryA (Windows smoke sample). @param path DLL path. @return Module handle or NULL. */
 static void *LoadVyrn(const char *path) {
   return (void *)LoadLibraryA(path);
 }
@@ -125,7 +126,7 @@ static void FreeLogs(void) {
  * @param args The arguments to the function.
  * @param argc The number of arguments.
  * @param out The output value.
- * @return The number of output values.
+ * @return Non-zero on success.
  */
 static int HostScale(void *ud, const VyrnValue *args, int argc, VyrnValue *out) {
   (void)ud;
