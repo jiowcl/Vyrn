@@ -1,6 +1,6 @@
 /**
  * @file demo.cpp
- * @brief Full C++ host implementation for Vyrn.dll/LibVyrn.dll (ABI 3).
+ * @brief Full C++ host implementation for Vyrn.dll (ABI 6).
  *
  * Demonstrates the following host capabilities:
  * - Multi-return values
@@ -29,6 +29,7 @@
 
 #ifdef _WIN32
 #  include <windows.h>
+/** Load Vyrn.dll via LoadLibraryA (Windows smoke sample). @param path DLL path. @return Module handle or NULL. */
 static void *LoadVyrn(const char *path) {
   return (void *)LoadLibraryA(path);
 }
@@ -98,7 +99,7 @@ static void OnPrint(void * /*ud*/, const char *line) {
  * @param args The arguments to the function.
  * @param argc The number of arguments.
  * @param out The output value.
- * @return The number of output values.
+ * @return Non-zero on success.
  */
 static int HostScale(void * /*ud*/, const VyrnValue *args, int argc, VyrnValue *out) {
   double dt = (argc >= 1 && args[0].type == VYRN_TYPE_NUMBER) ? args[0].number : 0.0;
@@ -120,7 +121,7 @@ static std::string CopyStr(Api &api, const char *p) {
   int need = api.copy_string(p, nullptr, 0);
   if (need <= 1) return {};
   std::string s(static_cast<size_t>(need), '\0');
-  api.copy_string(p, s.data(), need);
+  api.copy_string(p, &s[0], need);  // &s[0]: writable before C++17 (MSVC default /std:c++14)
   if (!s.empty() && s.back() == '\0') s.pop_back();
   return s;
 }
