@@ -1,0 +1,73 @@
+-- @compile-safe
+-- vyrn: 12
+-- Showcase: coroutines as generators, a producer/filter/consumer pipeline, status.
+-- Run: bin\LuaLiteVM_build.exe examples\vyrn\showcase\coroutines.vyrn
+
+-- A generator: wrap a yielding function in an iterator for a generic for.
+-- (Vyrn's coroutine.wrap returns resume's (ok, ...) tuple, so iterate with resume.)
+def generator(body)
+    let co = coroutine.create(body)
+    return def()
+        let ok, v = coroutine.resume(co)
+        if ok then
+            return v
+        end
+        error(v, 0)
+    end
+end
+
+def range(n, step)
+    return generator(def()
+        for i = 1, n, step do
+            coroutine.yield(i)
+        end
+    end)
+end
+let parts = {}
+for i in range(10, 3) do
+    table.insert(parts, i)
+end
+print("range", table.concat(parts, " "))
+
+-- Pipeline: numbers -> keep odd squares -> collect.
+def odd_squares(src)
+    return generator(def()
+        for v in src do
+            if v % 2 == 1 then
+                coroutine.yield(v * v)
+            end
+        end
+    end)
+end
+let out = {}
+for v in odd_squares(range(9, 1)) do
+    table.insert(out, v)
+end
+print("odd squares", table.concat(out, ","))
+
+-- Values flow both ways: resume passes in, yield passes out.
+let acc = coroutine.create(def(first)
+    let total = first
+    while true do
+        let more = coroutine.yield(total)
+        if more == nil then
+            break
+        end
+        total = total + more
+    end
+    return "done", total
+end)
+print(coroutine.resume(acc, 10))
+print(coroutine.resume(acc, 5))
+print(coroutine.resume(acc, 7))
+print(coroutine.resume(acc))
+print(coroutine.status(acc), coroutine.resume(acc))
+
+-- An error inside a coroutine ends it; resume reports false and the message.
+let bad = coroutine.create(def()
+    coroutine.yield("step")
+    error("broken", 0)
+end)
+print(coroutine.resume(bad))
+print(coroutine.resume(bad))
+print(coroutine.status(bad))

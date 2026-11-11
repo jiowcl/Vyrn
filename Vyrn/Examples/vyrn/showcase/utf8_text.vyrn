@@ -1,0 +1,35 @@
+-- @compile-safe
+-- vyrn: 12
+-- Showcase: strings are UTF-8 bytes; the utf8 library works on code points (1.6.112).
+-- Run: bin\LuaLiteVM_build.exe examples\vyrn\showcase\utf8_text.vyrn
+
+let word = "Vyrn 語言 é"
+print("bytes", #word, "chars", utf8.len(word))
+
+-- Walk code points: byte position, code point, the character again.
+for p, c in utf8.codes("é中!") do
+    print(p, c, utf8.char(c))
+end
+
+-- Reverse by code points (string.reverse would reverse bytes).
+def reverse_utf8(s)
+    let out = {}
+    for _, c in utf8.codes(s) do
+        table.insert(out, 1, utf8.char(c))
+    end
+    return table.concat(out)
+end
+print(reverse_utf8("abc中文"))
+
+-- Keep the first n characters without cutting a character in half.
+def take(s, n)
+    let cut = utf8.offset(s, n + 1)
+    if cut == nil then
+        return s
+    end
+    return string.sub(s, 1, cut - 1)
+end
+print(take("こんにちは世界", 5), take("hi", 5))
+
+print(utf8.codepoint("A€", 1, -1))
+print(utf8.char(72, 105, 32, 8364))

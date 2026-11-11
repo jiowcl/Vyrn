@@ -1,0 +1,9 @@
+md5 22da43d45eee0c87b39c97634a456a48
+sha256 1c7be6581f9d1d44e8d5875c233a6e28627e45c54966bbe286385556e34d39bb
+token user=alice&role=admin.f75347f44ccad5631df8aebce4036556bedf7fc68ad6ba5888cfe196975bbafc
+verify_ok true
+verify_bad false
+b64 aGVsbG8gVnlybg== hello Vyrn
+hex 4f4b OK
+crc32 3325738365
+rand_len 16 true

@@ -1,0 +1,10 @@
+integer float nil
+3 3.0 true
+true
+integer float
+1024.0 float
+3 -4 2 integer
+0x100000000ff
+-1 integer
+3 nil true
+integer integer

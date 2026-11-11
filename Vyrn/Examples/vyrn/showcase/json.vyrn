@@ -1,0 +1,18 @@
+-- examples/vyrn/showcase/json.vyrn — json.encode / decode (1.6.123)
+let tags = {"lang", "math"}
+let user = {}
+user.name = "Ada"
+user.id = 42
+user.tags = tags
+let s = json.encode(tags)
+print("tags", s)
+let back, err = json.decode('{"name":"Ada","id":42}')
+assert(back, err)
+print("name", back.name)
+print("id", back.id, math.type(back.id))
+print("null_id", json.decode("null") == json.null)
+let pretty = json.encode(tags, {pretty = true})
+print("pretty_has_nl", string.find(pretty, "\n", 1, true) ~= nil)
+let again, e2 = json.decode(json.encode(back))
+assert(again, e2)
+print("roundtrip", again.name, again.id)

@@ -1,0 +1,70 @@
+-- @compile-safe
+-- vyrn: 12
+-- examples/vyrn/showcase/http.vyrn — http.get + HMAC-signed POST (1.6.120)
+-- Requires --allow-net and a loopback server (ship_smoke / manual).
+
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+if not port or port == "" then
+  print("http showcase: set VYRN_HTTP_TEST_PORT and pass --allow-net")
+  return
+end
+
+let base = "http://127.0.0.1:" .. port
+let r1, e1 = http.get(base .. "/json")
+assert(r1, e1)
+print("fetch", r1.status, r1.body)
+let parsed, pe = json.decode(r1.body)
+assert(parsed, pe)
+print("fetch_json", parsed.ok, parsed.n)
+
+-- JSON body via json.encode (1.6.123).
+let payload = {}
+payload.ping = 1
+let body = json.encode(payload)
+let sig = crypto.hmac("sha256", "secret", body)
+let hdr = {}
+hdr["Content-Type"] = "application/json"
+hdr["X-Signature"] = sig
+let r2, e2 = http.post(base .. "/echo", body, {headers = hdr})
+assert(r2, e2)
+print("signed_post", r2.status)
+print("signed_ok", string.find(r2.body, "X%-Signature=") ~= nil or string.find(r2.body, "x%-signature=") ~= nil)
+
+-- 1.6.127: multipart upload (text + binary file). The file is read natively.
+let fx = path.join("tests", "vyrn", "fixtures", "crypto_nul.bin")
+assert(path.isfile(fx), "crypto_nul.bin fixture missing")
+let want, we = crypto.sha256_file(fx)
+assert(want, we)
+let r3, e3 = http.request{
+  url = base .. "/multipart",
+  multipart = {
+    {name = "note", value = "hi"},
+    {name = "file", path = fx, filename = "crypto_nul.bin"}
+  }
+}
+assert(r3, e3)
+let up, ue = json.decode(r3.body)
+assert(up, ue)
+print("upload", r3.status, up.parts[2].sha256 == want)
+
+-- 1.6.128: SSE streaming read. on_chunk gets text chunks; body is empty.
+let acc = ""
+let evdata = ""
+let rs, es = http.request{
+  url = base .. "/sse",
+  timeout = 10,
+  on_chunk = function(chunk)
+    acc = acc .. chunk
+    let evs, rest = http.sse_events(acc)
+    acc = rest
+    let i = 1
+    while i <= #evs do
+      if evdata == "" then
+        evdata = evs[i].data
+      end
+      i = i + 1
+    end
+  end
+}
+assert(rs, es)
+print("sse", rs.status, evdata)

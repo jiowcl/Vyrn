@@ -1,0 +1,35 @@
+-- @compile-safe
+-- vyrn: 13
+-- Showcase: crypto digests, HMAC token verify, base64 roundtrip (1.6.119).
+-- Run: bin\LuaLiteVM_build.exe examples\vyrn\showcase\crypto.vyrn
+
+let msg = "hello Vyrn"
+print("md5", crypto.md5(msg))
+print("sha256", crypto.sha256(msg))
+
+-- HMAC-signed token: payload.hex(hmac)
+let secret = "s3cret"
+let payload = "user=alice&role=admin"
+let sig = crypto.hmac("sha256", secret, payload)
+let token = payload .. "." .. sig
+print("token", token)
+
+def verify(tok, key)
+    let dot = string.find(tok, ".", 1, true)
+    if not dot then return false end
+    let body = string.sub(tok, 1, dot - 1)
+    let got = string.sub(tok, dot + 1)
+    return crypto.hmac("sha256", key, body) == got
+end
+print("verify_ok", verify(token, secret))
+print("verify_bad", verify(token, "wrong"))
+
+-- Base64 / hex roundtrip (ASCII-safe)
+let b64 = crypto.tobase64(msg)
+print("b64", b64, crypto.frombase64(b64))
+print("hex", crypto.tohex("OK"), crypto.fromhex(crypto.tohex("OK")))
+print("crc32", crypto.crc32(msg))
+
+-- Random hex (length only — value is CSPRNG)
+let r = crypto.random(8)
+print("rand_len", #r, string.match(r, "^[0-9a-f]+$") ~= nil)

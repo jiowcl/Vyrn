@@ -1,0 +1,17 @@
+user    0x03 [read,write]
++exec   0x07 [read,write,exec]
+-write  0x05 [read,exec]
+toggle  0x84 [exec,admin]
+can write? false can exec? true
+0000  56 79 72 6e 09 42 69 74  Vyrn.Bit
+0008  73 0d 0a e4 b8 ad e6 96  s.......
+0010  87 20 6f 6b 07           . ok.
+123456789 crc32=CBF43926 adler32=091E01DE fnv1a=BB86B11C
+Vyrn      crc32=23018B96 adler32=041901B0 fnv1a=12E95618
+中文    crc32=5A09ED37 adler32=100F044D fnv1a=C488F045
+power of two 1:true 6:false 64:true 96:false 1024:true
+lowest bit 32 8 popcount 16 2
+rotl32 00000003 34567812
+rgb #3399CC -> r=51 g=153 b=204
+shifts 1099511627776 0 1024 255 4
+✓ bits!

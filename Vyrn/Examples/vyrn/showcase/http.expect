@@ -1,0 +1,6 @@
+fetch 200 {"ok":true,"n":42}
+fetch_json true 42
+signed_post 200
+signed_ok true
+upload 200 true
+sse 200 hello

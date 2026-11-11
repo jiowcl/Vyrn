@@ -1,0 +1,116 @@
+-- @compile-safe
+-- vyrn: 12
+-- Bitwise operators (1.6.115): & | ~ << >> and unary ~ on 64-bit integers, plus string escapes.
+-- Flags in a bitmask, a hex dump, CRC-32 / Adler-32 / FNV-1a checksums and a few bit tricks.
+-- 1.6.116: integers are int64 (wrapping); results above 2^53 stay exact as integers.
+-- Everything here stays within 32 bits, and the output matches Lua 5.4.
+
+-- Flags: one bit per permission.
+let READ = 1 << 0
+let WRITE = 1 << 1
+let EXEC = 1 << 2
+let ADMIN = 1 << 7
+let NAMES = {{READ, "read"}, {WRITE, "write"}, {EXEC, "exec"}, {ADMIN, "admin"}}
+
+def describe(mask)
+    let parts = {}
+    for _, p in ipairs(NAMES) do
+        if mask & p[1] ~= 0 then
+            parts[#parts + 1] = p[2]
+        end
+    end
+    return string.format("0x%02X [%s]", mask, table.concat(parts, ","))
+end
+
+let user = READ | WRITE
+print("user   ", describe(user))
+user = user | EXEC
+print("+exec  ", describe(user))
+user = user & ~WRITE
+print("-write ", describe(user))
+print("toggle ", describe(user ~ (ADMIN | READ)))
+print("can write?", user & WRITE ~= 0, "can exec?", user & EXEC ~= 0)
+
+-- Hex dump: offset, bytes, printable text. "\u{4E2D}" is three UTF-8 bytes.
+def hexdump(s)
+    for off = 1, #s, 8 do
+        let hex, txt = {}, {}
+        for i = off, math.min(off + 7, #s) do
+            let b = string.byte(s, i)
+            hex[#hex + 1] = string.format("%02x", b)
+            if b >= 32 and b < 127 then
+                txt[#txt + 1] = string.char(b)
+            else
+                txt[#txt + 1] = "."
+            end
+        end
+        print(string.format("%04x  %-24s %s", off - 1, table.concat(hex, " "), table.concat(txt)))
+    end
+end
+hexdump("Vyrn\t\x42\x69\x74\x73\r\n\u{4E2D}\u{6587} \z
+         ok\a")
+
+-- Checksums over the same input.
+def crc32(s)
+    let crc = 0xFFFFFFFF
+    for i = 1, #s do
+        crc = crc ~ string.byte(s, i)
+        for _ = 1, 8 do
+            if crc & 1 == 1 then
+                crc = (crc >> 1) ~ 0xEDB88320
+            else
+                crc = crc >> 1
+            end
+        end
+    end
+    return ~crc & 0xFFFFFFFF
+end
+
+def adler32(s)
+    let a, b = 1, 0
+    for i = 1, #s do
+        a = (a + string.byte(s, i)) % 65521
+        b = (b + a) % 65521
+    end
+    return (b << 16) | a
+end
+
+-- FNV-1a: h * 16777619 = h * 2^24 + h * 403; masking each half keeps the product below 2^53.
+def fnv1a(s)
+    let h = 2166136261
+    for i = 1, #s do
+        h = h ~ string.byte(s, i)
+        h = (((h & 0xFF) << 24) + h * 403) & 0xFFFFFFFF
+    end
+    return h
+end
+
+for _, s in ipairs({"123456789", "Vyrn", "\u{4E2D}\u{6587}"}) do
+    print(string.format("%-9s crc32=%08X adler32=%08X fnv1a=%08X", s, crc32(s), adler32(s), fnv1a(s)))
+end
+
+-- Bit tricks.
+def rotl32(x, r)
+    return ((x << r) | (x >> (32 - r))) & 0xFFFFFFFF
+end
+
+def popcount(n)
+    let c = 0
+    while n ~= 0 do
+        n = n & (n - 1)
+        c = c + 1
+    end
+    return c
+end
+
+let pow2 = {}
+for _, n in ipairs({1, 6, 64, 96, 1024}) do
+    pow2[#pow2 + 1] = string.format("%d:%s", n, tostring(n & (n - 1) == 0))
+end
+print("power of two", table.concat(pow2, " "))
+print("lowest bit", 96 & -96, 40 & -40, "popcount", popcount(0xFF00FF), popcount(0x80000001))
+print(string.format("rotl32 %08X %08X", rotl32(0x80000001, 1), rotl32(0x12345678, 8)))
+let rgb = (0x33 << 16) | (0x99 << 8) | 0xCC
+print(string.format("rgb #%06X -> r=%d g=%d b=%d", rgb, rgb >> 16, (rgb >> 8) & 0xFF, rgb & 0xFF))
+print("shifts", 1 << 40, 1 << 64, 256 >> -2, -1 >> 56, 5 // 2 << 1)
+print("\u{2713} \x62its\u{21}")

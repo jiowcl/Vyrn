@@ -1,0 +1,7 @@
+json [10,20,30]
+zlib_hex 789c010a00f5ff5b31302c32302c33305d0c270237
+roundtrip [10,20,30]
+sum 60
+adler 0c270237
+file_rt 6869
+done

@@ -1,0 +1,14 @@
+42 ok 42
+abc error table 400 not a number: abc
+-1 error negative age
+false true
+true 3
+false assert message
+false attempt to perform arithmetic on a nil value
+false attempt to index a nil value
+cleanup ran
+true
+cleanup ran
+false inner
+cleanup ran
+true fine

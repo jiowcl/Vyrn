@@ -1,0 +1,29 @@
+-- @compile-safe
+-- vyrn: 12
+-- Showcase: number literals, ^ // %, tonumber and Lua 5.4 string.format (1.6.113).
+-- Run: bin\LuaLiteVM_build.exe examples\vyrn\showcase\numbers.vyrn
+-- Same output on the PB VM and libvyrnrt (--compile-vyrnc, then vyrnrt_vbc_run).
+
+-- Literals: hex integers, decimal exponents, leading-dot decimals, hex floats.
+print(string.format("hex 0xff=%d 0x10+1=%d", 0xff, 0x10 + 1))
+print(string.format("exp 1.5e3=%g .25=%g 0x1p4=%g", 1.5e3, .25, 0x1p4))
+
+-- ^ is right-associative and binds tighter than unary minus; // and % floor.
+print(string.format("pow 2^10=%g 2^3^2=%g -2^2=%g", 2 ^ 10, 2 ^ 3 ^ 2, -2 ^ 2))
+print(string.format("floor 7//2=%d -7//2=%d -7%%3=%d", 7 // 2, -7 // 2, -7 % 3))
+
+-- tonumber accepts the same numerals (plus spaces and a sign) or a base 2..36.
+print(tonumber("  0x1F  "), tonumber("1e2") == 100, tonumber("zz", 36), tonumber("1e"))
+
+-- string.format: flags, width, precision, %e %g %x %o %q.
+print(string.format("[%5d] [%-5d] [%05.1f] [%x] [%X] [%o]", 42, 42, 3.14159, 255, 255, 8))
+print(string.format("%e | %.3g | %10.4f|", 12345.678, 0.0001234, math.pi))
+print(string.format("%q", "say \"hi\""))
+
+-- A monthly loan payment: P * r / (1 - (1 + r) ^ -n).
+def payment(principal, rate, years)
+    let r = rate / 12
+    let n = years * 12
+    return principal * r / (1 - (1 + r) ^ -n)
+end
+print(string.format("loan 200000 at 5%% for 30y: %.2f/month", payment(200000, 0.05, 30)))

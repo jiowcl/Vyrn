@@ -1,0 +1,90 @@
+-- @compile-safe
+-- vyrn: 12
+-- Showcase: typed structs and flat 2D tables (table.create2d / get2d / set2d).
+-- Run: bin\LuaLiteVM_build.exe examples\vyrn\showcase\structs_grid.vyrn
+-- One step of Conway's Game of Life on a small torus: a blinker turns from
+-- horizontal to vertical, and a struct tracks the live cells' bounding box.
+
+struct Box
+    top: number
+    left: number
+    bottom: number
+    right: number
+end
+
+let size = 5
+let grid = table.create2d(size, size, 0)
+table.set2d(grid, 3, 2, size, 1)
+table.set2d(grid, 3, 3, size, 1)
+table.set2d(grid, 3, 4, size, 1)
+
+def wrap(i)
+    return (i - 1) % size + 1
+end
+
+def neighbours(g, r, c)
+    let n = 0
+    for dr = -1, 1 do
+        for dc = -1, 1 do
+            if dr != 0 or dc != 0 then
+                n = n + table.get2d(g, wrap(r + dr), wrap(c + dc), size)
+            end
+        end
+    end
+    return n
+end
+
+def step(g)
+    let nextg = table.create2d(size, size, 0)
+    for r = 1, size do
+        for c = 1, size do
+            let n = neighbours(g, r, c)
+            let alive = table.get2d(g, r, c, size) == 1
+            if n == 3 or (alive and n == 2) then
+                table.set2d(nextg, r, c, size, 1)
+            end
+        end
+    end
+    return nextg
+end
+
+def show(g, label)
+    print(label)
+    for r = 1, size do
+        let row = {}
+        for c = 1, size do
+            if table.get2d(g, r, c, size) == 1 then
+                row[c] = "#"
+            else
+                row[c] = "."
+            end
+        end
+        print(table.concat(row))
+    end
+end
+
+def bounds(g)
+    let b = Box { top = size + 1, left = size + 1, bottom = 0, right = 0 }
+    for r = 1, size do
+        for c = 1, size do
+            if table.get2d(g, r, c, size) == 1 then
+                b.top = math.min(b.top, r)
+                b.left = math.min(b.left, c)
+                b.bottom = math.max(b.bottom, r)
+                b.right = math.max(b.right, c)
+            end
+        end
+    end
+    return b
+end
+
+show(grid, "gen 0")
+let b0 = bounds(grid)
+print("box", b0.top, b0.left, b0.bottom, b0.right)
+grid = step(grid)
+show(grid, "gen 1")
+let b1 = bounds(grid)
+print("box", b1.top, b1.left, b1.bottom, b1.right)
+grid = step(grid)
+let b2 = bounds(grid)
+print("gen 2 box", b2.top, b2.left, b2.bottom, b2.right)

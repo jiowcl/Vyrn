@@ -1,0 +1,57 @@
+-- @compile-safe
+-- vyrn: 12
+-- Showcase: tables as table keys (identity, not contents), and GC of unreachable tables (1.6.112).
+-- Keys may be numbers, strings or tables; other key types raise an error.
+-- Run: bin\LuaLiteVM_build.exe examples\vyrn\showcase\table_keys.vyrn
+
+let a = {}
+let b = {}
+let names = {}
+names[a] = "first"
+names[b] = "second"
+print(names[a], names[b], a == b)
+
+-- A memo cache keyed by the table itself: an equal-looking table is a different key.
+let cache = {}
+def area(rect)
+    let v = cache[rect]
+    if v then
+        return v, "cached"
+    end
+    v = rect.w * rect.h
+    cache[rect] = v
+    return v, "computed"
+end
+let r1 = {w = 3, h = 4}
+print(area(r1))
+print(area(r1))
+print(area({w = 3, h = 4}))
+
+-- Count distinct objects with a set.
+let seen = {}
+let count = 0
+for _, t in ipairs({a, b, a, r1, b}) do
+    if not seen[t] then
+        seen[t] = true
+        count = count + 1
+    end
+end
+print("distinct", count)
+
+-- Deleting a key: pairs no longer visits it.
+names[a] = nil
+let left = 0
+for k, v in pairs(names) do
+    left = left + 1
+end
+print("left", left, names[b])
+
+-- Short-lived tables used as keys are reclaimed once nothing refers to them.
+let tmp = {}
+for i = 1, 20000 do
+    tmp[{i}] = i
+end
+let peak = collectgarbage("count")
+tmp = nil
+collectgarbage()
+print("reclaimed", collectgarbage("count") < peak)

@@ -1,0 +1,10 @@
+range 1 4 7 10
+odd squares 1,9,25,49,81
+true 10
+true 15
+true 22
+true done 22
+dead false cannot resume dead coroutine
+true step
+false broken
+dead

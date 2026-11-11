@@ -1,0 +1,57 @@
+-- @compile-safe
+-- vyrn: 12
+-- Showcase: pcall, error with strings, levels and table values, assert, rethrow.
+-- Run: bin\LuaLiteVM_build.exe examples\vyrn\showcase\errors.vyrn
+
+def parse_age(s)
+    let n = tonumber(s)
+    if n == nil then
+        error({code = 400, msg = "not a number: " .. s})
+    end
+    if n < 0 then
+        error("negative age", 0)
+    end
+    return n
+end
+
+for _, input in ipairs({"42", "abc", "-1"}) do
+    let ok, res = pcall(parse_age, input)
+    if ok then
+        print(input, "ok", res)
+    elif type(res) == "table" then
+        print(input, "error table", res.code, res.msg)
+    else
+        print(input, "error", res)
+    end
+end
+
+-- Level 1 (the default) adds "where:line:" in front of a string message.
+let ok, e = pcall(def() error("with position") end)
+print(ok, string.find(e, "%d+: with position") != nil)
+
+-- assert returns its arguments on success and raises its message on failure.
+print(assert(1 + 1 == 2, "math works"), select("#", assert(true, 1, 2)))
+print(pcall(assert, false, "assert message"))
+
+-- Runtime errors are catchable too; strip the "where:line:" prefix to compare messages.
+def message(err)
+    return (string.gsub(tostring(err), "^.-%d+: ", ""))
+end
+let ok4, e4 = pcall(def() return nil + 1 end)
+print(ok4, message(e4))
+let ok5, e5 = pcall(def() let t = nil return t.x end)
+print(ok5, message(e5))
+
+-- Rethrow after cleanup: the original error value reaches the outer pcall.
+def with_cleanup(f)
+    let ok2, err = pcall(f)
+    print("cleanup ran")
+    if not ok2 then
+        error(err, 0)
+    end
+    return err
+end
+print(pcall(with_cleanup, def() error({tag = "inner"}) end) == false)
+let ok3, err3 = pcall(with_cleanup, def() error({tag = "inner"}) end)
+print(ok3, err3.tag)
+print(pcall(with_cleanup, def() return "fine" end))

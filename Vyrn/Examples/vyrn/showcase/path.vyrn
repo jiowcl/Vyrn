@@ -1,0 +1,28 @@
+-- vyrn: 12
+-- Showcase path.normalize / abspath / size / copy / mtime (1.6.125)
+
+let home = path.cwd()
+let d = path.join(home, "_showcase_path_tmp")
+path.mkdirs(d)
+let src = path.join(d, "hello.txt")
+let f = io.open(src, "w")
+f:write("vyrn")
+f:close()
+
+print("size", path.size(src))
+let dst = path.join(d, "hello.bak")
+print("copy", path.copy(src, dst))
+print("copy_size", path.size(dst))
+let n = path.normalize("a/b")
+if n == "a/b" or n == "a\\b" then
+  print("normalize_ok")
+end
+if path.abspath(".") == path.cwd() then
+  print("abspath_ok")
+end
+if type(path.mtime(src)) == "number" then
+  print("mtime_ok")
+end
+
+path.rmdir(d)
+print("done")
