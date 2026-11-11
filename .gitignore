@@ -7,3 +7,10 @@
 ### Global ###
 *.exe
 !**/Vyrn.exe
+!**/VyrnIDE.exe
+
+/build/
+/logs/
+
+/Vyrn/Vyrn/Native/host/build/
+/Vyrn/Vyrn/Native/*.backend
