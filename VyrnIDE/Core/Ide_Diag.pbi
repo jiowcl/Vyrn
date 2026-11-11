@@ -180,7 +180,6 @@ CompilerIf Defined(Ide_Diag, #PB_Constant) = #False
 
   ; <summary>
   ; Ide_Diag_JumpFromMessage
-  ; Mirrors `path:line: message` / `line N: message` from Vyrn_FormatError.
   ; </summary>
   ; <param name="msg">Diagnostic or output line containing a source location.</param>
   ; <param name="isWarn">#True to mark as warning; #False for error markers.</param>

@@ -61,6 +61,10 @@ Angles for `sin`/`cos`/`tan` are **radians**.
 | `math.randomseed(n)` | nil | Seed PRNG |
 | `math.pi` | number | π constant |
 | `math.huge` | number | Large finite (`1E308`), not IEEE ∞ |
+| `math.maxinteger` / `math.mininteger` | integer | `2^63-1` / `-2^63` (1.6.116) |
+| `math.type(x)` | string\|nil | `"integer"` / `"float"` / `nil` (1.6.116) |
+| `math.tointeger(x)` | integer\|nil | Exact integer conversion; strings accepted (1.6.116) |
+| `math.ult(m, n)` | boolean | Unsigned `<` on two integers (1.6.116) |
 
 ## string
 
@@ -88,6 +92,79 @@ Indices are **1-based**. Negative indices count from the end (Lua-style) where s
 | `string.endswith(s, suffix)` | bool | Suffix test |
 | `string.contains(s, sub)` | bool | Substring test |
 | `string.split(s, delim [, limit])` | table | Array of segments |
+
+## utf8  
+
+Lua 5.4 `utf8` library (1.6.112), strict mode, on both runtimes. Positions are 1-based UTF-8 byte offsets, the same as `#` and `string.*`.
+
+| Call | Returns | Notes |
+|------|---------|--------|
+| `utf8.char(...)` | string | Code points → UTF-8 string (`0` to `0x10FFFF`, surrogates `0xD800`-`0xDFFF` rejected; Lua strict mode) |
+| `utf8.len(s [, i [, j]])` | number \| `nil, pos` | Characters that start in `s[i..j]`; on invalid UTF-8 returns `nil` and the byte position of the first bad byte |
+| `utf8.codepoint(s [, i [, j]])` | number… | Code points of the characters that start in `s[i..j]` (default `i=1`, `j=i`); invalid UTF-8 raises `invalid UTF-8 code` |
+| `utf8.offset(s, n [, i])` | number \| nil | Byte position where the `n`-th character (counted from `i`) starts; `n = 0` finds the start of the character at `i`; negative `n` counts back |
+| `utf8.codes(s)` | iterator | `for p, c in utf8.codes(s)` gives each byte position and code point; invalid UTF-8 raises |
+
+`utf8.charpattern` is bound (1.6.117; leading `\0` omitted because Vyrn strings drop NUL — pattern starts at `\x01`). Not provided: a non-standard `lax` argument (Lua 5.4 has none). On the PB VM each `utf8.codes` step re-encodes the string (O(n) per step); use `utf8.codepoint(s, 1, -1)` for long strings in hot loops.
+
+## crypto  
+
+Always available (1.6.119), like `utf8` — not gated on `--strict`. Digests and HMAC hash the **UTF-8 bytes** of the string argument and return **lowercase hex**. `crypto.random(n)` returns the lowercase hex of `n` CSPRNG bytes (not raw bytes), so results stay NUL-safe on both runtimes.  
+
+| Call | Returns | Notes |
+|------|---------|--------|
+| `crypto.md5(s)` | string | MD5 digest as 32 hex chars (RFC 1321) |
+| `crypto.sha1(s)` | string | SHA-1 digest as 40 hex chars (FIPS 180-4) |
+| `crypto.sha256(s)` | string | SHA-256 digest as 64 hex chars (FIPS 180-4) |
+| `crypto.hmac(algo, key, msg)` | string | HMAC hex; `algo` is `md5`, `sha1`, or `sha256` (case-insensitive) |
+| `crypto.tohex(s)` | string | Lowercase hex of the UTF-8 bytes of `s` |
+| `crypto.fromhex(hex)` | string | Decode hex to a string; raises on odd length, bad digits, NUL, or invalid UTF-8 |
+| `crypto.tobase64(s)` | string | RFC 4648 Base64 (with `=` padding) |
+| `crypto.frombase64(b64)` | string | Decode Base64; raises on invalid input, NUL, or invalid UTF-8 |
+| `crypto.random(n)` | string | Hex of `n` cryptographically strong random bytes (`n` integer `0..1000000`) |
+| `crypto.crc32(s)` | number | IEEE CRC-32 of the UTF-8 bytes (unsigned 32-bit value) |
+| `crypto.tobase64_file(path[, opts])` | string \| `nil, err` | RFC 4648 Base64 of the file's raw bytes (1.6.126) |
+| `crypto.tohex_file(path[, opts])` | string \| `nil, err` | Lowercase hex of the file's raw bytes |
+| `crypto.frombase64_file(path, b64[, opts])` | `true` \| `nil, err` | Decode Base64 and write raw bytes to `path` (overwrite) |
+| `crypto.fromhex_file(path, hex[, opts])` | `true` \| `nil, err` | Decode hex and write raw bytes to `path` (overwrite) |
+| `crypto.md5_file(path[, opts])` | string \| `nil, err` | MD5 hex of the file's raw bytes |
+| `crypto.sha1_file(path[, opts])` | string \| `nil, err` | SHA-1 hex of the file's raw bytes |
+| `crypto.sha256_file(path[, opts])` | string \| `nil, err` | SHA-256 hex of the file's raw bytes |
+| `crypto.crc32_file(path[, opts])` | number \| `nil, err` | IEEE CRC-32 of the file's raw bytes |
+
+## http  
+
+**Capability-gated (1.6.120 / 1.6.121).** Network access is **off by default**. Enable with CLI `--allow-net` (all hosts) or `--allow-net=host1,host2` (exact host, optional `:port`), or `vyrn_set_capabilities(vm, VYRN_CAP_NET)` / `vyrnrt_set_capabilities(VYRNRT_CAP_NET)` plus optional `vyrn_set_net_allowlist` / `vyrnrt_set_net_allowlist`. Without the capability, every `http.*` call **raises** `network access is disabled (use --allow-net)`. A disallowed host **raises** `network access to host X is not allowed`.  
+
+| Call | Returns | Notes |
+|------|---------|--------|
+| `http.get(url [, opts])` | table | `nil, err` | GET; `opts` may set `headers`, `timeout` (seconds), `encoding`, `on_chunk` |
+| `http.post(url, body [, opts])` | table | `nil, err` | POST; body is a string; `opts` as above (body in opts also accepted). `http.post(url, { multipart = ... })` is also accepted |
+| `http.request(opts)` | table | `nil, err` | `opts.method` (GET/POST/PUT/PATCH/DELETE), `opts.url` (required), `headers`, `body`, `timeout`, `encoding`, `multipart`, `max`, `max_total`, `on_chunk` |
+| `http.stream(opts)` | table | `nil, err` | Same as `http.request`, but `opts.on_chunk` is required |
+| `http.sse_events(text)` | array, leftover | raises | Parse SSE text into event tables; second return is the unparsed remainder |
+
+## json  
+
+**Always available (1.6.123).** No capability flag. Same API on the PB VM and libvyrnrt.  
+
+| Call | Returns | Notes |
+|------|---------|--------|
+| `json.encode(value [, opts])` | string | **Raises** on circular tables, functions / unsupported types, NaN/Inf, or nesting deeper than 64. `opts.pretty = true` (or any truthy `pretty`) pretty-prints with 2-space indent. |
+| `json.decode(s)` | value or `nil, err` | Soft-fail on invalid JSON or trailing garbage (does **not** raise). |
+| `json.null` | table | Unique identity table; JSON `null` decodes to this value (`==` works). |
+
+## zlib  
+
+| Call | Returns | Notes |
+|------|---------|--------|
+| `zlib.compress(s [, level|opts])` | string or `nil, err` | zlib format. Second argument may be a level integer **0..9** (default **6**) or an options table. |
+| `zlib.decompress(s [, opts])` | string or `nil, err` | zlib format. |
+| `zlib.deflate(s [, level|opts])` | string or `nil, err` | Raw deflate. |
+| `zlib.inflate(s [, opts])` | string or `nil, err` | Raw inflate. |
+| `zlib.gzip(s [, level|opts])` | string or `nil, err` | gzip format. |
+| `zlib.gunzip(s [, opts])` | string or `nil, err` | gunzip. |
+| `zlib.adler32(s [, init])` | number | Adler-32 of the UTF-8 bytes (default init **1**); integer subtype. |
 
 ## table
 

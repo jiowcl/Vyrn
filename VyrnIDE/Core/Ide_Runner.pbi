@@ -36,6 +36,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
 
   Declare Ide_Runner_SetUiRunning(running.i)
   Declare Ide_Runner_Enqueue(kind.i, text.s)
+  Declare Ide_Runner_StartThread(path.s, useEval.i, text.s)
   
   ; <summary>
   ; Vyrn.dll print logger callback; enqueues UTF-8 print lines for the UI thread.
@@ -100,6 +101,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     
     DisableMenuItem(#MENU_MAIN, #MNU_RUN, running)
     DisableMenuItem(#MENU_MAIN, #MNU_STOP, Bool(running = 0))
+    DisableMenuItem(#MENU_MAIN, #MNU_COMPILE_VYRNC, running)
+    DisableMenuItem(#MENU_MAIN, #MNU_RUN_VYRNC, running)
   EndProcedure
   
   ; <summary>
@@ -434,6 +437,16 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     Else
       Ide_Ui_OutputAppend(">>> " + path)
     EndIf
+    Ide_Runner_StartThread(path, useEval, text)
+  EndProcedure
+
+  ; <summary>
+  ; Start the background run thread for a file path (or Eval text).
+  ; </summary>
+  ; <param name="path">Script or .vyrnc path ("<buffer>" for Eval).</param>
+  ; <param name="useEval">#True to Eval text instead of RunFile(path).</param>
+  ; <param name="text">Source text for Eval mode.</param>
+  Procedure Ide_Runner_StartThread(path.s, useEval.i, text.s)
     Ide_Ui_SetStatus("Running " + path + " ...")
     Ide_Runner_ClearQueue()
     Ide_RunUseEval = useEval
@@ -485,6 +498,232 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     EndIf
     Ide_Runner_ShowDllError()
     ProcedureReturn #False
+  EndProcedure
+
+
+  ; <summary>
+  ; Walk parents of the IDE exe looking for scripts\ship_standalone.ps1 (repo root).
+  ; </summary>
+  ; <returns>Absolute repo root, or empty when not found.</returns>
+  Procedure.s Ide_Runner_FindRepoRoot()
+    Protected dir.s = GetPathPart(ProgramFilename())
+    Protected i.i
+    For i = 1 To 8
+      If FileSize(dir + "scripts\ship_standalone.ps1") >= 0 And FileSize(dir + "VERSION") >= 0
+        ProcedureReturn dir
+      EndIf
+      If Len(dir) < 4
+        Break
+      EndIf
+      dir = GetPathPart(Left(dir, Len(dir) - 1))
+    Next
+    ProcedureReturn ""
+  EndProcedure
+
+  ; <summary>
+  ; Run a PowerShell ship script, streaming stdout/stderr into the IDE output pane.
+  ; </summary>
+  ; <param name="scriptName">Script basename under scripts\ (e.g. ship_standalone.ps1).</param>
+  ; <param name="entryPath">Absolute path to the entry .vyrn script.</param>
+  ; <param name="outDir">Ship output directory.</param>
+  ; <param name="buildExe">#True to pass -BuildExe.</param>
+  ; <returns>#True when the process exits 0.</returns>
+  Procedure.i Ide_Runner_RunShipScript(scriptName.s, entryPath.s, outDir.s, buildExe.i)
+    Protected root.s = Ide_Runner_FindRepoRoot()
+    Protected ps1.s, args.s, prog.i, code.i, line.s, q.s = Chr(34)
+    If root = ""
+      Ide_Ui_OutputAppend("[error] ship: cannot find repo root (scripts\ship_standalone.ps1)")
+      ProcedureReturn #False
+    EndIf
+    ps1 = root + "scripts\" + scriptName
+    If FileSize(ps1) < 0
+      Ide_Ui_OutputAppend("[error] ship: missing " + ps1)
+      ProcedureReturn #False
+    EndIf
+    args = "-NoProfile -ExecutionPolicy Bypass -File " + q + ps1 + q + " " + q + entryPath + q
+    args + " -OutDir " + q + outDir + q
+    If buildExe
+      args + " -BuildExe"
+    EndIf
+    Ide_Ui_OutputAppend("[ship] " + scriptName + " " + entryPath)
+    Ide_Ui_OutputAppend("[ship] out: " + outDir)
+    prog = RunProgram("powershell.exe", args, root, #PB_Program_Open | #PB_Program_Read | #PB_Program_Error | #PB_Program_Wait | #PB_Program_Hide)
+    If prog = 0
+      Ide_Ui_OutputAppend("[error] ship: failed to start powershell")
+      ProcedureReturn #False
+    EndIf
+    While ProgramRunning(prog) Or AvailableProgramOutput(prog)
+      If AvailableProgramOutput(prog)
+        line = ReadProgramString(prog)
+        If line <> ""
+          Ide_Ui_OutputAppend(line)
+        EndIf
+      ElseIf ProgramRunning(prog) = 0
+        Break
+      EndIf
+    Wend
+    code = ProgramExitCode(prog)
+    CloseProgram(prog)
+    If code <> 0
+      Ide_Ui_OutputAppend("[error] ship exited " + Str(code))
+      ProcedureReturn #False
+    EndIf
+    Ide_Ui_OutputAppend("[ok] ship finished")
+    ProcedureReturn #True
+  EndProcedure
+
+  ; <summary>
+  ; Locate the Vyrn CLI used for --compile-vyrnc: Vyrn.exe beside the IDE
+  ; (sync_ide_runtime copies it), Runtime\Vyrn.exe, then the repo build exe.
+  ; </summary>
+  ; <returns>Absolute CLI path, or empty when none is found.</returns>
+  Procedure.s Ide_Runner_FindCli()
+    Protected dir.s = GetPathPart(ProgramFilename())
+    Protected root.s
+    If FileSize(dir + "Vyrn.exe") >= 0
+      ProcedureReturn dir + "Vyrn.exe"
+    EndIf
+    If FileSize(dir + "Runtime\Vyrn.exe") >= 0
+      ProcedureReturn dir + "Runtime\Vyrn.exe"
+    EndIf
+    root = Ide_Runner_FindRepoRoot()
+    If root <> "" And FileSize(root + "bin\LuaLiteVM_build.exe") >= 0
+      ProcedureReturn root + "bin\LuaLiteVM_build.exe"
+    EndIf
+    ProcedureReturn ""
+  EndProcedure
+
+  ; <summary>
+  ; Compile the active file to <base>.vyrnc beside it (VYBX, XOR-obfuscated) via
+  ; the CLI, and optionally run the compiled artifact through Vyrn.dll.
+  ; </summary>
+  ; <param name="runAfter">#True to run the .vyrnc after a successful compile.</param>
+  Procedure Ide_Runner_CompileVyrnc(runAfter.i)
+    Protected path.s, base.s, outPath.s, cli.s, args.s, prog.i, code.i, line.s, q.s = Chr(34)
+    Ide_Runner_Init()
+    If Ide_RunBusy
+      ProcedureReturn
+    EndIf
+    If Ide_FilePath = ""
+      MessageRequester("Vyrn IDE", "Save the script before compiling to .vyrnc.", #PB_MessageRequester_Info)
+      ProcedureReturn
+    EndIf
+    If Ide_Editor_IsModified()
+      If Ide_Editor_SaveTo(Ide_FilePath) = 0
+        Ide_Ui_OutputAppend("[error] could not save " + Ide_FilePath)
+        ProcedureReturn
+      EndIf
+    EndIf
+    path = Ide_FilePath
+    base = GetFilePart(path)
+    If Right(LCase(base), 5) = ".vyrn"
+      base = Left(base, Len(base) - 5)
+    ElseIf Right(LCase(base), 4) = ".lua"
+      base = Left(base, Len(base) - 4)
+    EndIf
+    outPath = GetPathPart(path) + base + ".vyrnc"
+    Ide_Ui_OutputClear()
+    Ide_Editor_ClearDiagnostics()
+    cli = Ide_Runner_FindCli()
+    If cli = ""
+      Ide_Ui_OutputAppend("[error] compile: Vyrn.exe not found (run scripts\sync_ide_runtime.ps1)")
+      Ide_Ui_SetStatus("Compile failed")
+      ProcedureReturn
+    EndIf
+    args = "--compile-vyrnc " + q + path + q + " -o " + q + outPath + q
+    Ide_Ui_OutputAppend("[compile] " + path + " -> " + outPath)
+    Ide_Ui_SetStatus("Compiling " + path + " ...")
+    prog = RunProgram(cli, args, GetPathPart(path), #PB_Program_Open | #PB_Program_Read | #PB_Program_Hide)
+    If prog = 0
+      Ide_Ui_OutputAppend("[error] compile: failed to start " + cli)
+      Ide_Ui_SetStatus("Compile failed")
+      ProcedureReturn
+    EndIf
+    While ProgramRunning(prog) Or AvailableProgramOutput(prog)
+      If AvailableProgramOutput(prog)
+        line = ReadProgramString(prog)
+        If line <> ""
+          Ide_Ui_OutputAppend(line)
+          If FindString(LCase(line), "[error]", 1)
+            Ide_Diag_JumpFromMessage(line, #False)
+          EndIf
+        EndIf
+      ElseIf ProgramRunning(prog) = 0
+        Break
+      EndIf
+    Wend
+    code = ProgramExitCode(prog)
+    CloseProgram(prog)
+    If code <> 0 Or FileSize(outPath) < 24
+      Ide_Ui_OutputAppend("[error] compile exited " + Str(code))
+      Ide_Ui_SetStatus("Compile failed")
+      ProcedureReturn
+    EndIf
+    Ide_Ui_OutputAppend("[ok] wrote " + outPath + " (" + Str(FileSize(outPath)) + " bytes)")
+    If runAfter = #False
+      Ide_Ui_SetStatus("Compile OK | " + outPath)
+      ProcedureReturn
+    EndIf
+    If Vyrn_Ensure() = 0
+      Ide_Runner_ShowDllError()
+      ProcedureReturn
+    EndIf
+    Vyrn_SetPrintLogger(@Ide_Runner_PrintLog(), 0)
+    Ide_Ui_OutputAppend(">>> " + outPath)
+    Ide_Runner_StartThread(outPath, #False, "")
+  EndProcedure
+
+  ; <summary>
+  ; Ship the active editor file via Standalone or Compile (optional Windows exe build).
+  ; Saves a dirty on-disk buffer first; untitled buffers must be saved by the user.
+  ; </summary>
+  ; <param name="mode">0 = Standalone folder, 1 = Standalone+exe, 2 = Compile folder, 3 = Compile+exe.</param>
+  Procedure Ide_Runner_Ship(mode.i)
+    Protected path.s, outDir.s, base.s, script.s, buildExe.i, label.s
+    If Ide_RunBusy
+      MessageRequester("Vyrn IDE", "Stop the running script before shipping.", #PB_MessageRequester_Info)
+      ProcedureReturn
+    EndIf
+    If Ide_FilePath = ""
+      MessageRequester("Vyrn IDE", "Save the script before shipping.", #PB_MessageRequester_Info)
+      ProcedureReturn
+    EndIf
+    If Ide_Editor_IsModified()
+      If Ide_Editor_SaveTo(Ide_FilePath) = 0
+        Ide_Ui_OutputAppend("[error] could not save " + Ide_FilePath)
+        ProcedureReturn
+      EndIf
+    EndIf
+    path = Ide_FilePath
+    base = GetFilePart(path)
+    If Right(LCase(base), 5) = ".vyrn"
+      base = Left(base, Len(base) - 5)
+    ElseIf Right(LCase(base), 4) = ".lua"
+      base = Left(base, Len(base) - 4)
+    EndIf
+    Select mode
+      Case 0
+        script = "ship_standalone.ps1" : buildExe = #False : label = "Standalone"
+        outDir = GetPathPart(path) + base + "_ship"
+      Case 1
+        script = "ship_standalone.ps1" : buildExe = #True : label = "Standalone EXE"
+        outDir = GetPathPart(path) + base + "_ship"
+      Case 2
+        script = "ship_compile.ps1" : buildExe = #False : label = "Compile"
+        outDir = GetPathPart(path) + base + "_compile"
+      Case 3
+        script = "ship_compile.ps1" : buildExe = #True : label = "Compile EXE"
+        outDir = GetPathPart(path) + base + "_compile"
+      Default
+        ProcedureReturn
+    EndSelect
+    Ide_Ui_OutputClear()
+    Ide_Ui_SetStatus("Shipping (" + label + ")...")
+    If Ide_Runner_RunShipScript(script, path, outDir, buildExe)
+      Ide_Ui_SetStatus("Ship OK | " + outDir)
+    Else
+      Ide_Ui_SetStatus("Ship failed")
+    EndIf
   EndProcedure
 
 CompilerEndIf

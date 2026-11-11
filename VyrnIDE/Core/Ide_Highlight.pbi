@@ -4,7 +4,7 @@
 ;--------------------------------------------------------------------------------------------
 
 ; Vyrn IDE - simple Scintilla keyword / comment / string styler
-; PureBasic 6.40
+; PureBasic 6.41
 
 CompilerIf Defined(Ide_Highlight, #PB_Constant) = #False
   #Ide_Highlight = #True

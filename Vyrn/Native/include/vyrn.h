@@ -1,5 +1,5 @@
 /* Vyrn native C ABI (Vyrn.dll) — for C, C++, and C# P/Invoke.
- * ABI version: vyrn_abi_version() == 5
+ * ABI version: vyrn_abi_version() == 9 (8 = capabilities; 9 = net allowlist)
  *
  * Calling convention: cdecl (ProcedureCDLL).
  * Strings: UTF-8, NUL-terminated.
@@ -32,7 +32,9 @@ extern "C" {
 #  define VYRN_API
 #endif
 
-#define VYRN_ABI_VERSION 5
+#define VYRN_ABI_VERSION 9
+
+#define VYRN_CAP_NET 1
 
 #define VYRN_TYPE_NIL    0
 #define VYRN_TYPE_BOOL   1
@@ -57,10 +59,34 @@ typedef struct VyrnVM VyrnVM;
 
 typedef struct VyrnValue {
   int32_t type;
+  /* BOOL: truth. NUMBER subtype (ABI 7): 0 = legacy auto, 1 = integer, 2 = float. */
   int32_t bool_val;
   double number;
+  int64_t integer; /* ABI 7: exact int64 when type==NUMBER and bool_val==1 */
   const char *str;
 } VyrnValue;
+
+/** ABI 7: set *v to the integer q. */
+static inline void vyrn_value_set_integer(VyrnValue *v, int64_t q) {
+  v->type = VYRN_TYPE_NUMBER; v->bool_val = 1; v->integer = q; v->number = (double)q; v->str = 0;
+}
+/** ABI 7: set *v to the float d. */
+static inline void vyrn_value_set_float(VyrnValue *v, double d) {
+  v->type = VYRN_TYPE_NUMBER; v->bool_val = 2; v->number = d; v->integer = 0; v->str = 0;
+}
+/** ABI 7: non-zero when *v is a NUMBER integer subtype. */
+static inline int vyrn_value_is_integer(const VyrnValue *v) {
+  return v && v->type == VYRN_TYPE_NUMBER && v->bool_val == 1;
+}
+/** ABI 7: write the integer representation of *v into *out (Lua tointegerx, no strings). */
+static inline int vyrn_value_to_integer(const VyrnValue *v, int64_t *out) {
+  if (!v || !out || v->type != VYRN_TYPE_NUMBER) return 0;
+  if (v->bool_val == 1) { *out = v->integer; return 1; }
+  { double d = v->number;
+    if (d != d || d != (double)(int64_t)d || d < -9223372036854775808.0 || d >= 9223372036854775808.0)
+      return 0;
+    *out = (int64_t)d; return 1; }
+}
 
 typedef int (*VyrnHostFn)(void *userdata, const VyrnValue *args, int argc, VyrnValue *out);
 typedef void (*VyrnLogFn)(void *userdata, const char *utf8_line);
@@ -90,14 +116,43 @@ VYRN_API void        vyrn_destroy(VyrnVM *vm);
 VYRN_API int         vyrn_request_cancel(VyrnVM *vm);
 
 /**
- * Set soft runtime limits (0 = leave / unlimited per host policy).
+ * Set opt-in runtime limits (0 = no limit). Since 1.6.112 a new VM has no loop or
+ * instruction limit; use vyrn_request_cancel to stop a runaway script.
  * @param vm        VM handle.
- * @param max_loops Max loop iterations.
+ * @param max_loops Max loop ticks (backward jumps, calls, returns).
  * @param max_calls Max call depth / calls.
  * @param max_ins   Max instructions.
  * @return Non-zero on success.
  */
 VYRN_API int         vyrn_set_limits(VyrnVM *vm, int max_loops, int max_calls, int max_ins);
+
+/**
+ * Set capability bits for this VM (ABI 8). Default is 0 (sandboxed).
+ * VYRN_CAP_NET enables http.*. Keep ABI-7 hosts working: they simply never call this.
+ * @param vm   VM handle.
+ * @param caps Bitmask (VYRN_CAP_NET = 1).
+ * @return Non-zero on success.
+ */
+VYRN_API int         vyrn_set_capabilities(VyrnVM *vm, unsigned int caps);
+
+/**
+ * @return Current capability bits for this VM (ABI 8).
+ */
+VYRN_API unsigned int vyrn_get_capabilities(VyrnVM *vm);
+
+/**
+ * Set an optional host allowlist for http.* (ABI 9).
+ * NULL or "" clears (all hosts allowed when VYRN_CAP_NET is set).
+ * Non-empty CSV of exact hosts, optionally with :port.
+ * Disallowed hosts raise: network access to host X is not allowed.
+ * ABI-8 hosts keep working if they never call this.
+ */
+VYRN_API int vyrn_set_net_allowlist(VyrnVM *vm, const char *hosts_csv);
+
+/**
+ * @return Current allowlist CSV ("" when unrestricted); owned by the DLL (ABI 9).
+ */
+VYRN_API const char *vyrn_get_net_allowlist(VyrnVM *vm);
 
 /**
  * Install a print logger for script print output.
@@ -190,6 +245,32 @@ VYRN_API int         vyrn_table_get(VyrnVM *vm, int table_id, const VyrnValue *k
  * @return 1 on success; 0 on failure.
  */
 VYRN_API int         vyrn_table_set(VyrnVM *vm, int table_id, const VyrnValue *key, const VyrnValue *val);
+
+/**
+ * Pin a table (ABI 6). Table ids returned by other calls are NOT pinned: once the
+ * script drops its last reference the GC may free the table and reuse the id.
+ * A pinned table is a GC root until every pin is released. Pins are counted.
+ * @param vm       VM handle.
+ * @param table_id Table id.
+ * @return New pin count (>= 1) on success; 0 on failure
+ *         (VYRN_ERR_ARG for id < 1, VYRN_ERR_NOT_FOUND for a stale id).
+ */
+VYRN_API int         vyrn_table_pin(VyrnVM *vm, int table_id);
+
+/**
+ * Release one pin (ABI 6). At zero pins the table is collectable again.
+ * @param vm       VM handle.
+ * @param table_id Table id.
+ * @return 1 on success; 0 on failure (VYRN_ERR_ARG for id < 1,
+ *         VYRN_ERR_NOT_FOUND when the id is not pinned: unknown, stale or fully unpinned).
+ */
+VYRN_API int         vyrn_table_unpin(VyrnVM *vm, int table_id);
+
+/**
+ * Current pin count of a table (ABI 6).
+ * @return Pin count (>= 0; 0 = not pinned); -1 on an invalid VM handle.
+ */
+VYRN_API int         vyrn_table_pin_count(VyrnVM *vm, int table_id);
 
 /**
  * Register a host function as a global callable.

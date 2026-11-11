@@ -63,6 +63,12 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     #MNU_RUN
     #MNU_STOP
     #MNU_SYNC_RUNTIME
+    #MNU_SHIP_STANDALONE
+    #MNU_SHIP_STANDALONE_EXE
+    #MNU_SHIP_COMPILE
+    #MNU_SHIP_COMPILE_EXE
+    #MNU_COMPILE_VYRNC
+    #MNU_RUN_VYRNC
     #MNU_ABOUT
   EndEnumeration
 
@@ -81,7 +87,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   Global Ide_EditorH.i = 100
 
   ; <summary>
-  ; Build the main menu bar (File / Edit / View / Run / Help) and accelerators labels.
+  ; Build the main menu bar (File / Edit / View / Run / Ship / Tools / Help) and accelerator labels.
   ; </summary>
   Procedure Ide_Ui_CreateMenus()
     CreateMenu(#MENU_MAIN, WindowID(#WIN_IDE))
@@ -113,6 +119,15 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     MenuTitle("Run")
     MenuItem(#MNU_RUN, "Run Current" + Chr(9) + "F5")
     MenuItem(#MNU_STOP, "Stop" + Chr(9) + "Shift+F5")
+    MenuBar()
+    MenuItem(#MNU_COMPILE_VYRNC, "Compile to .vyrnc" + Chr(9) + "F7")
+    MenuItem(#MNU_RUN_VYRNC, "Compile && Run .vyrnc" + Chr(9) + "Ctrl+F5")
+    MenuTitle("Ship")
+    MenuItem(#MNU_SHIP_STANDALONE, "Standalone Folder...")
+    MenuItem(#MNU_SHIP_STANDALONE_EXE, "Build Windows EXE (Standalone)...")
+    MenuBar()
+    MenuItem(#MNU_SHIP_COMPILE, "Compile Folder...")
+    MenuItem(#MNU_SHIP_COMPILE_EXE, "Compile + Build EXE...")
     MenuTitle("Tools")
     MenuItem(#MNU_SYNC_RUNTIME, "Sync Runtime DLL" + Chr(9) + "Ctrl+Shift+R")
     MenuTitle("Help")
@@ -280,6 +295,8 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
 
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_F5, #MNU_RUN)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Shift | #PB_Shortcut_F5, #MNU_STOP)
+    AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_F7, #MNU_COMPILE_VYRNC)
+    AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_F5, #MNU_RUN_VYRNC)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_Shift | #PB_Shortcut_R, #MNU_SYNC_RUNTIME)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_N, #MNU_NEW)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Control | #PB_Shortcut_O, #MNU_OPEN)

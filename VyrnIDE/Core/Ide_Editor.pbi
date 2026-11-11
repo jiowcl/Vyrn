@@ -4,7 +4,7 @@
 ;--------------------------------------------------------------------------------------------
 
 ; Vyrn IDE - Scintilla editor (tabs, find/replace, zoom, theme)
-; PureBasic 6.40
+; PureBasic 6.41
 
 CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   #Ide_Editor = #True

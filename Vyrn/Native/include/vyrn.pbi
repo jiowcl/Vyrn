@@ -3,7 +3,7 @@
 ;  Code released under the MIT license.
 ;--------------------------------------------------------------------------------------------
 
-; PureBasic dynamic loader for Vyrn.dll (ABI 5) — companion to include/vyrn.h
+; PureBasic dynamic loader for Vyrn.dll (ABI 6) — companion to include/vyrn.h
 ; PureBasic 6.41 (Windows x64/x86)
 ;
 ; Usage:
@@ -19,7 +19,8 @@
 CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
   #Vyrn_Pbi = #True
 
-  #Vyrn_RequiredAbi = 5
+  #Vyrn_RequiredAbi = 9
+  #VYRN_CAP_NET = 1
   #Vyrn_Lib = 0
 
   #VYRN_TYPE_NIL    = 0
@@ -41,11 +42,12 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
   #VYRN_ERR_OTHER          = 7
   #VYRN_ERR_CANCELLED      = 8
 
-  ; Must match include/vyrn.h VyrnValue (x64: 24 bytes).
+  ; Must match include/vyrn.h VyrnValue (x64: 32 bytes with ABI 7 integer.q).
   Structure VyrnValue
     type.l
     boolVal.l
     number.d
+    integer.q
     *str
   EndStructure
 
@@ -55,6 +57,10 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
   PrototypeC Vyrn_Proto_Destroy(*vm)
   PrototypeC.i Vyrn_Proto_RequestCancel(*vm)
   PrototypeC.i Vyrn_Proto_SetLimits(*vm, maxLoops.i, maxCalls.i, maxIns.i)
+  PrototypeC.i Vyrn_Proto_SetCapabilities(*vm, caps.l)
+  PrototypeC.l Vyrn_Proto_GetCapabilities(*vm)
+  PrototypeC.i Vyrn_Proto_SetNetAllowlist(*vm, *hostsCsv)
+  PrototypeC.i Vyrn_Proto_GetNetAllowlist(*vm)
   PrototypeC.i Vyrn_Proto_SetPrintLogger(*vm, logFn.i, userdata.i)
   PrototypeC.i Vyrn_Proto_RunFile(*vm, *path)
   PrototypeC.i Vyrn_Proto_Eval(*vm, *source)
@@ -64,6 +70,9 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
   PrototypeC.i Vyrn_Proto_SetGlobal(*vm, *name, *val)
   PrototypeC.i Vyrn_Proto_TableGet(*vm, tableId.i, *key, *out)
   PrototypeC.i Vyrn_Proto_TableSet(*vm, tableId.i, *key, *val)
+  PrototypeC.i Vyrn_Proto_TablePin(*vm, tableId.i)
+  PrototypeC.i Vyrn_Proto_TableUnpin(*vm, tableId.i)
+  PrototypeC.i Vyrn_Proto_TablePinCount(*vm, tableId.i)
   PrototypeC.i Vyrn_Proto_Register(*vm, *name, fn.i, userdata.i)
   PrototypeC.i Vyrn_Proto_CoCreate(*vm, *name, *out)
   PrototypeC.i Vyrn_Proto_CoResume(*vm, tid.i, *args, argc.i, *outs, maxOut.i, *outCount)
@@ -92,6 +101,10 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
   Global Vyrn_Fn_Destroy.Vyrn_Proto_Destroy = 0
   Global Vyrn_Fn_RequestCancel.Vyrn_Proto_RequestCancel = 0
   Global Vyrn_Fn_SetLimits.Vyrn_Proto_SetLimits = 0
+  Global Vyrn_Fn_SetCapabilities.Vyrn_Proto_SetCapabilities = 0
+  Global Vyrn_Fn_GetCapabilities.Vyrn_Proto_GetCapabilities = 0
+  Global Vyrn_Fn_SetNetAllowlist.Vyrn_Proto_SetNetAllowlist = 0
+  Global Vyrn_Fn_GetNetAllowlist.Vyrn_Proto_GetNetAllowlist = 0
   Global Vyrn_Fn_SetPrintLogger.Vyrn_Proto_SetPrintLogger = 0
   Global Vyrn_Fn_RunFile.Vyrn_Proto_RunFile = 0
   Global Vyrn_Fn_Eval.Vyrn_Proto_Eval = 0
@@ -101,6 +114,9 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
   Global Vyrn_Fn_SetGlobal.Vyrn_Proto_SetGlobal = 0
   Global Vyrn_Fn_TableGet.Vyrn_Proto_TableGet = 0
   Global Vyrn_Fn_TableSet.Vyrn_Proto_TableSet = 0
+  Global Vyrn_Fn_TablePin.Vyrn_Proto_TablePin = 0
+  Global Vyrn_Fn_TableUnpin.Vyrn_Proto_TableUnpin = 0
+  Global Vyrn_Fn_TablePinCount.Vyrn_Proto_TablePinCount = 0
   Global Vyrn_Fn_Register.Vyrn_Proto_Register = 0
   Global Vyrn_Fn_CoCreate.Vyrn_Proto_CoCreate = 0
   Global Vyrn_Fn_CoResume.Vyrn_Proto_CoResume = 0
@@ -406,6 +422,10 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
     Vyrn_Fn_Destroy = 0
     Vyrn_Fn_RequestCancel = 0
     Vyrn_Fn_SetLimits = 0
+    Vyrn_Fn_SetCapabilities = 0
+    Vyrn_Fn_GetCapabilities = 0
+    Vyrn_Fn_SetNetAllowlist = 0
+    Vyrn_Fn_GetNetAllowlist = 0
     Vyrn_Fn_SetPrintLogger = 0
     Vyrn_Fn_RunFile = 0
     Vyrn_Fn_Eval = 0
@@ -415,6 +435,9 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
     Vyrn_Fn_SetGlobal = 0
     Vyrn_Fn_TableGet = 0
     Vyrn_Fn_TableSet = 0
+    Vyrn_Fn_TablePin = 0
+    Vyrn_Fn_TableUnpin = 0
+    Vyrn_Fn_TablePinCount = 0
     Vyrn_Fn_Register = 0
     Vyrn_Fn_CoCreate = 0
     Vyrn_Fn_CoResume = 0
@@ -501,6 +524,10 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
     Vyrn_Fn_Destroy = GetFunction(#Vyrn_Lib, "vyrn_destroy")
     Vyrn_Fn_RequestCancel = GetFunction(#Vyrn_Lib, "vyrn_request_cancel")
     Vyrn_Fn_SetLimits = GetFunction(#Vyrn_Lib, "vyrn_set_limits")
+    Vyrn_Fn_SetCapabilities = GetFunction(#Vyrn_Lib, "vyrn_set_capabilities")
+    Vyrn_Fn_GetCapabilities = GetFunction(#Vyrn_Lib, "vyrn_get_capabilities")
+    Vyrn_Fn_SetNetAllowlist = GetFunction(#Vyrn_Lib, "vyrn_set_net_allowlist")
+    Vyrn_Fn_GetNetAllowlist = GetFunction(#Vyrn_Lib, "vyrn_get_net_allowlist")
     Vyrn_Fn_SetPrintLogger = GetFunction(#Vyrn_Lib, "vyrn_set_print_logger")
     Vyrn_Fn_RunFile = GetFunction(#Vyrn_Lib, "vyrn_run_file")
     Vyrn_Fn_Eval = GetFunction(#Vyrn_Lib, "vyrn_eval")
@@ -510,6 +537,9 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
     Vyrn_Fn_SetGlobal = GetFunction(#Vyrn_Lib, "vyrn_set_global")
     Vyrn_Fn_TableGet = GetFunction(#Vyrn_Lib, "vyrn_table_get")
     Vyrn_Fn_TableSet = GetFunction(#Vyrn_Lib, "vyrn_table_set")
+    Vyrn_Fn_TablePin = GetFunction(#Vyrn_Lib, "vyrn_table_pin")
+    Vyrn_Fn_TableUnpin = GetFunction(#Vyrn_Lib, "vyrn_table_unpin")
+    Vyrn_Fn_TablePinCount = GetFunction(#Vyrn_Lib, "vyrn_table_pin_count")
     Vyrn_Fn_Register = GetFunction(#Vyrn_Lib, "vyrn_register")
     Vyrn_Fn_CoCreate = GetFunction(#Vyrn_Lib, "vyrn_coroutine_create_global")
     Vyrn_Fn_CoResume = GetFunction(#Vyrn_Lib, "vyrn_coroutine_resume")
@@ -523,6 +553,10 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
     Vyrn_Fn_CopyString = GetFunction(#Vyrn_Lib, "vyrn_copy_string")
 
     If Vyrn_Fn_AbiVersion = 0 Or Vyrn_Fn_Create = 0 Or Vyrn_Fn_Destroy = 0 Or Vyrn_Fn_RunFile = 0 Or Vyrn_Fn_Eval = 0 Or Vyrn_Fn_LastError = 0 Or Vyrn_Fn_SetPrintLogger = 0 Or Vyrn_Fn_SetLimits = 0
+    Vyrn_Fn_SetCapabilities = 0
+    Vyrn_Fn_GetCapabilities = 0
+    Vyrn_Fn_SetNetAllowlist = 0
+    Vyrn_Fn_GetNetAllowlist = 0
       Vyrn_LastError = "Vyrn.dll is missing required exports:" + Chr(10) + path
       CloseLibrary(#Vyrn_Lib)
       
@@ -546,6 +580,12 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
       Vyrn_LastError = "Vyrn.dll is missing ABI 5 export vyrn_request_cancel:" + Chr(10) + path
       CloseLibrary(#Vyrn_Lib)
       
+      ProcedureReturn #False
+    EndIf
+    If Vyrn_Fn_TablePin = 0 Or Vyrn_Fn_TableUnpin = 0 Or Vyrn_Fn_TablePinCount = 0
+      Vyrn_LastError = "Vyrn.dll is missing ABI 6 exports (table pin):" + Chr(10) + path
+      CloseLibrary(#Vyrn_Lib)
+
       ProcedureReturn #False
     EndIf
 
@@ -575,7 +615,7 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
       ProcedureReturn #False
     EndIf
 
-    Vyrn_Fn_SetLimits(Vyrn_Vm, 100000, 256, 1000000)
+    Vyrn_Fn_SetLimits(Vyrn_Vm, 0, 256, 0) ; 1.6.112: no default loop/instruction cap (0 = none)
     Vyrn_DllPath = path
     Vyrn_Loaded = #True
     Vyrn_LastError = ""
@@ -670,7 +710,7 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
     EndIf
     
     If Vyrn_Fn_SetLimits
-      Vyrn_Fn_SetLimits(Vyrn_Vm, 100000, 256, 1000000)
+      Vyrn_Fn_SetLimits(Vyrn_Vm, 0, 256, 0) ; 1.6.112: no default loop/instruction cap (0 = none)
     EndIf
     
     Vyrn_LastError = ""
@@ -704,6 +744,51 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
     EndIf
     
     ProcedureReturn Bool(Vyrn_Fn_SetLimits(Vyrn_Vm, maxLoops, maxCalls, maxIns))
+  EndProcedure
+
+  ; <summary>
+  ; Set capability bits (ABI 8). #VYRN_CAP_NET = 1 enables http.*. Soft no-op if export missing.
+  ; </summary>
+  Procedure.i Vyrn_SetCapabilities(caps.l)
+    If Vyrn_IsReady() = 0 Or Vyrn_Fn_SetCapabilities = 0
+      ProcedureReturn #False
+    EndIf
+    ProcedureReturn Bool(Vyrn_Fn_SetCapabilities(Vyrn_Vm, caps))
+  EndProcedure
+
+  ; <summary>Current capability bits (ABI 8), or 0 if unavailable.</summary>
+  Procedure.l Vyrn_GetCapabilities()
+    If Vyrn_IsReady() = 0 Or Vyrn_Fn_GetCapabilities = 0
+      ProcedureReturn 0
+    EndIf
+    ProcedureReturn Vyrn_Fn_GetCapabilities(Vyrn_Vm)
+  EndProcedure
+
+  ; <summary>
+  ; Set host allowlist CSV (ABI 9). Empty string = all hosts when CAP_NET is set. Soft no-op if missing.
+  ; </summary>
+  Procedure.i Vyrn_SetNetAllowlist(hosts.s)
+    Protected *p
+    If Vyrn_IsReady() = 0 Or Vyrn_Fn_SetNetAllowlist = 0
+      ProcedureReturn #False
+    EndIf
+    *p = UTF8(hosts)
+    If *p = 0
+      ProcedureReturn Bool(Vyrn_Fn_SetNetAllowlist(Vyrn_Vm, 0))
+    EndIf
+    Protected ok.i = Bool(Vyrn_Fn_SetNetAllowlist(Vyrn_Vm, *p))
+    FreeMemory(*p)
+    ProcedureReturn ok
+  EndProcedure
+
+  ; <summary>Current allowlist CSV (ABI 9), or "" if unavailable.</summary>
+  Procedure.s Vyrn_GetNetAllowlist()
+    Protected *p
+    If Vyrn_IsReady() = 0 Or Vyrn_Fn_GetNetAllowlist = 0
+      ProcedureReturn ""
+    EndIf
+    *p = Vyrn_Fn_GetNetAllowlist(Vyrn_Vm)
+    ProcedureReturn Vyrn_CopyUtf8(*p)
   EndProcedure
 
   ; <summary>
@@ -1116,6 +1201,62 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
     Vyrn_LastError = ""
     
     ProcedureReturn #True
+  EndProcedure
+
+  ; <summary>
+  ; Pin a table (ABI 6) so the GC keeps it alive while the host holds its id.
+  ; Table ids from other calls are not pinned. Pins are counted.
+  ; </summary>
+  ; <param name="tableId">Table handle.</param>
+  ; <returns>New pin count (&gt;= 1), or 0 on failure (see Vyrn_LastErrorCode()).</returns>
+  Procedure.i Vyrn_TablePin(tableId.i)
+    Protected n.i
+
+    If Vyrn_Ensure() = 0 Or Vyrn_Fn_TablePin = 0
+      ProcedureReturn 0
+    EndIf
+
+    n = Vyrn_Fn_TablePin(Vyrn_Vm, tableId)
+
+    If n = 0
+      ProcedureReturn Vyrn_FailCall()
+    EndIf
+
+    Vyrn_LastError = ""
+
+    ProcedureReturn n
+  EndProcedure
+
+  ; <summary>
+  ; Release one pin (ABI 6); at zero pins the table is collectable again.
+  ; </summary>
+  ; <param name="tableId">Table handle.</param>
+  ; <returns>#True on success; #False when the id is not pinned or invalid.</returns>
+  Procedure.i Vyrn_TableUnpin(tableId.i)
+    If Vyrn_Ensure() = 0 Or Vyrn_Fn_TableUnpin = 0
+      ProcedureReturn #False
+    EndIf
+
+    If Vyrn_Fn_TableUnpin(Vyrn_Vm, tableId) = 0
+      ProcedureReturn Vyrn_FailCall()
+    EndIf
+
+    Vyrn_LastError = ""
+
+    ProcedureReturn #True
+  EndProcedure
+
+  ; <summary>
+  ; Current pin count of a table (ABI 6).
+  ; </summary>
+  ; <param name="tableId">Table handle.</param>
+  ; <returns>Pin count (0 = not pinned); -1 when the DLL is not loaded.</returns>
+  Procedure.i Vyrn_TablePinCount(tableId.i)
+    If Vyrn_Ensure() = 0 Or Vyrn_Fn_TablePinCount = 0
+      ProcedureReturn -1
+    EndIf
+
+    ProcedureReturn Vyrn_Fn_TablePinCount(Vyrn_Vm, tableId)
   EndProcedure
 
   ; <summary>

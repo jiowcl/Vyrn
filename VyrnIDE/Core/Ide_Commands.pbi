@@ -4,7 +4,7 @@
 ;--------------------------------------------------------------------------------------------
 
 ; Vyrn IDE - menu / toolbar command handlers
-; PureBasic 6.40
+; PureBasic 6.41
 
 CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
   #Ide_Commands = #True
@@ -209,6 +209,18 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
         Ide_Runner_Run()
       Case #MNU_SYNC_RUNTIME
         Ide_Runner_SyncRuntime()
+      Case #MNU_SHIP_STANDALONE
+        Ide_Runner_Ship(0)
+      Case #MNU_SHIP_STANDALONE_EXE
+        Ide_Runner_Ship(1)
+      Case #MNU_SHIP_COMPILE
+        Ide_Runner_Ship(2)
+      Case #MNU_SHIP_COMPILE_EXE
+        Ide_Runner_Ship(3)
+      Case #MNU_COMPILE_VYRNC
+        Ide_Runner_CompileVyrnc(#False)
+      Case #MNU_RUN_VYRNC
+        Ide_Runner_CompileVyrnc(#True)
       Case #MNU_STOP
         Ide_Runner_Stop()
       Case #MNU_ABOUT
