@@ -1,0 +1,26 @@
+-- vyrn: 9
+-- .vyrnc golden: run from source and from compiled bytecode (main + required module)
+let m = require("mod.vyrnc_mathx")
+print("bump", m.bump(), m.bump(5))
+print("counter", counter)
+let add3 = m.make_adder(3)
+print("adder", add3(4))
+let p = m.make_pt(3, 4)
+print("norm2", m.norm2(p), p.x, p["y"])
+let ok, err = pcall(m.boom)
+print("pcall", ok, err)
+let again = require("mod.vyrnc_mathx")
+print("cached", again.bump(0))
+
+def total(...)
+    return select("#", ...)
+end
+print("total", total(1, 2, 3, 4))
+
+let co = coroutine.create(def()
+    coroutine.yield(1)
+    return 2
+end)
+print("co", coroutine.resume(co))
+print("co", coroutine.resume(co))
+print("done")

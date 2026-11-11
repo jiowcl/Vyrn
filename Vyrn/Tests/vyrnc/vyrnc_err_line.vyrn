@@ -1,0 +1,6 @@
+-- 1.6.72: runtime error line must survive .vyrn -> .vyrnc (line table)
+let t = {}
+let f = nil
+print("before")
+let r = f(t)
+print("after", r)

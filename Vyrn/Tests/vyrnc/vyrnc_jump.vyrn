@@ -1,0 +1,7 @@
+-- Fixture for vbc-jump-reject-cli: the 'if' compiles to a conditional jump whose
+-- target the test tampers with in the plain VYBC payload.
+let x = true
+if x then
+  print("taken")
+end
+print("done")

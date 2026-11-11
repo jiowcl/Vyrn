@@ -1,0 +1,10 @@
+bump 1 6
+counter 6
+adder 7
+norm2 25 3 4
+pcall false mod boom
+cached 6
+total 4
+co true 1
+co true 2
+done
