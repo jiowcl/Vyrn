@@ -1,0 +1,14 @@
+-- vyrn: 12
+-- Native ABI demo script (C# / C++ examples).
+
+def add(a, b)
+    return a + b
+end
+
+def greet(name)
+    return "hello " .. name
+end
+
+def on_tick(dt)
+    return host_scale(dt)
+end
