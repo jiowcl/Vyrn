@@ -2,7 +2,7 @@
 
 **Tiny, Elegant, and Fast — A Modern Lua-inspired Programming Language Implemented in PureBasic.**  
 
-**Vyrn** is a concise, lightweight programming language designed for small-scale applications and embedded scripting. Built entirely in **PureBasic**, it brings the familiar elegance of **Lua** while evolving its own unique language characteristics.  
+**Vyrn** is a concise, lightweight programming language designed for small-scale applications and embedded scripting. Built entirely in **PureBasic**,  it keeps the familiar elegance of Lua while adding its own modern features and packaging paths.  
 
 ![GitHub](https://img.shields.io/github/license/jiowcl/Vyrn.svg)
 ![PureBasic](https://img.shields.io/badge/language-PureBasic-blue.svg)
@@ -21,7 +21,7 @@
 ## Environment  
 
 - Windows 10/11 above (recommend)  
-- PureBasic 6.41 above (recommend)  
+- PureBasic 6.41/6.5 above (recommend)  
 
 ## How to Build  
 
@@ -71,6 +71,25 @@ print(calculate_bonus(100))
 More examples are in `examples/vyrn/`.  
 For a full typing demonstration see `examples/vyrn/typed_tour.vyrn` (uses -- vyrn: 12 strict).  
 
+## Shipping & Deployment  
+
+| Path | Product | What it produces |
+|------|---------|------------------|
+| **Standalone** | Vyrn.Standalone | Bundled script + `Vyrn.dll` + launcher to distributable folder / EXE (full language & stdlib) |
+| **Compile** | Vyrn.Compile | `.vyrnc` bytecode (VYBX) + generated C + `libvyrnrt` CMake project to single native EXE (no DLL, cross-platform) |
+
+```powershell
+# Standalone (full VM via DLL)
+vyrn standalone app.vyrn -o dist\app --build-exe --batch
+
+# Compile to native (bytecode + C runtime)
+vyrn compile app.vyrn -o build\app --exe --batch
+# or portable / linux-x64 target
+vyrn compile app.vyrn -o out --target linux-x64 --batch
+```
+
+Not all VM features on Windows can be compiled into C.  
+
 ## Language Snapshot  
 
 | Feature | Notes |
@@ -90,8 +109,8 @@ For a full typing demonstration see `examples/vyrn/typed_tour.vyrn` (uses -- vyr
 - 2016: Vyrn (LuaLiteVM) was initially written in `PowerBasic 10.04`.  
 - 2018: Rewritten in `FreeBasic 1.05` using `FBEdit`.  
 - 2024: Rewritten in the latest version of `PureBasic` and renamed to `Vyrn`.  
-- 2025: Optional `typing`, `structs/enums`, `coroutines`, `strict mode`, `build/bundle/serve`, native `C ABI`, extensive stdlib and performance work.  
-- 2026: Released the official standalone Vyrn IDE (syntax highlighting, code editing, run/debug integration).  
+- 2025: Added optional `typing`, `structs/enums`, `coroutines`, `strict mode`, `build/bundle/serve`, native `C ABI`, extensive stdlib and performance work.  
+- 2026: Added packaging paths — Vyrn.Standalone (bundled script + Vyrn.dll to distributable EXE) and Vyrn.Compile (.vyrnc bytecode + generated C + libvyrnrt to single native executable, cross-platform) and released the official standalone Vyrn IDE (syntax highlighting, code editing, run/debug integration).
 
 ## Credits  
 
