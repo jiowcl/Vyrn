@@ -33,11 +33,14 @@ Module features require PureBasic 5.20 and above.
 Vyrn supports both Lua and Vyrn's own syntax.  
 
 ```vyrn
+-- vyrn: 12
 -- Vyrn (Optional Typing)
+@doc("Receive a name and return a personalized greeting.")
 def greet(name: string) -> string
     return "Hello, " .. name .. "!"
 end
 
+@doc("Calculate and return the weighted bonus.")
 def calculate_bonus(score: number) -> number
     return score * 1.1
 end
@@ -52,10 +55,12 @@ print(calculate_bonus(100))
 
 ```lua
 -- Lua
+-- Receive a name and return a personalized greeting.
 function greet(name)
     return "Hello, " .. name .. "!"
 end
 
+-- Calculate and return the weighted bonus.
 function calculate_bonus(score)
     return score * 1.1
 end
