@@ -1,0 +1,399 @@
+-- vyrn: 12
+-- calc.vyrn: a tiny expression language written in Vyrn.
+--   source text -> tokenize -> parse (recursive descent) -> eval (closure-based interpreter)
+--
+-- Features on show:
+--   * modules (require / M table)        * first-class functions and closures
+--   * (value, err) error propagation     * higher-order helpers (fold, binary_level)
+--   * tables as arrays / records / sets  * host callbacks (opts.on_event)
+--   * mutual recursion via forward declaration
+--
+-- Grammar:
+--   statement := ident "=" expr | expr
+--   expr      := term (("+" | "-") term)*
+--   term      := unary (("*" | "/") unary)*
+--   unary     := "-" unary | primary
+--   primary   := number | ident | ident "(" [expr ("," expr)*] ")" | "(" expr ")"
+
+let LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+let DIGITS = "0123456789"
+let OPCHARS = "+-*/(),="
+
+-- ---------------------------------------------------------------- helpers
+
+def charset(s)
+  let out = {}
+  let i = 1
+  while i <= #s do
+    out[string.sub(s, i, i)] = true
+    i = i + 1
+  end
+  return out
+end
+
+def fold(list, init, f)
+  let acc = init
+  let i = 1
+  while i <= #list do
+    acc = f(acc, list[i])
+    i = i + 1
+  end
+  return acc
+end
+
+-- Wrap a builtin with an arity check. max == nil means "variadic".
+def builtin(name, min, max, f)
+  return function(a)
+    if #a < min or (max ~= nil and #a > max) then
+      return nil, name .. "(): wrong number of arguments (" .. tostring(#a) .. ")"
+    end
+    return f(a)
+  end
+end
+
+-- ---------------------------------------------------------------- lexer
+
+def char_kind(c)
+  if c == " " then return "space" end
+  if c == "." then return "dot" end
+  if string.find(DIGITS, c, 1, true) ~= nil then return "digit" end
+  if string.find(LETTERS, c, 1, true) ~= nil then return "alpha" end
+  if string.find(OPCHARS, c, 1, true) ~= nil then return "op" end
+  return "other"
+end
+
+let NUM_KINDS = { digit = true, dot = true }
+let IDENT_KINDS = { alpha = true, digit = true }
+
+-- Return the index just past the run of characters whose kind is in `kinds`.
+def scan(src, i, kinds)
+  let n = #src
+  while i <= n and kinds[char_kind(string.sub(src, i, i))] do
+    i = i + 1
+  end
+  return i
+end
+
+def tokenize(src)
+  let toks = {}
+  let i = 1
+  while i <= #src do
+    let c = string.sub(src, i, i)
+    let k = char_kind(c)
+    if k == "other" then
+      return nil, "unexpected character '" .. c .. "' at col " .. tostring(i)
+    end
+    if k == "space" then
+      i = i + 1
+    end
+    if k == "digit" then
+      let j = scan(src, i, NUM_KINDS)
+      let text = string.sub(src, i, j - 1)
+      let v = tonumber(text)
+      if v == nil then
+        return nil, "bad number '" .. text .. "' at col " .. tostring(i)
+      end
+      toks[#toks + 1] = { kind = "num", value = v, col = i }
+      i = j
+    end
+    if k == "alpha" then
+      let j = scan(src, i, IDENT_KINDS)
+      toks[#toks + 1] = { kind = "ident", value = string.sub(src, i, j - 1), col = i }
+      i = j
+    end
+    if k == "op" then
+      toks[#toks + 1] = { kind = "op", value = c, col = i }
+      i = i + 1
+    end
+    if k == "dot" then
+      return nil, "stray '.' at col " .. tostring(i)
+    end
+  end
+  toks[#toks + 1] = { kind = "eof", value = "<end>", col = #src + 1 }
+  return toks
+end
+
+-- ---------------------------------------------------------------- parser
+
+def peek(p)
+  return p.toks[p.i]
+end
+
+def advance(p)
+  let t = p.toks[p.i]
+  p.i = p.i + 1
+  return t
+end
+
+def is_op(t, v)
+  return t.kind == "op" and t.value == v
+end
+
+def expect_op(p, v)
+  let t = peek(p)
+  if not is_op(t, v) then
+    return nil, "expected '" .. v .. "' at col " .. tostring(t.col) .. ", found " .. tostring(t.value)
+  end
+  advance(p)
+  return t
+end
+
+-- primary() needs expr(), and expr() eventually needs primary():
+-- forward-declare, assign once the rest exists.
+let parse_expr
+
+def parse_call_args(p)
+  let args = {}
+  if is_op(peek(p), ")") then
+    return args
+  end
+  let more = true
+  while more do
+    let a, err = parse_expr(p)
+    if not a then return nil, err end
+    args[#args + 1] = a
+    if is_op(peek(p), ",") then
+      advance(p)
+    else
+      more = false
+    end
+  end
+  return args
+end
+
+def parse_primary(p)
+  let t = advance(p)
+  if t.kind == "num" then
+    return { tag = "num", v = t.value }
+  end
+  if t.kind == "ident" then
+    if is_op(peek(p), "(") then
+      advance(p)
+      let args, aerr = parse_call_args(p)
+      if not args then return nil, aerr end
+      let ok, cerr = expect_op(p, ")")
+      if not ok then return nil, cerr end
+      return { tag = "call", name = t.value, args = args }
+    end
+    return { tag = "var", name = t.value }
+  end
+  if is_op(t, "(") then
+    let e, err = parse_expr(p)
+    if not e then return nil, err end
+    let ok, cerr = expect_op(p, ")")
+    if not ok then return nil, cerr end
+    return e
+  end
+  return nil, "unexpected " .. tostring(t.value) .. " at col " .. tostring(t.col)
+end
+
+def parse_unary(p)
+  if is_op(peek(p), "-") then
+    advance(p)
+    let e, err = parse_unary(p)
+    if not e then return nil, err end
+    return { tag = "neg", e = e }
+  end
+  return parse_primary(p)
+end
+
+-- Higher-order parser builder: one left-associative precedence level.
+def binary_level(sub, ops)
+  return function(p)
+    let left, err = sub(p)
+    if not left then return nil, err end
+    let more = true
+    while more do
+      let t = peek(p)
+      if t.kind == "op" and ops[t.value] then
+        advance(p)
+        let right, rerr = sub(p)
+        if not right then return nil, rerr end
+        left = { tag = "bin", op = t.value, l = left, r = right }
+      else
+        more = false
+      end
+    end
+    return left
+  end
+end
+
+let parse_term = binary_level(parse_unary, charset("*/"))
+let parse_additive = binary_level(parse_term, charset("+-"))
+parse_expr = parse_additive
+
+def parse(src)
+  let toks, lerr = tokenize(src)
+  if not toks then return nil, lerr end
+  let p = { toks = toks, i = 1 }
+  let node = nil
+  let first = toks[1]
+  let second = toks[2]
+  if first.kind == "ident" and is_op(second, "=") then
+    p.i = 3
+    let e, perr = parse_expr(p)
+    if not e then return nil, perr end
+    node = { tag = "assign", name = first.value, e = e }
+  else
+    let e, perr = parse_expr(p)
+    if not e then return nil, perr end
+    node = e
+  end
+  let last = peek(p)
+  if last.kind ~= "eof" then
+    return nil, "unexpected " .. tostring(last.value) .. " at col " .. tostring(last.col)
+  end
+  return node
+end
+
+-- ---------------------------------------------------------------- operators
+
+let OPS = {}
+OPS["+"] = function(a, b) return a + b end
+OPS["-"] = function(a, b) return a - b end
+OPS["*"] = function(a, b) return a * b end
+OPS["/"] = function(a, b)
+  if b == 0 then return nil, "division by zero" end
+  return a / b
+end
+
+-- ---------------------------------------------------------------- interpreter
+
+-- Each interpreter owns private state (vars, funcs, steps) captured by closures;
+-- callers only see the methods on the returned table.
+def new_interpreter(opts)
+  opts = opts or {}
+  let vars = {}
+  let names = {}   -- assignment order, so snapshots are deterministic
+  let funcs = {}
+  let steps = 0
+
+  let emit = function(event, detail)
+    if type(opts.on_event) == "function" then
+      opts.on_event(event, detail)
+    end
+  end
+
+  funcs["sum"] = builtin("sum", 0, nil, function(a)
+    return fold(a, 0, function(acc, x) return acc + x end)
+  end)
+  funcs["max"] = builtin("max", 1, nil, function(a)
+    return fold(a, a[1], function(acc, x)
+      if x > acc then return x end
+      return acc
+    end)
+  end)
+  funcs["min"] = builtin("min", 1, nil, function(a)
+    return fold(a, a[1], function(acc, x)
+      if x < acc then return x end
+      return acc
+    end)
+  end)
+  funcs["abs"] = builtin("abs", 1, 1, function(a)
+    if a[1] < 0 then return -a[1] end
+    return a[1]
+  end)
+  funcs["avg"] = builtin("avg", 1, nil, function(a)
+    let total = fold(a, 0, function(acc, x) return acc + x end)
+    return total / #a
+  end)
+  funcs["clamp"] = builtin("clamp", 3, 3, function(a)
+    if a[1] < a[2] then return a[2] end
+    if a[1] > a[3] then return a[3] end
+    return a[1]
+  end)
+
+  let eval
+  eval = function(n)
+    steps = steps + 1
+    if n.tag == "num" then
+      return n.v
+    end
+    if n.tag == "var" then
+      let v = vars[n.name]
+      if v == nil then return nil, "undefined variable '" .. n.name .. "'" end
+      return v
+    end
+    if n.tag == "neg" then
+      let v, err = eval(n.e)
+      if v == nil then return nil, err end
+      return -v
+    end
+    if n.tag == "bin" then
+      let a, aerr = eval(n.l)
+      if a == nil then return nil, aerr end
+      let b, berr = eval(n.r)
+      if b == nil then return nil, berr end
+      return OPS[n.op](a, b)
+    end
+    if n.tag == "call" then
+      let f = funcs[n.name]
+      if f == nil then return nil, "unknown function '" .. n.name .. "'" end
+      let argv = {}
+      let i = 1
+      while i <= #n.args do
+        let v, err = eval(n.args[i])
+        if v == nil then return nil, err end
+        argv[i] = v
+        i = i + 1
+      end
+      emit("call", n.name .. "/" .. tostring(#argv))
+      return f(argv)
+    end
+    if n.tag == "assign" then
+      let v, err = eval(n.e)
+      if v == nil then return nil, err end
+      if vars[n.name] == nil then
+        names[#names + 1] = n.name
+      end
+      vars[n.name] = v
+      emit("assign", n.name .. " = " .. tostring(v))
+      return v
+    end
+    return nil, "internal error: unknown node '" .. tostring(n.tag) .. "'"
+  end
+
+  let self = {}
+
+  -- run(src) -> value, steps_used   |   nil, message
+  self.run = function(src)
+    let ast, perr = parse(src)
+    if not ast then return nil, "parse error: " .. perr end
+    let before = steps
+    let v, rerr = eval(ast)
+    if v == nil then return nil, "runtime error: " .. rerr end
+    return v, steps - before
+  end
+
+  -- define(name, min_args, max_args, fn): extend the language from the host.
+  self.define = function(name, min, max, f)
+    funcs[name] = builtin(name, min, max, f)
+  end
+
+  self.get = function(name)
+    return vars[name]
+  end
+
+  -- snapshot() -> { {name=..., value=...}, ... } in first-assignment order
+  self.snapshot = function()
+    let out = {}
+    let i = 1
+    while i <= #names do
+      out[i] = { name = names[i], value = vars[names[i]] }
+      i = i + 1
+    end
+    return out
+  end
+
+  self.total_steps = function()
+    return steps
+  end
+
+  return self
+end
+
+let M = {}
+M.new = new_interpreter
+M.tokenize = tokenize
+M.parse = parse
+return M

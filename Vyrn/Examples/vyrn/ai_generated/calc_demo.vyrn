@@ -1,0 +1,133 @@
+-- vyrn: 12
+-- calc_demo.vyrn: drives the calc module with a small "program".
+-- Optional: CALC_EXPR="1 + 2 * 3" appends one more line to the program.
+-- Pure computation: no network or file access needed.
+
+let calc = require("calc")
+
+-- ---------------------------------------------------------------- small utilities
+
+def map(list, f)
+  let out = {}
+  let i = 1
+  while i <= #list do
+    out[i] = f(list[i])
+    i = i + 1
+  end
+  return out
+end
+
+def join(list, sep)
+  let s = ""
+  let i = 1
+  while i <= #list do
+    if i > 1 then s = s .. sep end
+    s = s .. list[i]
+    i = i + 1
+  end
+  return s
+end
+
+def pad(s, n)
+  while #s < n do
+    s = s .. " "
+  end
+  return s
+end
+
+-- ---------------------------------------------------------------- interpreter setup
+
+-- The host collects language events through a callback closure.
+let events = {}
+let interp = calc.new({
+  on_event = function(event, detail)
+    events[#events + 1] = event .. ":" .. detail
+  end
+})
+
+-- Extend the language from the host. This closure keeps its own call counter.
+let hypot2_calls = 0
+interp.define("hypot2", 2, 2, function(a)
+  hypot2_calls = hypot2_calls + 1
+  return a[1] * a[1] + a[2] * a[2]
+end)
+
+-- ---------------------------------------------------------------- the program
+
+let program = {
+  "price = 120",
+  "qty = 3",
+  "subtotal = price * qty",
+  "tax = subtotal * 0.05",
+  "total = subtotal + tax",
+  "avg(price, subtotal, total)",
+  "clamp(total - 500, 0, 100)",
+  "max(1, -(2 + 3) * 4, sum(1, 2, 3, 4))",
+  "abs(-7) + min(9, 4, 6)",
+  "hypot2(3, 4)",
+  -- the lines below fail on purpose, one per error stage
+  "total / (qty - 3)",
+  "undefined_var * 2",
+  "foo(1)",
+  "abs(1, 2)",
+  "2 +",
+  "(1 + 2",
+  "x = 1 $ 2"
+}
+
+let extra = os.getenv("CALC_EXPR") or ""
+if extra ~= "" then
+  program[#program + 1] = extra
+end
+
+-- ---------------------------------------------------------------- run
+
+let report = { ok = 0, failed = 0, rows = {} }
+
+print("== running " .. tostring(#program) .. " statements ==")
+let i = 1
+while i <= #program do
+  let src = program[i]
+  let value, info = interp.run(src)
+  if value ~= nil then
+    report.ok = report.ok + 1
+    report.rows[#report.rows + 1] = { src = src, value = value, steps = info }
+    print(pad(src, 42) .. " => " .. tostring(value) .. "   (" .. tostring(info) .. " steps)")
+  else
+    report.failed = report.failed + 1
+    report.rows[#report.rows + 1] = { src = src, error = info }
+    print(pad(src, 42) .. " !! " .. tostring(info))
+  end
+  i = i + 1
+end
+
+-- ---------------------------------------------------------------- summary
+
+print("")
+print("== variables ==")
+let vars = interp.snapshot()
+print(join(map(vars, function(v) return v.name .. "=" .. tostring(v.value) end), ", "))
+
+print("")
+print("== events seen by the host callback ==")
+print(join(events, "  "))
+
+print("")
+print("== stats ==")
+print("ok=" .. tostring(report.ok)
+  .. " failed=" .. tostring(report.failed)
+  .. " total_steps=" .. tostring(interp.total_steps())
+  .. " hypot2_calls=" .. tostring(hypot2_calls))
+
+-- JSON round-trip: encode the report, decode it, check nothing was lost.
+let text = json.encode(report)
+let back, jerr = json.decode(text)
+if not back then
+  print("json: " .. tostring(jerr))
+  os.exit(1)
+end
+if #back.rows ~= #report.rows then
+  print("json: round-trip lost rows")
+  os.exit(1)
+end
+print("json round-trip ok (" .. tostring(#text) .. " bytes, " .. tostring(#back.rows) .. " rows)")
