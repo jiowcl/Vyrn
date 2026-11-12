@@ -6,7 +6,6 @@
 
 ![GitHub](https://img.shields.io/github/license/jiowcl/Vyrn.svg)
 ![PureBasic](https://img.shields.io/badge/language-PureBasic-blue.svg)
-![Status](https://img.shields.io/badge/Status-Experimental-orange)
 
 ## Features  
 
