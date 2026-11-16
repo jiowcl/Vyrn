@@ -288,6 +288,17 @@ REPL / `-e`: typed `let` (`let x: number = 1`) performs runtime type checks on g
 | IO file objects | `io.open` returns table with `_handle`, `:read`, `:write`, `:close`, `:flush`, `:lines` |
 | `io.*` compatibility | `io.read(f)`, `io.close(f)` accept table or legacy number handle |
 
+## Added in v1.4.4 – v1.4.7  
+
+| Project | Description |
+|------|------|
+| Struct infer in paren calls | `(cb)(p)` and `(cb)(Vec2{…})` pass strict checks; `CompileTable` pushes struct id when `ActiveStructLiteralFuncId` is set |
+| Multiline call style | `cb` on one line and `(args)` on the next compile as one call (except `let` initializers; see `LineBoundPostfix`) |
+| `LineBoundPostfix` | Only on `let` rhs: blocks postfix `()`/`{}` from attaching across lines (fixes `let cb = twice` + `(cb)(3)` misparsed as `twice(cb)`) |
+| Ident call strict | Expression statements `foo(arg)` route through `CompileCall` for compile-time arg checks |
+| Paren callee strict | Compile-time checks for dynamic/upvalue `(cb)(arg)` |
+| Upvalue func metadata | `FuncIdForBinding`, `EnclosingFuncIds` chain; `ResolveCalleeFuncId` for non-ident callees |
+
 ## Added in v1.4.8  
 
 | Feature | Notes |
