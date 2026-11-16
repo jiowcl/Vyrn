@@ -1,0 +1,27 @@
+-- vyrn: 12
+-- Error handling with pcall (annotate public def surfaces).
+
+def boom(msg: string) -> number
+  error(msg)
+  return 0
+end
+
+def safe_div(a: number, b: number) -> boolean, number, string
+  if b == 0 then
+    return false, 0, "division by zero"
+  end
+  return true, a / b, ""
+end
+
+print("=== error_handling ===")
+
+let ok, err = pcall(boom, "intentional")
+print("pcall ok=", ok, " err=", err)
+
+let ok2, q, msg = safe_div(10, 2)
+print("safe_div 10/2 ->", ok2, q, msg)
+
+let ok3, q3, msg3 = safe_div(10, 0)
+print("safe_div 10/0 ->", ok3, q3, msg3)
+
+print("=== done ===")

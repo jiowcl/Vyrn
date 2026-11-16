@@ -1,0 +1,8 @@
+-- vyrn: 12
+-- Library module for require(): exports greet(name) -> string.
+
+def greet(name: string) -> string
+    return "Hi, " .. name
+end
+
+return greet

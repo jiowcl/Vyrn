@@ -1,0 +1,529 @@
+-- vyrn: 12
+
+-- calc.vyrn (typed edition): tiny expression language with Vyrn type annotations.
+--   source text -> tokenize -> parse (recursive descent) -> eval (closure-based interpreter)
+--
+-- Type features on show:
+--   * enum with explicit value type      enum TokenKind: number
+--   * struct (typed fields, defaults)    Token, Parser, NumNode, BinNode ...
+--   * const with a type                  const LETTERS: string = "..."
+--   * typed parameters / return types    def peek(p: Parser) -> Token
+--   * typed let bindings                 let n: number = #src
+--   * typed multi-value returns          def stats() -> number, number
+--   * default parameter values           def builtin(name: string, f: function, min: number = 0)
+--   * struct-named types                 let t: Token = ...
+--
+-- Header note: with "-- vyrn: 12" the struct constructors validate field types at
+-- runtime, while function annotations are documentation. Change the header to
+-- "-- vyrn: 12 strict" to turn on the compile-time + runtime parameter/return checks.
+--
+-- Vyrn has no union types, so a function that can return `nil, err` leaves its
+-- return type unannotated (only its parameters are typed). Functions that always
+-- return a value carry a full `->` annotation.
+--
+-- Grammar:
+--   statement := ident "=" expr | expr
+--   expr      := term (("+" | "-") term)*
+--   term      := unary (("*" | "/") unary)*
+--   unary     := "-" unary | primary
+--   primary   := number | ident | ident "(" [expr ("," expr)*] ")" | "(" expr ")"
+
+-- ---------------------------------------------------------------- types
+
+enum TokenKind: number
+  Num
+  Ident
+  Op
+  Eof
+end
+
+@doc("A lexical token. 'value' is only meaningful when kind is TokenKind.Num.")
+struct Token
+  kind: number
+  text: string
+  col: number
+  value: number = 0
+end
+
+-- Parser state: the token list and a 1-based cursor.
+struct Parser
+  toks: table
+  i: number
+end
+
+-- AST nodes. Every node starts with the same 'tag' field so eval can dispatch on it.
+struct NumNode
+  tag: string
+  v: number
+end
+
+struct VarNode
+  tag: string
+  name: string
+end
+
+struct NegNode
+  tag: string
+  e: table
+end
+
+struct BinNode
+  tag: string
+  op: string
+  l: table
+  r: table
+end
+
+struct CallNode
+  tag: string
+  name: string
+  args: table
+end
+
+struct AssignNode
+  tag: string
+  name: string
+  e: table
+end
+
+-- Showcase typed const. Do not capture these as upvalues in char_kind /
+-- tokenize: in this large module those upvalues were the wrong value
+-- (LETTERS was an empty table), so letter identifiers failed to tokenize.
+const LETTERS: string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+const DIGITS: string = "0123456789"
+const OPCHARS: string = "+-*/(),="
+const NUM_KINDS: table = { digit = true, dot = true }
+const IDENT_KINDS: table = { alpha = true, digit = true }
+
+def kind_name(k: number) -> string
+  if k == TokenKind.Num then return "num" end
+  if k == TokenKind.Ident then return "ident" end
+  if k == TokenKind.Op then return "op" end
+  return "eof"
+end
+
+-- ---------------------------------------------------------------- helpers
+
+def charset(s: string) -> table
+  let out: table = {}
+  let i: number = 1
+  while i <= #s do
+    out[string.sub(s, i, i)] = true
+    i = i + 1
+  end
+  return out
+end
+
+def fold(list: table, init: number, f) -> number
+  let acc: number = init
+  let i: number = 1
+  while i <= #list do
+    acc = f(acc, list[i])
+    i = i + 1
+  end
+  return acc
+end
+
+def add(acc: number, x: number) -> number
+  return acc + x
+end
+
+def pick_max(acc: number, x: number) -> number
+  if x > acc then return x end
+  return acc
+end
+
+def pick_min(acc: number, x: number) -> number
+  if x < acc then return x end
+  return acc
+end
+
+-- Wrap a builtin with an arity check. max = -1 means "variadic".
+-- The wrapper can fail (nil, err) so it has no return annotation.
+--
+-- Under --strict, calling an upvalue function in a return/statement position
+-- requires callable metadata. Parameter `f` has none, so `return f(a)` inside
+-- the nested `guarded` is a compile error. Calling a local parameter is fine.
+def apply_fn(fn, args)
+  return fn(args)
+end
+
+def builtin(name: string, f, min: number = 0, max: number = -1)
+  let def guarded(a: table)
+    if #a < min or (max >= 0 and #a > max) then
+      return nil, name .. "(): wrong number of arguments (" .. tostring(#a) .. ")"
+    end
+    return apply_fn(f, a)
+  end
+  return guarded
+end
+
+-- ---------------------------------------------------------------- builtin functions
+-- Arity is guaranteed by builtin(), so these always return a number.
+
+def bi_sum(a: table) -> number
+  return fold(a, 0, add)
+end
+
+def bi_max(a: table) -> number
+  return fold(a, a[1], pick_max)
+end
+
+def bi_min(a: table) -> number
+  return fold(a, a[1], pick_min)
+end
+
+def bi_avg(a: table) -> number
+  return fold(a, 0, add) / #a
+end
+
+def bi_abs(a: table) -> number
+  if a[1] < 0 then return -a[1] end
+  return a[1]
+end
+
+def bi_clamp(a: table) -> number
+  if a[1] < a[2] then return a[2] end
+  if a[1] > a[3] then return a[3] end
+  return a[1]
+end
+
+-- ---------------------------------------------------------------- operators
+
+def op_add(a: number, b: number) -> number
+  return a + b
+end
+
+def op_sub(a: number, b: number) -> number
+  return a - b
+end
+
+def op_mul(a: number, b: number) -> number
+  return a * b
+end
+
+-- Can fail, so no return annotation.
+def op_div(a: number, b: number)
+  if b == 0 then return nil, "division by zero" end
+  return a / b
+end
+
+let OPS: table = {}
+OPS["+"] = op_add
+OPS["-"] = op_sub
+OPS["*"] = op_mul
+OPS["/"] = op_div
+
+-- ---------------------------------------------------------------- lexer
+
+def char_kind(c: string) -> string
+  if c == " " then return "space" end
+  if c == "." then return "dot" end
+  -- Literals, not the module-level consts (those upvalues were wrong here).
+  if string.find("0123456789", c, 1, true) ~= nil then return "digit" end
+  if string.find("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_", c, 1, true) ~= nil then return "alpha" end
+  if string.find("+-*/(),=", c, 1, true) ~= nil then return "op" end
+  return "other"
+end
+
+-- Index just past the run of characters whose kind is a key of `kinds`.
+def scan(src: string, i: number, kinds: table) -> number
+  let n: number = #src
+  while i <= n and kinds[char_kind(string.sub(src, i, i))] do
+    i = i + 1
+  end
+  return i
+end
+
+-- Returns a table of Token structs, or nil, message.
+@doc("Split source text into an array of Token structs ending with an Eof token.")
+def tokenize(src: string)
+  let toks: table = {}
+  let n: number = #src
+  let i: number = 1
+  while i <= n do
+    let c: string = string.sub(src, i, i)
+    let k: string = char_kind(c)
+    if k == "space" then
+      i = i + 1
+    elif k == "digit" then
+      let j: number = scan(src, i, { digit = true, dot = true })
+      let text: string = string.sub(src, i, j - 1)
+      -- tonumber may return nil, so this binding is deliberately untyped.
+      let v = tonumber(text)
+      if v == nil then
+        return nil, "bad number '" .. text .. "' at col " .. tostring(i)
+      end
+      toks[#toks + 1] = Token { kind = TokenKind.Num, text = text, col = i, value = v }
+      i = j
+    elif k == "alpha" then
+      let j: number = scan(src, i, { alpha = true, digit = true })
+      toks[#toks + 1] = Token { kind = TokenKind.Ident, text = string.sub(src, i, j - 1), col = i }
+      i = j
+    elif k == "op" then
+      toks[#toks + 1] = Token { kind = TokenKind.Op, text = c, col = i }
+      i = i + 1
+    elif k == "dot" then
+      return nil, "stray '.' at col " .. tostring(i)
+    else
+      return nil, "unexpected character '" .. c .. "' at col " .. tostring(i)
+    end
+  end
+  toks[#toks + 1] = Token { kind = TokenKind.Eof, text = "<end>", col = n + 1 }
+  return toks
+end
+
+-- ---------------------------------------------------------------- parser
+
+def peek(p: Parser) -> Token
+  return p.toks[p.i]
+end
+
+-- Never moves past the Eof token, so peek() always has something to return.
+def advance(p: Parser) -> Token
+  let t: Token = p.toks[p.i]
+  if t.kind ~= TokenKind.Eof then
+    p.i = p.i + 1
+  end
+  return t
+end
+
+def is_op(t: Token, v: string) -> bool
+  return t.kind == TokenKind.Op and t.text == v
+end
+
+def expect_op(p: Parser, v: string)
+  let t: Token = peek(p)
+  if not is_op(t, v) then
+    return nil, "expected '" .. v .. "' at col " .. tostring(t.col) .. ", found " .. t.text
+  end
+  advance(p)
+  return t
+end
+
+-- primary() needs expr(), and expr() eventually needs primary():
+-- forward-declare, assign once the rest exists.
+let parse_expr
+
+def parse_call_args(p: Parser)
+  let args: table = {}
+  if is_op(peek(p), ")") then
+    return args
+  end
+  let more: bool = true
+  while more do
+    let a, err = parse_expr(p)
+    if not a then return nil, err end
+    args[#args + 1] = a
+    if is_op(peek(p), ",") then
+      advance(p)
+    else
+      more = false
+    end
+  end
+  return args
+end
+
+def parse_primary(p: Parser)
+  let t: Token = advance(p)
+  if t.kind == TokenKind.Num then
+    return NumNode { tag = "num", v = t.value }
+  end
+  if t.kind == TokenKind.Ident then
+    if is_op(peek(p), "(") then
+      advance(p)
+      let args, aerr = parse_call_args(p)
+      if not args then return nil, aerr end
+      let ok, cerr = expect_op(p, ")")
+      if not ok then return nil, cerr end
+      return CallNode { tag = "call", name = t.text, args = args }
+    end
+    return VarNode { tag = "var", name = t.text }
+  end
+  if is_op(t, "(") then
+    let e, err = parse_expr(p)
+    if not e then return nil, err end
+    let ok, cerr = expect_op(p, ")")
+    if not ok then return nil, cerr end
+    return e
+  end
+  return nil, "unexpected " .. t.text .. " at col " .. tostring(t.col)
+end
+
+def parse_unary(p: Parser)
+  if is_op(peek(p), "-") then
+    advance(p)
+    let e, err = parse_unary(p)
+    if not e then return nil, err end
+    return NegNode { tag = "neg", e = e }
+  end
+  return parse_primary(p)
+end
+
+-- Higher-order parser builder: one left-associative precedence level.
+def binary_level(sub, ops: table)  -- no `function` type; `function` is a keyword
+  let def level(p: Parser)
+    let left, err = sub(p)
+    if not left then return nil, err end
+    let more: bool = true
+    while more do
+      let t: Token = peek(p)
+      if t.kind == TokenKind.Op and ops[t.text] then
+        advance(p)
+        let right, rerr = sub(p)
+        if not right then return nil, rerr end
+        left = BinNode { tag = "bin", op = t.text, l = left, r = right }
+      else
+        more = false
+      end
+    end
+    return left
+  end
+  return level
+end
+
+let parse_term = binary_level(parse_unary, charset("*/"))
+let parse_additive = binary_level(parse_term, charset("+-"))
+parse_expr = parse_additive
+
+@doc("Parse one statement (assignment or expression) into an AST node.")
+def parse(src: string)
+  let toks, lerr = tokenize(src)
+  if not toks then return nil, lerr end
+  let p: Parser = Parser { toks = toks, i = 1 }
+  let first: Token = toks[1]
+  let second: Token = toks[2]
+  let node = nil
+  if first.kind == TokenKind.Ident and is_op(second, "=") then
+    p.i = 3
+    let e, perr = parse_expr(p)
+    if not e then return nil, perr end
+    node = AssignNode { tag = "assign", name = first.text, e = e }
+  else
+    let e, perr = parse_expr(p)
+    if not e then return nil, perr end
+    node = e
+  end
+  let last: Token = peek(p)
+  if last.kind ~= TokenKind.Eof then
+    return nil, "unexpected " .. last.text .. " at col " .. tostring(last.col)
+  end
+  return node
+end
+
+-- ---------------------------------------------------------------- interpreter
+
+-- Each interpreter owns private state (vars, funcs, steps) captured by closures;
+-- callers only see the methods on the returned table.
+@doc("Create an interpreter. opts.on_event(event: string, detail: string) is optional.")
+def new_interpreter(opts: table = {}) -> table
+  let vars: table = {}
+  let names: table = {}   -- assignment order, so snapshots are deterministic
+  let funcs: table = {}
+  let steps: number = 0
+
+  let def emit(event: string, detail: string)
+    if type(opts.on_event) == "function" then
+      opts.on_event(event, detail)
+    end
+  end
+
+  funcs["sum"] = builtin("sum", bi_sum)
+  funcs["max"] = builtin("max", bi_max, 1)
+  funcs["min"] = builtin("min", bi_min, 1)
+  funcs["avg"] = builtin("avg", bi_avg, 1)
+  funcs["abs"] = builtin("abs", bi_abs, 1, 1)
+  funcs["clamp"] = builtin("clamp", bi_clamp, 3, 3)
+
+  -- Fallible: (number) or (nil, message).
+  let def eval(n: table)
+    steps = steps + 1
+    let tag: string = n.tag
+    if tag == "num" then
+      return n.v
+    elif tag == "var" then
+      let v = vars[n.name]
+      if v == nil then return nil, "undefined variable '" .. n.name .. "'" end
+      return v
+    elif tag == "neg" then
+      let v, err = eval(n.e)
+      if v == nil then return nil, err end
+      return -v
+    elif tag == "bin" then
+      let a, aerr = eval(n.l)
+      if a == nil then return nil, aerr end
+      let b, berr = eval(n.r)
+      if b == nil then return nil, berr end
+      return OPS[n.op](a, b)
+    elif tag == "call" then
+      let f = funcs[n.name]
+      if f == nil then return nil, "unknown function '" .. n.name .. "'" end
+      let argv: table = {}
+      let i: number = 1
+      while i <= #n.args do
+        let v, err = eval(n.args[i])
+        if v == nil then return nil, err end
+        argv[i] = v
+        i = i + 1
+      end
+      emit("call", n.name .. "/" .. tostring(#argv))
+      return f(argv)
+    elif tag == "assign" then
+      let v, err = eval(n.e)
+      if v == nil then return nil, err end
+      if vars[n.name] == nil then
+        names[#names + 1] = n.name
+      end
+      vars[n.name] = v
+      emit("assign", n.name .. " = " .. tostring(v))
+      return v
+    end
+    return nil, "internal error: unknown node '" .. tag .. "'"
+  end
+
+  -- run(src) -> value, steps_used   |   nil, message
+  let def run(src: string)
+    let ast, perr = parse(src)
+    if not ast then return nil, "parse error: " .. perr end
+    let before: number = steps
+    let v, rerr = eval(ast)
+    if v == nil then return nil, "runtime error: " .. rerr end
+    return v, steps - before
+  end
+
+  -- define(name, fn, min_args, max_args): extend the language from the host.
+  let def define(name: string, f, min: number = 0, max: number = -1)
+    funcs[name] = builtin(name, f, min, max)
+  end
+
+  let def snapshot() -> table
+    let out: table = {}
+    let i: number = 1
+    while i <= #names do
+      out[i] = { name = names[i], value = vars[names[i]] }
+      i = i + 1
+    end
+    return out
+  end
+
+  -- Typed multi-value return: (total evaluation steps, number of variables).
+  let def stats() -> number, number
+    return steps, #names
+  end
+
+  let self: table = {}
+  self.run = run
+  self.define = define
+  self.snapshot = snapshot
+  self.stats = stats
+  return self
+end
+
+let M: table = {}
+M.new = new_interpreter
+M.tokenize = tokenize
+M.parse = parse
+M.kind_name = kind_name
+M.TokenKind = TokenKind
+M.Token = Token
+return M

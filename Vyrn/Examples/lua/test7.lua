@@ -307,7 +307,7 @@ local function executeSkill(attacker, defender, skillName)
         if defender.hp < 0 then defender.hp = 0 end
         GameState.totalDamageDealt = GameState.totalDamageDealt + damage
         
-        print(string.format("   Result: Slash inflicts %d heavy physical damage! (%s HP: %d/%d)", 
+        print(string.format("   Result: Slash inflicts %d heavy physical damage to %s! (%s HP: %d/%d)", 
             damage, defender.name, defender.name, defender.hp, defender.maxHp))
             
         if defender.hp == 0 then

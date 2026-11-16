@@ -1,0 +1,196 @@
+-- vyrn: 12
+
+-- calc_demo.vyrn (typed edition): drives the typed calc module and shows Vyrn's data types.
+-- Optional: CALC_EXPR="1 + 2 * 3" appends one more line to the program.
+-- Pure computation: no network or file access needed.
+--
+-- Switch the header above to "-- vyrn: 12 strict" to see section 5 report that
+-- function parameter annotations are enforced.
+
+let calc = require("type_calc")
+
+-- ---------------------------------------------------------------- small typed utilities
+
+def map(list: table, f) -> table
+  let out: table = {}
+  let i: number = 1
+  while i <= #list do
+    out[i] = f(list[i])
+    i = i + 1
+  end
+  return out
+end
+
+def join(list: table, sep: string) -> string
+  let s: string = ""
+  let i: number = 1
+  while i <= #list do
+    if i > 1 then s = s .. sep end
+    s = s .. list[i]
+    i = i + 1
+  end
+  return s
+end
+
+def pad(s: string, n: number) -> string
+  while #s < n do
+    s = s .. " "
+  end
+  return s
+end
+
+def title(text: string)
+  print("")
+  print("== " .. text .. " ==")
+end
+
+-- ---------------------------------------------------------------- interpreter setup
+
+-- The host collects language events through a typed callback.
+let events: table = {}
+let def on_event(event: string, detail: string)
+  events[#events + 1] = event .. ":" .. detail
+end
+
+let interp: table = calc.new({ on_event = on_event })
+
+-- Extend the language from the host. This function keeps its own call counter.
+let hypot2_calls: number = 0
+let def hypot2(a: table) -> number
+  hypot2_calls = hypot2_calls + 1
+  return a[1] * a[1] + a[2] * a[2]
+end
+interp.define("hypot2", hypot2, 2, 2)
+
+-- ---------------------------------------------------------------- the program
+
+let program: table = {
+  "price = 120",
+  "qty = 3",
+  "subtotal = price * qty",
+  "tax = subtotal * 0.05",
+  "total = subtotal + tax",
+  "avg(price, subtotal, total)",
+  "clamp(total - 500, 0, 100)",
+  "max(1, -(2 + 3) * 4, sum(1, 2, 3, 4))",
+  "abs(-7) + min(9, 4, 6)",
+  "hypot2(3, 4)",
+  -- the lines below fail on purpose, one per error stage
+  "total / (qty - 3)",
+  "undefined_var * 2",
+  "foo(1)",
+  "abs(1, 2)",
+  "2 +",
+  "(1 + 2",
+  "x = 1 $ 2"
+}
+
+let extra: string = os.getenv("CALC_EXPR") or ""
+if extra ~= "" then
+  program[#program + 1] = extra
+end
+
+-- ---------------------------------------------------------------- 1. run + value types
+
+let report: table = { ok = 0, failed = 0, rows = {} }
+
+title("1. running " .. tostring(#program) .. " statements (value, type(), math.type())")
+let i: number = 1
+while i <= #program do
+  let src: string = tostring(program[i])
+  let value, info = interp.run(src)
+  if value ~= nil then
+    report.ok = report.ok + 1
+    report.rows[#report.rows + 1] = { src = src, value = value, steps = info }
+    -- number values carry an integer / float subtype
+    let subtype: string = math.type(value)
+    print(pad(src, 42) .. " => " .. pad(tostring(value), 7) .. pad(type(value), 8) .. pad(subtype, 9) .. tostring(info) .. " steps")
+  else
+    report.failed = report.failed + 1
+    report.rows[#report.rows + 1] = { src = src, error = info }
+    print(pad(src, 42) .. " !! " .. tostring(info))
+  end
+  i = i + 1
+end
+
+-- ---------------------------------------------------------------- 2. tokens are structs
+
+title("2. tokens are typed structs (enum TokenKind: number)")
+let toks, terr = calc.tokenize("rate = 3.5 * (n + 2)")
+if not toks then
+  print("tokenize: " .. tostring(terr))
+  os.exit(1)
+end
+print(pad("kind", 7) .. pad("enum", 6) .. pad("text", 7) .. pad("col", 5) .. "value")
+let t: number = 1
+while t <= #toks do
+  let tok = toks[t]
+  print(pad(calc.kind_name(tok.kind), 7) .. pad(tostring(tok.kind), 6) .. pad(tok.text, 7) .. pad(tostring(tok.col), 5) .. tostring(tok.value))
+  t = t + 1
+end
+
+-- ---------------------------------------------------------------- 3. typed destructuring
+
+title("3. typed destructuring and snapshot()")
+let steps: number, nvars: number = interp.stats()
+print("steps=" .. tostring(steps) .. " vars=" .. tostring(nvars))
+
+let vars: table = interp.snapshot()
+print(join(map(vars, function(v) return v.name .. "=" .. tostring(v.value) .. "(" .. math.type(v.value) .. ")" end), ", "))
+
+-- ---------------------------------------------------------------- 4. struct field checks
+
+title("4. struct constructors validate field types")
+-- Built in a variable so the mistake is not visible to compile-time checks.
+let bad: table = { kind = "oops", text = "x", col = 1 }
+let ok1, err1 = pcall(calc.Token, bad)
+if ok1 then
+  print("Token accepted a string kind (unexpected)")
+else
+  print("rejected: " .. tostring(err1))
+end
+
+-- ---------------------------------------------------------------- 5. function annotations
+
+title("5. are function annotations enforced?")
+def typed_probe(x: number) -> number
+  return x
+end
+let probe: table = { value = "oops" }
+let ok2, res2 = pcall(typed_probe, probe.value)
+if ok2 then
+  print("annotations are documentation only (non-strict): typed_probe returned " .. tostring(res2))
+  print("add 'strict' to the '-- vyrn: 12' header to enforce them")
+else
+  print("annotations are enforced (strict): " .. tostring(res2))
+end
+
+-- ---------------------------------------------------------------- 6. events and stats
+
+title("6. events seen by the host callback")
+print(join(events, "  "))
+
+title("7. stats")
+print("ok=" .. tostring(report.ok)
+  .. " failed=" .. tostring(report.failed)
+  .. " hypot2_calls=" .. tostring(hypot2_calls))
+
+-- ---------------------------------------------------------------- 8. JSON keeps number subtypes
+
+title("8. JSON round-trip keeps integer / float subtypes")
+let text: string = json.encode(report)
+let back, jerr = json.decode(text)
+if not back then
+  print("json: " .. tostring(jerr))
+  os.exit(1)
+end
+let drift: number = 0
+let r: number = 1
+while r <= #report.rows do
+  let before = report.rows[r].value
+  if before ~= nil and math.type(before) ~= math.type(back.rows[r].value) then
+    drift = drift + 1
+  end
+  r = r + 1
+end
+print(tostring(#text) .. " bytes, " .. tostring(#back.rows) .. " rows, subtype drift=" .. tostring(drift))

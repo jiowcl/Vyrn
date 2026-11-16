@@ -1,0 +1,414 @@
+-- vyrn: 12
+-- sales_report.vyrn: summarize a sales CSV into a console report, report.json and report.md.
+--
+-- Run:  vyrn sales_report.vyrn
+-- Environment variables (all optional):
+--   SALES_CSV  input file     (default "sales.csv"; a sample file is created if it is missing)
+--   SALES_OUT  output folder  (default ".")
+-- CSV columns: date,region,category,product,qty,unit_price
+--   The header line, blank lines and lines starting with # are skipped.
+--   Rows that cannot be parsed are listed in the report and skipped; they never stop the run.
+--   Fields are split on commas only (no quoted fields).
+-- Local files only: no network access needed.
+
+-- ---------------------------------------------------------------- types
+
+struct Sale
+  date: string
+  region: string
+  category: string
+  product: string
+  qty: number
+  price: number
+end
+
+struct Group
+  key: string
+  revenue: number
+  units: number
+  orders: number
+end
+
+const EXPECTED_FIELDS: number = 6
+
+const SAMPLE_ROWS: table = {
+  "date,region,category,product,qty,unit_price",
+  "2025-01-05,North,Hardware,Keyboard,4,49.90",
+  "2025-01-05,South,Hardware,Mouse,10,19.50",
+  "2025-01-12,East,Software,Editor License,3,120",
+  "2025-01-19,North,Software,Backup Suite,2,89.99",
+  "2025-01-23,West,Hardware,Monitor,5,229",
+  "2025-02-02,South,Services,Installation,8,75",
+  "2025-02-09,East,Hardware,Keyboard,6,49.90",
+  "2025-02-14,North,Services,Training,2,300",
+  "2025-02-14,West,Software,Editor License,7,120",
+  "2025-02-20,East,Hardware,Cable,x,5",
+  "2025-02-27,South,Hardware,Monitor,3,229",
+  "# a comment line is ignored",
+  "2025-03-03,North,Hardware,Mouse,12,19.50",
+  "2025-03-08,West,Services,Installation,4,75",
+  "2025-03-09,East,Software",
+  "2025-03-15,East,Software,Backup Suite,5,89.99",
+  "2025-03-21,South,Services,Training,1,300",
+  "2025-03-28,North,Hardware,Monitor,2,229"
+}
+
+-- ---------------------------------------------------------------- formatting helpers
+
+def pad_right(s: string, n: number) -> string
+  while #s < n do
+    s = s .. " "
+  end
+  return s
+end
+
+def pad_left(s: string, n: number) -> string
+  while #s < n do
+    s = " " .. s
+  end
+  return s
+end
+
+def money(x: number) -> string
+  return string.format("%.2f", x)
+end
+
+-- A text bar whose length is value / top * width, at least 1 when value > 0.
+def bar(value: number, top: number, width: number) -> string
+  if top <= 0 or value <= 0 then return "" end
+  let n: number = math.floor(value / top * width + 0.5)
+  if n < 1 then n = 1 end
+  let s: string = ""
+  let i: number = 1
+  while i <= n do
+    s = s .. "#"
+    i = i + 1
+  end
+  return s
+end
+
+-- ---------------------------------------------------------------- CSV parsing
+
+-- Split on commas and trim each field. Always returns at least one field.
+def split_line(line: string) -> table
+  let parts: table = {}
+  let pos: number = 1
+  let more: bool = true
+  while more do
+    let at = string.find(line, ",", pos, true)
+    if at == nil then
+      parts[#parts + 1] = string.trim(string.sub(line, pos))
+      more = false
+    else
+      parts[#parts + 1] = string.trim(string.sub(line, pos, at - 1))
+      pos = at + 1
+    end
+  end
+  return parts
+end
+
+-- Fallible: a Sale, or nil plus a message that names the line.
+def parse_row(line: string, lineno: number)
+  let f: table = split_line(line)
+  if #f ~= EXPECTED_FIELDS then
+    return nil, "line " .. tostring(lineno) .. ": expected " .. tostring(EXPECTED_FIELDS) .. " fields, got " .. tostring(#f)
+  end
+  -- tonumber returns nil on bad input, so these bindings are untyped.
+  let qty = tonumber(f[5])
+  let price = tonumber(f[6])
+  if qty == nil or qty < 0 then
+    return nil, "line " .. tostring(lineno) .. ": bad quantity '" .. f[5] .. "'"
+  end
+  if price == nil or price < 0 then
+    return nil, "line " .. tostring(lineno) .. ": bad unit price '" .. f[6] .. "'"
+  end
+  if #f[1] < 7 then
+    return nil, "line " .. tostring(lineno) .. ": bad date '" .. f[1] .. "'"
+  end
+  return Sale { date = f[1], region = f[2], category = f[3], product = f[4], qty = qty, price = price }
+end
+
+-- Fallible: (sales, problems), both arrays, or nil plus a message.
+def load_sales(csv_path: string)
+  if not path.isfile(csv_path) then
+    return nil, "cannot read '" .. csv_path .. "'"
+  end
+  let lines: table = io.lines(csv_path)
+  let sales: table = {}
+  let problems: table = {}
+  let i: number = 1
+  while i <= #lines do
+    let line: string = string.trim(lines[i])
+    let skip: bool = line == "" or string.sub(line, 1, 1) == "#" or (i == 1 and string.sub(line, 1, 4) == "date")
+    if not skip then
+      let sale, err = parse_row(line, i)
+      if sale == nil then
+        problems[#problems + 1] = err
+      else
+        sales[#sales + 1] = sale
+      end
+    end
+    i = i + 1
+  end
+  return sales, problems
+end
+
+-- Fallible: true, or nil plus a message.
+def write_sample(csv_path: string)
+  let f = io.open(csv_path, "w")
+  if f == nil then
+    return nil, "cannot create '" .. csv_path .. "'"
+  end
+  let i: number = 1
+  while i <= #SAMPLE_ROWS do
+    f:write(SAMPLE_ROWS[i] .. "\n")
+    i = i + 1
+  end
+  f:close()
+  return true
+end
+
+-- ---------------------------------------------------------------- aggregation
+
+def total_of(sale: Sale) -> number
+  return sale.qty * sale.price
+end
+
+-- Sum revenue / units / orders per key. key_of(sale) picks the grouping key.
+-- The result is sorted by revenue, highest first.
+def aggregate(sales: table, key_of) -> table
+  let by_key: table = {}
+  let groups: table = {}
+  let i: number = 1
+  while i <= #sales do
+    let sale: Sale = sales[i]
+    let key: string = key_of(sale)
+    let g = by_key[key]
+    if g == nil then
+      g = Group { key = key, revenue = 0, units = 0, orders = 0 }
+      by_key[key] = g
+      groups[#groups + 1] = g
+    end
+    g.revenue = g.revenue + total_of(sale)
+    g.units = g.units + sale.qty
+    g.orders = g.orders + 1
+    i = i + 1
+  end
+  table.sort(groups, def(a, b) return a.revenue > b.revenue end)
+  return groups
+end
+
+def totals(sales: table) -> number, number
+  let revenue: number = 0
+  let units: number = 0
+  let i: number = 1
+  while i <= #sales do
+    revenue = revenue + total_of(sales[i])
+    units = units + sales[i].qty
+    i = i + 1
+  end
+  return revenue, units
+end
+
+def by_region(s: Sale) -> string
+  return s.region
+end
+
+def by_category(s: Sale) -> string
+  return s.category
+end
+
+def by_product(s: Sale) -> string
+  return s.product
+end
+
+def by_month(s: Sale) -> string
+  return string.sub(s.date, 1, 7)
+end
+
+-- Plain tables are what json.encode expects, so convert the structs.
+def group_rows(groups: table, limit: number) -> table
+  let out: table = {}
+  let i: number = 1
+  while i <= #groups and i <= limit do
+    let g: Group = groups[i]
+    out[i] = { key = g.key, revenue = g.revenue, units = g.units, orders = g.orders }
+    i = i + 1
+  end
+  return out
+end
+
+-- ---------------------------------------------------------------- console output
+
+def print_groups(title: string, groups: table, total: number, limit: number)
+  print("")
+  print("-- " .. title .. " --")
+  if #groups == 0 then
+    print("(no data)")
+    return
+  end
+  -- Scale bars against the largest group; the list may be sorted by key, not by revenue.
+  let top: number = 0
+  let k: number = 1
+  while k <= #groups do
+    if groups[k].revenue > top then top = groups[k].revenue end
+    k = k + 1
+  end
+  let i: number = 1
+  while i <= #groups and i <= limit do
+    let g: Group = groups[i]
+    let share: number = 0
+    if total > 0 then share = g.revenue / total * 100 end
+    print(pad_right(g.key, 16)
+      .. pad_left(money(g.revenue), 11)
+      .. pad_left(string.format("%.1f%%", share), 8)
+      .. pad_left(tostring(g.units), 7) .. " u "
+      .. bar(g.revenue, top, 20))
+    i = i + 1
+  end
+end
+
+def sort_by_key(groups: table)
+  table.sort(groups, def(a, b) return a.key < b.key end)
+end
+
+-- ---------------------------------------------------------------- report files
+
+-- Fallible: true, or nil plus a message.
+def write_text(file_path: string, text: string)
+  let f = io.open(file_path, "w")
+  if f == nil then
+    return nil, "cannot write '" .. file_path .. "'"
+  end
+  f:write(text)
+  f:close()
+  return true
+end
+
+def markdown_section(lines: table, title: string, rows: table)
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "## " .. title
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "| Name | Revenue | Units | Orders |"
+  lines[#lines + 1] = "|------|--------:|------:|-------:|"
+  let i: number = 1
+  while i <= #rows do
+    let r = rows[i]
+    lines[#lines + 1] = "| " .. r.key .. " | " .. money(r.revenue) .. " | " .. tostring(r.units) .. " | " .. tostring(r.orders) .. " |"
+    i = i + 1
+  end
+end
+
+def build_markdown(report: table) -> string
+  let lines: table = {}
+  lines[#lines + 1] = "# Sales report"
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = "- Source: " .. report.source
+  lines[#lines + 1] = "- Rows used: " .. tostring(report.rows_ok) .. " (skipped " .. tostring(report.rows_skipped) .. ")"
+  lines[#lines + 1] = "- Revenue: " .. money(report.revenue)
+  lines[#lines + 1] = "- Units: " .. tostring(report.units)
+  lines[#lines + 1] = "- Average order value: " .. money(report.avg_order)
+  markdown_section(lines, "By region", report.by_region)
+  markdown_section(lines, "By category", report.by_category)
+  markdown_section(lines, "Monthly", report.monthly)
+  markdown_section(lines, "Top products", report.top_products)
+  if #report.problems > 0 then
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = "## Skipped rows"
+    lines[#lines + 1] = ""
+    let i: number = 1
+    while i <= #report.problems do
+      lines[#lines + 1] = "- " .. report.problems[i]
+      i = i + 1
+    end
+  end
+  return table.concat(lines, "\n") .. "\n"
+end
+
+-- ---------------------------------------------------------------- main
+
+def main() -> number
+  let csv_path: string = os.getenv("SALES_CSV") or "sales.csv"
+  let out_dir: string = os.getenv("SALES_OUT") or "."
+
+  if not path.isfile(csv_path) then
+    print("'" .. csv_path .. "' not found; writing a sample file")
+    let made, merr = write_sample(csv_path)
+    if not made then
+      print("error: " .. merr)
+      return 1
+    end
+  end
+
+  let sales, problems = load_sales(csv_path)
+  if sales == nil then
+    print("error: " .. problems)       -- on failure the second value is the message
+    return 1
+  end
+  if #sales == 0 then
+    print("error: no valid rows in '" .. csv_path .. "'")
+    return 1
+  end
+
+  let revenue: number, units: number = totals(sales)
+  let avg_order: number = revenue / #sales
+  let regions: table = aggregate(sales, by_region)
+  let categories: table = aggregate(sales, by_category)
+  let products: table = aggregate(sales, by_product)
+  let months: table = aggregate(sales, by_month)
+  sort_by_key(months)
+
+  print("== Sales report: " .. csv_path .. " ==")
+  print("rows used " .. tostring(#sales) .. ", skipped " .. tostring(#problems))
+  print("revenue " .. money(revenue) .. "   units " .. tostring(units) .. "   avg order " .. money(avg_order))
+  print_groups("by region", regions, revenue, 10)
+  print_groups("by category", categories, revenue, 10)
+  print_groups("monthly", months, revenue, 12)
+  print_groups("top 5 products", products, revenue, 5)
+
+  if #problems > 0 then
+    print("")
+    print("-- skipped rows --")
+    let i: number = 1
+    while i <= #problems do
+      print("  " .. problems[i])
+      i = i + 1
+    end
+  end
+
+  let report: table = {
+    source = csv_path,
+    rows_ok = #sales,
+    rows_skipped = #problems,
+    revenue = revenue,
+    units = units,
+    avg_order = avg_order,
+    by_region = group_rows(regions, 100),
+    by_category = group_rows(categories, 100),
+    monthly = group_rows(months, 100),
+    top_products = group_rows(products, 5),
+    problems = problems
+  }
+
+  if not path.mkdirs(out_dir) then
+    print("error: cannot create output folder '" .. out_dir .. "'")
+    return 1
+  end
+  let json_path: string = path.join(out_dir, "report.json")
+  let md_path: string = path.join(out_dir, "report.md")
+  let ok1, e1 = write_text(json_path, json.encode(report))
+  if not ok1 then
+    print("error: " .. e1)
+    return 1
+  end
+  let ok2, e2 = write_text(md_path, build_markdown(report))
+  if not ok2 then
+    print("error: " .. e2)
+    return 1
+  end
+  print("")
+  print("wrote " .. json_path .. " and " .. md_path)
+  return 0
+end
+
+os.exit(main())

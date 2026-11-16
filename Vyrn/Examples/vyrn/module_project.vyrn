@@ -1,0 +1,9 @@
+-- vyrn: 12
+-- Module project skeleton: require a local library module.
+
+print("=== module_project ===")
+
+let greet = require("lib.greet")
+print(greet("Vyrn"))
+
+print("=== done ===")
