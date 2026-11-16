@@ -127,6 +127,8 @@ Not all VM features on Windows can be compiled into C.
 Copyright (c) 2016-2026 Ji-Feng Tsai.  
 Code released under the MIT license.  
 
+Applications and compiled outputs built with Vyrn belong solely to their authors and may be distributed commercially or under any license. See [VyrnOutputLicense.md](./Docs/VyrnOutputLicense.md) for full details.  
+
 ## Donation  
 
 If this application help you reduce time to coding, you can give me a cup of coffee :)  
