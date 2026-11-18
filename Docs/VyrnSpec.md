@@ -82,6 +82,182 @@ end
 
 Optional type annotations on `let` bindings are checked at **runtime** when `=` is present.  
 
+## Dialect version
+
+Use `-- vyrn: 2` for scripts using typed `let` (optional; recommended for new files).  
+
+## Constants (v0.3)  
+
+```vyrn
+const PI: number = 3.14
+const LABEL: string = "ok"
+```
+
+`const` requires an initializer; reassignment is a **compile-time** error in scripts, or **compile-time / runtime** error for REPL globals.  
+
+In REPL / `-e`, `const` at top level creates an immutable **global** (same persistence as `let`).  
+
+## Loop control (v0.3)  
+
+`continue` jumps to the next iteration of the innermost `while`, `for`, or `repeat` loop.
+
+## String interpolation (v0.4)  
+
+In **double-quoted** strings, `{expr}` embeds an expression:
+
+```vyrn
+let name = "Vyrn"
+print("Hello, {name}!")
+```
+
+- `\{` and `\}` produce literal braces in the string part.
+- Empty `{}` is a compile error.
+- Nested `{` inside an interpolation expression is not allowed in v0.4.  
+
+## Pattern matching (v0.4)  
+
+```vyrn
+match x
+    0 => print("zero")
+    1 => print("one")
+    else => print("other")
+end
+```
+
+- Subject is a single expression; arms compare with `==` (literal number, string, `true`, `false`, `nil`).
+- `else =>` is optional and must appear last.
+- Desugars to `if` / `elif` chains; terminates with `end`.  
+
+## Default parameters (v0.5)  
+
+```vyrn
+def add(a, b: number = 10) -> number
+    return a + b
+end
+```
+
+- Default values must be **literals** (`number`, `string`, `true`, `false`, `nil`, unary `-` on numbers).
+- Default values may be **any expression**; non-literals are evaluated at **call time** in the caller's environment (via enclosing locals / globals).
+- Parameters without defaults must come before parameters with defaults.
+- Omitted arguments are filled at call time.  
+
+## REPL / eval (v0.6)
+
+Interactive REPL and `--eval-file` accumulate lines until a syntactic unit is complete (`...>` continuation prompt). Unclosed blocks at end of eval report an error.  
+
+## Struct (v1.0, dialect ≥ 9; v1.1 extensions dialect ≥ 10)  
+
+```vyrn
+-- vyrn: 9
+struct Vec2
+    x: number
+    y: number
+end
+
+let v = Vec2 { x = 1, y = 2 }
+```
+
+- Defines a **constructor function** with the struct name; call with a table literal (`Name { ... }` or `Name({ ... })`).
+- Validates each field type at **runtime** when the constructor runs.
+- Type mismatch reports `field 'name'` (v1.1+).  
+
+## Enum (v1.1, dialect ≥ 10; explicit type dialect ≥ 12)  
+
+```vyrn
+-- vyrn: 10
+enum Color
+    Red
+    Green
+    Blue
+end
+
+print(Color.Red, Color.Green, Color.Blue)   -- 0 1 2
+
+enum Status { Idle, Running, Done }
+
+-- vyrn: 12
+enum Priority: number
+    Low
+    High
+end
+```
+
+- Defines a global table mapping member names to `0, 1, 2, …`.
+- Brace or `end`-terminated forms are supported.
+- **Explicit value type (dialect ≥ 12):** `enum Name: number` — documents intent; only **`number`** is accepted today (members remain numeric).  
+
+## Import (v1.0, dialect ≥ 9; extensions in 10–11)  
+
+```vyrn
+import greet from "lib.greet"
+import "lib.config"
+import { run, tag } from "lib.mod_exports"
+import { run as greetFn } from "lib.mod_exports"
+import * as M from "lib.mod_exports"
+```
+
+- `import name from "path"` → `let name = require("path")` in scripts (local binding).
+- `import "path"` → side-effect `require("path")`.
+- `import { a, b } from "path"` → field bindings; dialect ≥ 10.
+- `import { a as b } from "path"` → rename on import; dialect ≥ 10.
+- `import * as m from "path"` → namespace import; dialect ≥ 11.
+- Module path uses the same rules as `require()` (dots → subdirectories).
+- REPL binds imported names as **globals** (same as single `import`).  
+
+## Attributes (v1.2+, dialect ≥ 11; v1.3 extensions dialect ≥ 12)  
+
+```vyrn
+[doc: "swap two numbers"]
+def swap(a: number, b: number) -> (number, number)
+    return b, a
+end
+
+@doc("greets by name")   -- dialect ≥ 12; same as [doc: "..."]
+def greet(name: string) -> string
+    return "Hello, " .. name
+end
+
+[deprecated: "use greet2 instead"]
+def greetLegacy(name: string) -> string
+    return "Hi, " .. name
+end
+```
+
+- Bracket attributes before `def` / `struct`; **`doc`** and **`deprecated`** (dialect ≥ 12 for flag/value `[deprecated]`).
+- **`@doc("...")`** sugar (dialect ≥ 12) — equivalent to `[doc: "..."]`.
+- **`[deprecated]`** or **`[deprecated: "reason"]`** — emits a compile-time **`[warn]`** when the definition is compiled; shown in `--dump` as `; deprecated` or `; deprecated "..."`.
+- Doc strings appear in `--dump` output as `; doc "..."`.
+- Unknown attributes emit a **warning** and are ignored.  
+
+**Struct field docs (dialect ≥ 12):**  
+
+```vyrn
+-- vyrn: 12
+struct Point
+    [doc: "x coordinate"]
+    x: number
+    [doc: "y coordinate"]
+    y: number = 0
+end
+
+let p = Point { x = 1 }
+print(p._fielddocs.x)   -- "x coordinate"
+```
+
+- Field-level `[doc: "..."]` only (not `deprecated`).
+- Each instance gets a **`_fielddocs`** table mapping field names to doc strings.
+- `--dump` on the struct constructor shows `; field name doc "..."` lines.  
+
+## Numeric `for` (1.6.106)  
+
+`for i = a, b [, step] do ... end` follows Lua: `a`, `b` and `step` (default `1`) are evaluated once before the loop. A positive step runs while `i <= b`, a negative step while `i >= b`, so `for i = 5, 1, -1` gives `5 4 3 2 1` and `for i = 1, 5, -1` runs zero times. Float steps work the same way (`for i = 1, 0, -0.25`). A step whose sign is not known at compile time (a variable, parameter or expression) picks the direction once when the loop starts. A zero step raises `'for' step is zero` when the loop starts (catchable with `pcall`); a non-number step raises a comparison error. Before 1.6.106 the compiler always tested `i <= b`, so a negative-step loop never ran. A literal positive (or omitted) step compiles to the same bytecode as before; this is a compiler change only (no new opcode), so it holds on the PB VM and libvyrnrt (`.vyrnc`, Standalone, Compile). Vyrn has no `goto`: since 1.6.112 `goto name` is a compile error (`file:line: goto is not supported (Vyrn has no labels; use break or continue)`) and `::name::` is a compile error (`labels ('::name::') are not supported ...`); `goto` alone stays usable as a variable name. Use `break` / `continue`.  
+
+## Generic `for` (1.6.77)  
+
+`for v1, v2, ... in explist do ... end` follows Lua: `explist` is evaluated once and adjusted to three values `f, s, c` (a trailing call expands). Each iteration calls `f(s, c)`; the loop ends when the first result is `nil`, otherwise it is assigned to `c`. `pairs`, `ipairs`, `next`, `string.gmatch` and user closures all work. For compatibility, if `f` is a **table** the loop walks its array part (`for v in t` gives elements, `for i, v in t` gives index and element). Loop variables are local to the loop body. Known gap: closures created in the body share one slot per variable (not a fresh binding per iteration as in Lua 5.4).
+
+
+
 ## Added in v0.1.1  
 
 | Feature | Syntax | Notes |
@@ -623,6 +799,41 @@ REPL / `-e`: typed `let` (`let x: number = 1`) performs runtime type checks on g
 | path size/mtime/copy | `path.size` / `mtime` / `copy` | File metadata + copy |
 | file:read byte count | `f:read(n)` / `io.read(n)` | Lua-like; legacy `io.read(handle, mode)` kept |
 | WS handshake hygiene | serve accept path | Id assigned on upgrade; probes skip `on_ws_close` |
+
+## Limits  
+
+Canonical hard caps for the PB compiler / VM and VYBC load (libvyrnrt shares the same bytecode rules unless noted).  
+
+### Compile unit / bytecode
+
+| Limit | Value | Notes |
+|-------|------:|-------|
+| Functions per program | **64** | `#Vyrn_MaxCompiledFuncs`. Includes `<main>`, nested `def` / closures, and functions from every loaded `.vyrnc` / `require` module merged into the same VM. Exceeding it is not a soft compile error today — fixed insn/metadata slabs can **Invalid memory access**; keep well under 64 per unit or split with `require`. |
+| Instructions per function (slot) | **8192** | `#Vyrn_MaxInsnPerFunc`. A larger function may load only as the **last** function in a blob (spill into the next slot window); otherwise VYBC load reports too large / split it. |
+| Constants per function (slot) | **512** | `#Vyrn_MaxConstPerFunc`. Same last-function spill rule as instructions. |
+| Global constant pool (compile) | starts **4096**, grows | `Vyrn_MaxConstants`; ReDim as needed. |
+| Parameters per function | **32** | `#Vyrn_MaxFuncParams`. Embed C API max args: `VYRN_MAX_ARGS` **16** (`include/vyrn.h`). |
+| Locals + parameters per function | **65535** | Ship / VYBC refuse overflow; compiler arrays start smaller and grow. Capturing local index ≥ 256 writes VYBC v4. |
+| Upvalues per function | **255** | `#Vyrn_MaxUpvaluesPerFunc`; pass-through captures count. Compile error with `file:line`. |
+| Enclosing / nesting depth | **16** | `#Vyrn_MaxEnclosingDepth`. A 17th nested function: `functions nested too deeply (limit 16 enclosing functions)`. |
+| Return-type annotations | **16** | `#Vyrn_MaxReturnTypes` (separate from the 4096 runtime multi-value cap). |
+| `let` destructure binds | **32** | `#Vyrn_Compiler_MaxLetBinds`. |
+| Assignment targets | **64** | `too many assignment targets (max 64)`. |
+| Struct metas / fields | **64** / **32** | `#Vyrn_MaxStructMetas` / `#Vyrn_MaxStructFields` (PB and libvyrnrt). |
+| Opcode table | **86–100** | Load accepts `#Vyrn_MinOpcodeTable`..`#Vyrn_MaxOpcode`; newer tables rejected. |
+| Source file size | none | Whole file → one string (`Vyrn_Runtime_ReadFile`, whole-file read since 1.6.150). Bounded by RAM / host string limits, not a Vyrn constant. |
+
+### Runtime  
+
+| Limit | Value | Notes |
+|-------|------:|-------|
+| Call depth | **256** default | `Vyrn_MaxCallDepth`. `--unlimited` / header `unlimited` lifts it; hard ceiling **200000** frames (`#Vyrn_FrameHardCap`). |
+| Loop / instruction counters | **none** by default | Since 1.6.112. Opt in: `--max-loops N` / `--max-ins N`, `vyrn_set_limits` / `vyrnrt_set_limits`. `--bench` raises a set limit to 2e9. |
+| Multi-values | **4096** | Returns, `...`, `select`, `table.unpack`, `pcall` / `xpcall`, coroutine resume / yield / wrap. `table.unpack` over 4096 raises `too many results to unpack`. |
+| Stack / locals / globals | grow | Initial stack **4096**, locals **256**, globals **512**; ReDim on demand. |
+| Dense table int keys (PB) | up to **2²⁵** | Larger int keys go to the hash tail. libvyrnrt dense max **2²⁴**. |
+| `#t` / array length | no cap | First-boundary length (1.6.105+); no 4096 ceiling. |
+| Wall clock | `--timeout SEC` | Sampled periodically; host cancel via `vyrn_request_cancel`. |
 
 ## Developer tools  
 
