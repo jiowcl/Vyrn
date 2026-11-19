@@ -1,8 +1,8 @@
 # Vyrn  
 
-**Tiny, Elegant, and Fast — A Modern Lua-inspired Programming Language Implemented in PureBasic.**  
+**Tiny, Elegant, and Fast — A Modern Lua-inspired Scripting Language with Ready-to-Use Binaries, Native Packaging, and a Dedicated IDE.**  
 
-**Vyrn** is a concise, lightweight programming language designed for small-scale applications and embedded scripting. Built entirely in **PureBasic**,  it keeps the familiar elegance of Lua while adding its own modern features and packaging paths.  
+**Vyrn** is a concise, lightweight programming language designed for everyday scripting, standalone tools, and embedded applications. It combines Lua's clean ergonomics with optional static/runtime typing, modern language constructs, ready-to-run binaries, native executable compilation, and a standalone IDE.  
 
 ![GitHub](https://img.shields.io/github/license/jiowcl/Vyrn.svg)
 ![PureBasic](https://img.shields.io/badge/language-PureBasic-blue.svg)
