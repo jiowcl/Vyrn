@@ -12,14 +12,15 @@
 
 - **Featherweight & Portable**: Single standalone executable with virtually zero memory footprint.
 - **Zero Configuration**: Double-click to open and start coding immediately — no plugins or runtime required.
-- **Custom Syntax Highlighting**: Designed specifically for Vyrn's unique grammar and built-in functions.
-- **Integrated Script Execution**: Write, run, and view output seamlessly within a unified panel.
-- **Multi-File Support**: Open and navigate across multiple files seamlessly with zero impact on performance.
+- **Smart Editing & Navigation**: Custom Vyrn syntax highlighting, live syntax checking, lint hints, symbol outline, code formatting (`vyrn format`), snippets, and lightweight Go-to-Definition[cite: 1, 2].  
+- **Interactive Execution & REPL**: Run scripts (`F5`), test expressions on the fly via the built-in REPL, or compile and execute obfuscated `.vyrnc` bytecode (`F7` / `Ctrl+F5`).  
+- **Integrated Script Execution**: Write, run, and view output seamlessly within a unified panel.  
+- **One-Click Packaging & Extensibility**: Package scripts into standalone executables directly from the **Ship** menu, extend workflows with PowerShell hooks/custom tools, and switch seamlessly between English and Traditional Chinese UI.  
 
 ## Environment  
 
-- Windows 11 above (recommend)  
-- PureBasic 6.41 above (recommend)  
+- Windows 10/11 above (recommend)  
+- PureBasic 6.41/6.5 above (recommend)  
 
 ## How to Build  
 
