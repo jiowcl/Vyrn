@@ -1,0 +1,44 @@
+-- @compile-safe
+-- vyrn: 12
+-- Showcase: metatables and metamethods (1.6.138-1.6.139), including the
+-- string type metatable. Lua 5.4 rules. --strict does not type this dispatch.
+-- Run: bin\LuaLiteVM_build.exe examples\vyrn\showcase\metatable.vyrn
+
+let Vec = {}
+def vec_add(a, b)
+    return setmetatable({x = a.x + b.x, y = a.y + b.y}, Vec)
+end
+def vec_eq(a, b)
+    return a.x == b.x and a.y == b.y
+end
+def vec_tostring(v)
+    return "(" .. tostring(v.x) .. ", " .. tostring(v.y) .. ")"
+end
+def vec_len(v)
+    return v.x + v.y
+end
+Vec.__add = vec_add
+Vec.__eq = vec_eq
+Vec.__tostring = vec_tostring
+Vec.__len = vec_len
+Vec.__index = Vec
+def Vec.new(x, y)
+    return setmetatable({x = x, y = y}, Vec)
+end
+
+let a = Vec.new(1, 2)
+let b = Vec.new(3, 4)
+let c = a + b
+print("sum", c)
+print("eq", c == Vec.new(4, 6), rawequal(c, Vec.new(4, 6)))
+print("len", #c)
+
+let Box = {}
+def box_call(self, n)
+    return self.tag .. tostring(n)
+end
+Box.__call = box_call
+let box = setmetatable({tag = "B"}, Box)
+print("call", box(7))
+print("upper", ("hi"):upper())
+print("smt", rawequal(getmetatable("").__index, string))

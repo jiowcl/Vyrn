@@ -1,0 +1,40 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- 1.6.70: the same loops that would trip a 100000-tick loop limit finish when
+-- the header lifts the limits (VYBC flag 0x1). 1.6.112: there is no default
+-- limit any more, so "unlimited" now only overrides a host-set limit.
+-- 1.6.71: the wrap() generator loop crosses PB's 50000-tick GC point; the
+-- suspended wrap() coroutine stays reachable (GC marks it). wrap() returns
+-- the yielded value (Lua 5.4, no leading true).
+
+let i = 0
+while i < 150000 do
+    i = i + 1
+end
+print("while", i)
+let s = 0
+for j = 1, 120000 do
+    s = s + j
+end
+print("for", s)
+def inc(x)
+    return x + 1
+end
+let c = 0
+for j = 1, 60000 do
+    c = inc(c)
+end
+print("calls", c)
+let gen = coroutine.wrap(def()
+    let k = 0
+    while true do
+        k = k + 1
+        coroutine.yield(k)
+    end
+end)
+let last = 0
+for j = 1, 60000 do
+    let v = gen()
+    last = v
+end
+print("yields", last)

@@ -1,0 +1,12 @@
+div inf -inf nan inf
+lit inf -inf
+cat xinf -inf
+nan true false
+mod0 L14: attempt to perform 'n%0'
+fmod0 true
+mod 2 1 1.5
+inc L17: attempt to perform arithmetic on a string value (local 'q')
+dec L18: attempt to perform arithmetic on a nil value (local 'q')
+dect L19: attempt to perform arithmetic on a table value (local 'q')
+incs ok 6
+divs ok inf

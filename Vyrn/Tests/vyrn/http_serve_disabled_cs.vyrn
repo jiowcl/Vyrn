@@ -1,0 +1,7 @@
+-- @compile-safe
+-- http.serve without --allow-listen must raise a clear error.
+let ok, err = pcall(http.serve, {host="127.0.0.1", port=18765, max_requests=1, handler=function(req) return "x" end})
+assert(ok == false)
+assert(type(err) == "string")
+assert(string.find(err, "allow%-listen", 1, false) ~= nil or string.find(err, "listen is disabled", 1, false) ~= nil)
+print("ok")

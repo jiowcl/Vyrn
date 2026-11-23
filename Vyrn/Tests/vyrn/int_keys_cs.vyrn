@@ -1,0 +1,21 @@
+-- @compile-safe
+-- 1.6.117: int64 table keys, float→int normalize, NaN index error, tonumber wrap, math string coerce
+let t = {}
+t[1] = "a"
+t[1.0] = "b"
+print(t[1], t[1.0])
+let big = 1 << 60
+t[big] = "x"
+t[big + 1] = "y"
+print(t[big], t[big + 1], t[big] == t[big + 1])
+print(tonumber("ffffffffffffffff", 16))
+print(math.sqrt("9"))
+print(math.abs("-3"))
+let ok, err = pcall(function()
+  let u = {}
+  u[0 / 0] = 1
+end)
+print(ok)
+print(string.find(tostring(err), "table index is NaN") ~= nil)
+print(type(utf8.charpattern) == "string")
+print(#utf8.charpattern >= 8)

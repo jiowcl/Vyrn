@@ -1,0 +1,10 @@
+-- vyrn: 12
+-- Upvalue += / = x + N must mutate the shared cell (unified EmitNameNumericDelta).
+let n = 0
+def bump()
+    n += 2
+    n = n + 3
+    n -= 1
+end
+bump()
+print(n)

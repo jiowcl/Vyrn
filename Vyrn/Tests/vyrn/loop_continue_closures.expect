@@ -1,0 +1,12 @@
+repeat-cont 10 20 30
+while-cont 10 20 30
+for-cont 10 20 30
+gfor-cont 10 20 30
+inner-block 100 200 300
+while-inner 1.5 2.5 3.5
+nested 11 12 21 22
+break-inner 1001 1002 2
+shared-outer 1 3 6
+repeat-inner-only 7 14 21
+for-repeat-nested 11 12 21 22
+repeat-break -1 -2

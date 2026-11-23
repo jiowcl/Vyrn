@@ -1,0 +1,22 @@
+-- vyrn: 12
+-- vyrn bundle: generated from tests\vyrn\demo_require.vyrn
+
+let __bundle_pl = package.preload
+
+-- --- module: lib.greet @ tests\vyrn\lib\greet.vyrn ---
+def __bundle_mod_lib_greet(__modname)
+def greet(name: string) -> string
+    return "Hi, " .. name
+end
+
+return greet
+end
+__bundle_pl["lib.greet"] = __bundle_mod_lib_greet
+
+-- --- entry ---
+print("=== vyrn require demo ===")
+
+let greet = require("lib.greet")
+print(greet("Vyrn"))
+
+print("=== done ===")

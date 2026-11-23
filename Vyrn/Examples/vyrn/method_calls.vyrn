@@ -1,0 +1,41 @@
+-- vyrn: 12
+-- Method-call sugar: colon definitions, table.field methods, and multi-result calls.
+-- See also examples/vyrn/string_method_expr.vyrn for string-literal expressions.
+
+let app = { name = "vyrn", level = 1 }
+
+@doc("Append n exclamation marks to app.name")
+def app:banner(n)
+  let s = self.name
+  let i = 1
+  while i <= n do
+    s = s .. "!"
+    i = i + 1
+  end
+  return s
+end
+
+print("colon_def", app:banner(2))
+
+def app.bump(self)
+  self.level = self.level + 1
+  return self.level
+end
+
+print("dot_def", app.bump(app))
+
+app.sub = {}
+def app.sub.twice(x)
+  return x * 2
+end
+print("nested", app.sub.twice(21))
+
+def string.shout(s)
+  return s:upper() .. "!"
+end
+print("type_ext", ("hi"):shout())
+
+let line = "a=1, b=2"
+for key, val in string.gmatch(line, "(%w+)=(%w+)") do
+  print("gmatch", key, val)
+end

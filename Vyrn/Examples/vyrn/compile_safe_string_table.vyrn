@@ -1,4 +1,7 @@
--- Example: compile-safe string + table subset
+-- @compile-safe
+-- vyrn: 12
+-- Example: compile-safe string + table subset (see docs/CompileSafeMatrix.md).
+
 print(string.upper("hi"))
 let xs = {"a", "b"}
 table.insert(xs, "c")

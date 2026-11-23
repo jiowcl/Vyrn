@@ -1,0 +1,23 @@
+hello_gz 1f8b08000000000000ff010500faff68656c6c6f86a6103605000000
+tmp_gone true
+interop_gunzip hello
+interop_gzip_file true
+hello_rt true
+hello_zl 789c010500faff68656c6c6f062c0215
+zl_rt true
+hello_raw 010500faff68656c6c6f
+raw_rt true
+nul_rt true true
+empty_rt true 789c030000000001
+oversize err zlib: output too large true true
+missing err zlib: file not found true
+corrupt err zlib: corrupt or invalid data true true
+not_reg err zlib: not a regular file
+same_path err bad argument #2 to 'gzip_file' (source and destination are the same path)
+err bad argument #1 to 'gzip_file' (string expected)
+err bad argument #2 to 'gzip_file' (string expected)
+err bad argument #3 to 'gzip_file' (table expected)
+err bad argument #3 to 'gzip_file' (level must be an integer 0..9)
+err bad argument #3 to 'gunzip_file' (max out of range)
+err bad argument #1 to 'compress_file' (path must not be empty)
+done

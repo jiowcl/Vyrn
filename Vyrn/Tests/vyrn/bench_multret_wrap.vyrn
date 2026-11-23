@@ -1,0 +1,16 @@
+-- vyrn: 12 bench timing
+-- Multi-return hot path (no print in loop)
+def pair()
+  return 1, 2
+end
+
+let i = 0
+let a = 0
+let b = 0
+while i < 200000 do
+  let a1, b1 = pair()
+  a = a1
+  b = b1
+  i = i + 1
+end
+print(i, a, b)

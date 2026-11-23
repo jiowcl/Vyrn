@@ -1,0 +1,18 @@
+nfor_arith L13: attempt to perform arithmetic on a nil value
+gfor_index L18: attempt to index a nil value
+forin_call L23: attempt to call a nil value
+while_cmp L30: attempt to perform arithmetic on a nil value
+repeat_body L35: attempt to index a nil value
+until_cond L42: attempt to call a nil value
+if_branch L48: length operator requires string or table
+else_branch L57: boom
+nested_fn L62: attempt to perform arithmetic on a nil value
+closure_loop L69: attempt to perform arithmetic on a nil value
+multiline_expr L76: attempt to perform arithmetic on a nil value
+multiline_call L81: attempt to call a nil value (local 'f')
+last_stmt L85: attempt to perform arithmetic on a nil value
+after_continue L90: attempt to perform arithmetic on a nil value
+after_break L97: attempt to perform arithmetic on a nil value
+field_store L101: attempt to index a nil value
+global_call L104: attempt to call a nil value (global 'undefined_fn_zz')
+error_tbl L108: in loop 1

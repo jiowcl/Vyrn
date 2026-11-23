@@ -1,0 +1,3 @@
+# mid return: pair() keeps first; pcall mid uses TRUNC_LAST_CALL
+POP
+TRUNC_LAST_CALL

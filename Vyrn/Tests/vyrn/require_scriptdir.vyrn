@@ -1,0 +1,7 @@
+-- @compile-safe
+-- filesystem require via script-dir priority (no package.path override)
+-- compile_suite sets vyrnrt_set_script_dir to the suite dir containing fsmod.vyrnc
+
+let f = require("fsmod")
+print(f("sd"))
+print(type(package.loaded["fsmod"]))

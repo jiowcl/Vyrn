@@ -1,0 +1,87 @@
+-- vyrn: 12
+-- 1.6.161 / 1.6.169 / 1.6.170: lib/vector offline
+-- (dot/norm/cosine/l2_distance + add/sub/mul/scale/axpy/normalize)
+assert(type(math) == "table")
+let v = require("vector")
+
+let a = { 1, 0, 0 }
+let b = { 0.9, 0.1, 0 }
+let c = { 0, 0, 1 }
+
+let d, derr = v.dot(a, b)
+assert(d, derr)
+assert(d > 0.89 and d < 0.91)
+
+let n, nerr = v.norm(a)
+assert(n, nerr)
+assert(n == 1)
+
+let cab, cerr = v.cosine(a, b)
+assert(cab, cerr)
+assert(cab > 0.98)
+
+let cac, c2err = v.cosine(a, c)
+assert(cac, c2err)
+assert(cac == 0)
+
+let bad, berr = v.cosine(a, { 1, 2 })
+assert(bad == nil)
+assert(type(berr) == "string")
+
+let zbad, zerr = v.cosine({ 0, 0, 0 }, a)
+assert(zbad == nil)
+assert(string.find(zerr, "zero", 1, true) ~= nil)
+
+let s, serr = v.add({ 1, 2, 3 }, { 4, 5, 6 })
+assert(s, serr)
+assert(s[1] == 5 and s[2] == 7 and s[3] == 9)
+
+let d2, d2err = v.sub({ 5, 5, 5 }, { 1, 2, 3 })
+assert(d2, d2err)
+assert(d2[1] == 4 and d2[2] == 3 and d2[3] == 2)
+
+let hm, hmerr = v.mul({ 2, 3, 4 }, { 5, 6, 7 })
+assert(hm, hmerr)
+assert(hm[1] == 10 and hm[2] == 18 and hm[3] == 28)
+
+let sc, scerr = v.scale({ 1, -2, 3 }, 2)
+assert(sc, scerr)
+assert(sc[1] == 2 and sc[2] == -4 and sc[3] == 6)
+
+let ax, axerr = v.axpy(2, { 1, 1, 1 }, { 10, 20, 30 })
+assert(ax, axerr)
+assert(ax[1] == 12 and ax[2] == 22 and ax[3] == 32)
+
+let u, uerr = v.normalize({ 3, 0, 4 })
+assert(u, uerr)
+let un, unerr = v.norm(u)
+assert(un, unerr)
+assert(un > 0.999 and un < 1.001)
+assert(u[1] > 0.59 and u[1] < 0.61)
+assert(u[3] > 0.79 and u[3] < 0.81)
+
+-- 3-4-5 triangle: distance between (0,0) and (3,4) in 2D embedding space.
+let dist, disterr = v.l2_distance({ 0, 0 }, { 3, 4 })
+assert(dist, disterr)
+assert(dist == 5)
+
+let same, sameerr = v.l2_distance(a, a)
+assert(same, sameerr)
+assert(same == 0)
+
+let mm, merr = v.add(a, { 1, 2 })
+assert(mm == nil)
+assert(type(merr) == "string")
+
+let lm, lerr = v.l2_distance(a, { 1, 2 })
+assert(lm == nil)
+assert(type(lerr) == "string")
+
+let zn, znerr = v.normalize({ 0, 0, 0 })
+assert(zn == nil)
+assert(string.find(znerr, "zero", 1, true) ~= nil)
+
+-- Inputs must not be mutated.
+assert(a[1] == 1 and a[2] == 0 and a[3] == 0)
+
+print("vector_basic_ok")

@@ -1,0 +1,7 @@
+-- @compile-safe
+-- vyrn: 12
+let i = 0
+i = i + 1
+i += 1
+i = i - 1
+print(i)

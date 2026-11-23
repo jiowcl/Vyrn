@@ -1,0 +1,6 @@
+g 4
+g0 bad arguments to 'get2d' (table, row, col, cols expected)
+gneg bad arguments to 'get2d' (table, row, col, cols expected)
+h 4
+k 5
+m 4 100

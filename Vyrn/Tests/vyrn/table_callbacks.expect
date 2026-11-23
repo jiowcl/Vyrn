@@ -1,0 +1,18 @@
+nil 100
+200
+300
+init
+123
+3 30
+nil nil
+a 1
+45150
+250 o250
+o123
+false bad argument #1 to 'foreach' (table expected)
+false bad argument #2 to 'foreach' (function expected)
+false bad argument #1 to 'reduce' (table expected)
+false bad argument #3 to 'reduce' (function expected)
+false bad argument #1 to 'find' (table expected)
+false bad argument #2 to 'find' (function expected)
+false boom1

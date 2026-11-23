@@ -1,0 +1,6 @@
+-- vyrn: 12
+-- 1.6.112: labels are rejected at compile time (ship_smoke checks the message).
+let i = 0
+::top::
+i = i + 1
+print(i)

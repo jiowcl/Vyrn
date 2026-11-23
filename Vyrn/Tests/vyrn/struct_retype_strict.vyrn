@@ -1,0 +1,33 @@
+-- @compile-safe
+-- vyrn: 12 strict
+-- struct_retype_strict (1.6.110): under strict, a struct-typed parameter also
+-- rejects a retyped table whose bound layout (1.6.109) puts the declared fields at
+-- other slots, so static field access never reads the wrong field. A layout that
+-- keeps every declared field at the same slot still passes.
+struct A
+    x: number
+    y: number
+end
+struct B
+    y: number
+    x: number
+end
+struct D
+    x: number
+end
+def fb(t: B) return t.x end
+def fd(t: D) return t.x end
+let why = def(ok, e)
+    if ok then
+        return "ok " .. tostring(e)
+    end
+    return string.match(e, "expected.*") or e
+end
+let p = A { x = 1, y = 2 }
+p._typename = "D"
+print("d", why(pcall(fd, p)))
+p._typename = "B"
+print("b", why(pcall(fb, p)))
+let q = B { x = 3, y = 4 }
+print("q", why(pcall(fb, q)))
+print("a", why(pcall(fb, A { x = 5, y = 6 })))

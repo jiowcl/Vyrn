@@ -1,0 +1,67 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- table_len (1.6.105): `#t` and the table.* helpers that use the sequence border
+-- (insert / remove / concat / sort / unpack / slice; also index_of in the PB VM) are no
+-- longer capped at 4096.
+-- Vyrn's border is the first n with t[n+1] == nil scanning from 1 (a valid Lua border).
+def seq(n)
+  let t = {}
+  for i = 1, n do t[i] = i end
+  return t
+end
+print("sizes", #seq(4095), #seq(4096), #seq(4097), #seq(10000))
+-- append through #t + 1 (amortized by the border hint)
+let a = {}
+for i = 1, 20000 do a[#a + 1] = i end
+print("append", #a, a[20000])
+-- table.insert / remove past 4096
+let b = {}
+for i = 1, 5000 do table.insert(b, i) end
+table.insert(b, 1, 0)
+print("insert", #b, b[1], b[5001])
+print("remove", table.remove(b), #b, table.remove(b, 1), #b, b[1], b[4999])
+-- shrink from the end
+let c = seq(10000)
+while #c > 4000 do c[#c] = nil end
+print("shrink", #c, c[4000], c[4001])
+-- holes lower the border; refilling restores it
+let d = seq(10000)
+d[5000] = nil
+print("hole", #d)
+d[5000] = 5000
+print("refill", #d)
+d[3] = nil
+print("hole3", #d)
+d[3] = 3
+print("refill3", #d)
+-- integer keys inserted in reverse order, mixed with string keys
+let e = {name = "e"}
+let ri = 10000
+while ri >= 1 do
+  e[ri] = ri
+  ri = ri - 1
+end
+e.tag = "x"
+print("reverse", #e, e.name, e.tag)
+-- clear, then grow again
+let f = seq(6000)
+table.clear(f)
+print("clear", #f)
+f[1] = "one"
+print("regrow", #f)
+-- helpers that read the border
+let g = {}
+for i = 1, 5000 do g[i] = "x" end
+print("concat", string.len(table.concat(g)), string.len(table.concat(g, ",")))
+let h = {}
+for i = 1, 6000 do h[i] = 6001 - i end
+table.sort(h)
+print("sort", #h, h[1], h[4097], h[6000])
+let cnt = 0
+for _, v in ipairs(h) do cnt = cnt + 1 end
+print("ipairs", cnt)
+-- unpack's default j is #g (the result itself is capped at 16 values)
+let u1, u2, u3 = table.unpack(g, 4999)
+print("unpack", u1, u2, u3)
+print("slice", #table.slice(h, 4000, 6000))
+print("empty", #{}, #{1, 2, 3})

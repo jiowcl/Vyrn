@@ -1,0 +1,49 @@
+-- vyrn: 12
+-- 1.9.0: lib/argparse offline
+let ap = require("argparse")
+assert(type(ap.new) == "function")
+assert(type(ap.help) == "function")
+
+let p = ap.new("demo")
+p:add_flag("-v", "--verbose")
+p:add_option("-o", "--output")
+p:add_argument("input")
+
+let args, err = p:parse({ "-v", "-o", "out.txt", "data.in" })
+assert(args, err)
+print("verbose", args.verbose)
+print("output", args.output)
+print("input", args.input)
+print("extra_n", #args["_"])
+
+let eq, eqerr = p:parse({ "--verbose", "--output=alt.txt", "x.in" })
+assert(eq, eqerr)
+print("eq_out", eq.output)
+
+let dash, derr = p:parse({ "-v", "--", "-x" })
+assert(dash, derr)
+print("dash_input", dash.input)
+print("dash_extra", #dash["_"])
+
+let miss, merr = p:parse({ "-v" })
+assert(miss == nil)
+print("missing", merr)
+
+let unk, uerr = p:parse({ "--nope", "a" })
+assert(unk == nil)
+print("unknown", uerr)
+
+let h = ap.help(p)
+assert(string.find(h, "Usage:", 1, true) ~= nil)
+print("help_ok")
+
+let short_only = ap.new("s")
+short_only:add_flag(nil, "--trace")
+short_only:add_option("-q", nil)
+let so, soerr = short_only:parse({ "--trace", "-q", "0", "f" })
+assert(so, soerr)
+print("trace", so.trace)
+print("q", so.q)
+print("leftover", so["_"][1])
+
+print("argparse_basic_ok")

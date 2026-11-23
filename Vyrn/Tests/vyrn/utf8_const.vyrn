@@ -1,0 +1,8 @@
+-- @compile-safe
+-- Non-ASCII string constants (UTF-8 byte length in .vyrnc, 1.6.62)
+
+let s = "中文ab"
+print(s)
+print("前" .. "後" .. "-ok")
+let t = {name = "測試"}
+print(t.name)

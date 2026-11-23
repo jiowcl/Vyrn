@@ -1,0 +1,26 @@
+-- vyrn: 12
+-- P6: path.chdir, file:seek / io.seek
+
+let old = path.normalize(path.cwd())
+let sub = path.join("artifacts", "_p6_chdir")
+let target = path.normalize(path.abspath(sub))
+path.mkdirs(sub)
+print(path.chdir(sub))
+print(string.startswith(path.normalize(path.cwd()), target))
+print(path.chdir(old))
+
+let fpath = path.join("artifacts", "_p6_seek.txt")
+let w = io.open(fpath, "w")
+w:write("0123456789")
+w:close()
+
+let f = io.open(fpath, "r")
+print(f:seek("set", 3))
+print(f:read_chunk(2))
+print(f:seek("cur", 2))
+print(f:read_chunk(2))
+print(f:seek("end", -2))
+print(f:read_chunk(2))
+print(f:seek())
+print(io.seek(f, "set", 0))
+f:close()

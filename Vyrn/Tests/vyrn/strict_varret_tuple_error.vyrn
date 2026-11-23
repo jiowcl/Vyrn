@@ -1,0 +1,7 @@
+-- vyrn: 12 strict
+def pair() -> number, string
+  return 7, "wrong"
+end
+
+; Binding #3 must match pair's second return (string), not number.
+let ok: bool, n: number, bad: number = pcall(pair)

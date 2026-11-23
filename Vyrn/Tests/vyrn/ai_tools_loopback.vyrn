@@ -1,0 +1,73 @@
+-- vyrn: 12
+-- 1.6.160: openai_chat_tools / gemini_generate_tools against loopback mocks.
+-- Requires --allow-net and VYRN_HTTP_TEST_PORT.
+
+assert(type(package) == "table")
+assert(type(math) == "table")
+
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+
+let openai = require("ai.openai")
+let gemini = require("ai.gemini")
+let tools = require("ai.tools")
+
+const WeatherParams: table = {
+  type = "object",
+  properties = {
+    city = { type = "string", minLength = 1 }
+  },
+  required = { "city" },
+  additionalProperties = false
+}
+
+let otools = {
+  tools.openai_tool_def("get_weather", "Look up weather by city", WeatherParams)
+}
+let omsg, oerr = openai.openai_chat_tools({
+  key = "sk-test",
+  base = base,
+  model = "gpt-4o-mini",
+  prompt = "What is the weather in Taipei?",
+  tools = otools,
+  timeout = 10
+})
+assert(omsg, oerr)
+let ocalls, ocerr = tools.openai_parse_tool_calls(omsg)
+assert(ocalls, ocerr)
+assert(#ocalls == 1)
+assert(ocalls[1].name == "get_weather")
+assert(ocalls[1].arguments.city == "Taipei")
+print("openai_tools", ocalls[1].name, ocalls[1].arguments.city)
+
+let gdecls = {
+  tools.gemini_function_decl("get_weather", "Look up weather by city", WeatherParams)
+}
+let gcontent, gerr = gemini.gemini_generate_tools({
+  key = "test-gemini",
+  base = base,
+  model = "gemini-2.5-flash",
+  prompt = "What is the weather in Taipei?",
+  function_declarations = gdecls,
+  timeout = 10
+})
+assert(gcontent, gerr)
+let gcalls, gcerr = tools.gemini_parse_function_calls(gcontent)
+assert(gcalls, gcerr)
+assert(#gcalls == 1)
+assert(gcalls[1].name == "get_weather")
+assert(gcalls[1].arguments.city == "Taipei")
+print("gemini_tools", gcalls[1].name, gcalls[1].arguments.city)
+
+let handlers = {}
+handlers.get_weather = function(args)
+  return { city = args.city, celsius = 28 }
+end
+let schemas = {}
+schemas.get_weather = WeatherParams
+let result, rerr = tools.run_tool(ocalls[1], handlers, schemas)
+assert(result, rerr)
+print("dispatched", result.celsius)
+
+print("ai_tools_loopback_ok")

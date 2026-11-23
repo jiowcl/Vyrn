@@ -1,0 +1,6 @@
+-- vyrn: 7
+-- Anonymous def(...) is a dialect-8 feature; at dialect 7 it must be a clean compile error.
+let f = def(x)
+  return x
+end
+return f

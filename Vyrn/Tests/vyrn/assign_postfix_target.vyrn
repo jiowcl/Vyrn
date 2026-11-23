@@ -1,0 +1,32 @@
+-- vyrn: 8
+-- 1.6.75: nested assignment targets (call results, chained fields, index then field).
+let t = {a = {}, l = {{}, {}}, m = {}}
+def get()
+  return t
+end
+def pick(k)
+  return t[k]
+end
+get().x = 5
+print(t.x)
+get()["y"] = 6
+print(t.y)
+t.a.c = 7
+print(t.a.c)
+t.l[2].z = 8
+print(t.l[2].z)
+pick("m")[1] = "one"
+print(t.m[1])
+get().a.d = get().x + 1
+print(t.a.d)
+let k = "dyn"
+get().m[k] = "v"
+print(t.m.dyn)
+def multi()
+  return 10, 20
+end
+get().w = multi()
+print(t.w)
+t.l[1]["q"] = {n = 1}
+t.l[1].q.n = 2
+print(t.l[1].q.n)

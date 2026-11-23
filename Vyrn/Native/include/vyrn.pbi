@@ -21,6 +21,8 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
 
   #Vyrn_RequiredAbi = 9
   #VYRN_CAP_NET = 1
+  #VYRN_CAP_PROCESS = 2
+  #VYRN_CAP_LISTEN = 4
   #Vyrn_Lib = 0
 
   #VYRN_TYPE_NIL    = 0
@@ -61,6 +63,8 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
   PrototypeC.l Vyrn_Proto_GetCapabilities(*vm)
   PrototypeC.i Vyrn_Proto_SetNetAllowlist(*vm, *hostsCsv)
   PrototypeC.i Vyrn_Proto_GetNetAllowlist(*vm)
+  PrototypeC.i Vyrn_Proto_SetListenAllowlist(*vm, *hostsCsv)
+  PrototypeC.i Vyrn_Proto_GetListenAllowlist(*vm)
   PrototypeC.i Vyrn_Proto_SetPrintLogger(*vm, logFn.i, userdata.i)
   PrototypeC.i Vyrn_Proto_RunFile(*vm, *path)
   PrototypeC.i Vyrn_Proto_Eval(*vm, *source)
@@ -105,6 +109,8 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
   Global Vyrn_Fn_GetCapabilities.Vyrn_Proto_GetCapabilities = 0
   Global Vyrn_Fn_SetNetAllowlist.Vyrn_Proto_SetNetAllowlist = 0
   Global Vyrn_Fn_GetNetAllowlist.Vyrn_Proto_GetNetAllowlist = 0
+  Global Vyrn_Fn_SetListenAllowlist.Vyrn_Proto_SetListenAllowlist = 0
+  Global Vyrn_Fn_GetListenAllowlist.Vyrn_Proto_GetListenAllowlist = 0
   Global Vyrn_Fn_SetPrintLogger.Vyrn_Proto_SetPrintLogger = 0
   Global Vyrn_Fn_RunFile.Vyrn_Proto_RunFile = 0
   Global Vyrn_Fn_Eval.Vyrn_Proto_Eval = 0
@@ -426,6 +432,8 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
     Vyrn_Fn_GetCapabilities = 0
     Vyrn_Fn_SetNetAllowlist = 0
     Vyrn_Fn_GetNetAllowlist = 0
+    Vyrn_Fn_SetListenAllowlist = 0
+    Vyrn_Fn_GetListenAllowlist = 0
     Vyrn_Fn_SetPrintLogger = 0
     Vyrn_Fn_RunFile = 0
     Vyrn_Fn_Eval = 0
@@ -528,6 +536,8 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
     Vyrn_Fn_GetCapabilities = GetFunction(#Vyrn_Lib, "vyrn_get_capabilities")
     Vyrn_Fn_SetNetAllowlist = GetFunction(#Vyrn_Lib, "vyrn_set_net_allowlist")
     Vyrn_Fn_GetNetAllowlist = GetFunction(#Vyrn_Lib, "vyrn_get_net_allowlist")
+    Vyrn_Fn_SetListenAllowlist = GetFunction(#Vyrn_Lib, "vyrn_set_listen_allowlist")
+    Vyrn_Fn_GetListenAllowlist = GetFunction(#Vyrn_Lib, "vyrn_get_listen_allowlist")
     Vyrn_Fn_SetPrintLogger = GetFunction(#Vyrn_Lib, "vyrn_set_print_logger")
     Vyrn_Fn_RunFile = GetFunction(#Vyrn_Lib, "vyrn_run_file")
     Vyrn_Fn_Eval = GetFunction(#Vyrn_Lib, "vyrn_eval")
@@ -557,6 +567,8 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
     Vyrn_Fn_GetCapabilities = 0
     Vyrn_Fn_SetNetAllowlist = 0
     Vyrn_Fn_GetNetAllowlist = 0
+    Vyrn_Fn_SetListenAllowlist = 0
+    Vyrn_Fn_GetListenAllowlist = 0
       Vyrn_LastError = "Vyrn.dll is missing required exports:" + Chr(10) + path
       CloseLibrary(#Vyrn_Lib)
       
@@ -747,7 +759,8 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
   EndProcedure
 
   ; <summary>
-  ; Set capability bits (ABI 8). #VYRN_CAP_NET = 1 enables http.*. Soft no-op if export missing.
+  ; Set capability bits (ABI 8). #VYRN_CAP_NET = 1 enables http.*; #VYRN_CAP_PROCESS = 2 enables process.run;
+  ; #VYRN_CAP_LISTEN = 4 enables http.serve. Soft no-op if export missing.
   ; </summary>
   Procedure.i Vyrn_SetCapabilities(caps.l)
     If Vyrn_IsReady() = 0 Or Vyrn_Fn_SetCapabilities = 0
@@ -788,6 +801,33 @@ CompilerIf Defined(Vyrn_Pbi, #PB_Constant) = #False
       ProcedureReturn ""
     EndIf
     *p = Vyrn_Fn_GetNetAllowlist(Vyrn_Vm)
+    ProcedureReturn Vyrn_CopyUtf8(*p)
+  EndProcedure
+
+  ; <summary>
+  ; Set listen bind allowlist CSV (1.6.156). Empty + CAP_LISTEN = loopback only. Soft no-op if missing.
+  ; </summary>
+  Procedure.i Vyrn_SetListenAllowlist(hosts.s)
+    Protected *p
+    If Vyrn_IsReady() = 0 Or Vyrn_Fn_SetListenAllowlist = 0
+      ProcedureReturn #False
+    EndIf
+    *p = UTF8(hosts)
+    If *p = 0
+      ProcedureReturn Bool(Vyrn_Fn_SetListenAllowlist(Vyrn_Vm, 0))
+    EndIf
+    Protected ok.i = Bool(Vyrn_Fn_SetListenAllowlist(Vyrn_Vm, *p))
+    FreeMemory(*p)
+    ProcedureReturn ok
+  EndProcedure
+
+  ; <summary>Current listen allowlist CSV (1.6.156), or "" if unavailable.</summary>
+  Procedure.s Vyrn_GetListenAllowlist()
+    Protected *p
+    If Vyrn_IsReady() = 0 Or Vyrn_Fn_GetListenAllowlist = 0
+      ProcedureReturn ""
+    EndIf
+    *p = Vyrn_Fn_GetListenAllowlist(Vyrn_Vm)
     ProcedureReturn Vyrn_CopyUtf8(*p)
   EndProcedure
 

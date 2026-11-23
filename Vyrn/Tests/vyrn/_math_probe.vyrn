@@ -1,0 +1,3 @@
+-- vyrn: 12
+print(type(math), type(math.pow), type(math.pi), math.pi)
+print(type(table), type(table.concat), type(table.fields))

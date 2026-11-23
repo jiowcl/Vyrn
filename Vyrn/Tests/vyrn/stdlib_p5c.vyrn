@@ -1,0 +1,20 @@
+-- vyrn: 12
+-- Builtins P5c: rawget/rawset/rawequal, os.setenv (CLI)
+
+let t = {a = 1, b = 2}
+print(rawget(t, "a"))
+print(rawget(t, "missing") == nil)
+rawset(t, "c", 3)
+print(rawget(t, "c"))
+print(t.c)
+let u = t
+print(rawequal(t, u))
+print(rawequal(t, {a = 1}) == false)
+print(rawequal(1, 1))
+print(rawequal(1, "1") == false)
+
+let envName = "_VYRN_P5C_SETENV"
+print(os.setenv(envName, "hello"))
+print(os.getenv(envName))
+print(os.setenv(envName, nil))
+print(os.getenv(envName) == nil)

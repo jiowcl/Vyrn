@@ -1,0 +1,59 @@
+-- vyrn: 12
+-- OpenAI embeddings + vector.cosine example (1.6.161).
+-- Reads OPENAI_API_KEY; optional OPENAI_BASE_URL / OPENAI_EMBED_MODEL.
+-- Missing key exits 0 (CI). Needs --allow-net for a real call.
+
+const DEFAULT_BASE: string = "https://api.openai.com"
+const DEFAULT_MODEL: string = "text-embedding-3-small"
+
+@doc("Return the env value, or fallback when unset or empty")
+def env_or(name: string, fallback: string) -> string
+  let v = os.getenv(name) or ""
+  if v == "" then
+    return fallback
+  end
+  return v
+end
+
+assert(type(package) == "table")
+assert(type(math) == "table")
+let api = require("ai.openai")
+let vec = require("vector")
+
+let key = os.getenv("OPENAI_API_KEY") or ""
+if key == "" then
+  print("openai_embeddings: OPENAI_API_KEY is not set. Export a key (never commit it) and rerun with --allow-net.")
+  os.exit(0)
+end
+
+let texts = { "cat", "dog", "car" }
+let batch, err = api.openai_embeddings({
+  key = key,
+  base = env_or("OPENAI_BASE_URL", DEFAULT_BASE),
+  model = env_or("OPENAI_EMBED_MODEL", DEFAULT_MODEL),
+  input = texts,
+  timeout = 30
+})
+if not batch then
+  if api.is_disabled_net(err) then
+    print("openai_embeddings: network access is disabled. Rerun with --allow-net.")
+    os.exit(0)
+  end
+  print("openai_embeddings: " .. tostring(err))
+  os.exit(1)
+end
+
+let i = 1
+while i <= #texts do
+  let j = i + 1
+  while j <= #texts do
+    let sim, serr = vec.cosine(batch[i], batch[j])
+    if not sim then
+      print("openai_embeddings: " .. tostring(serr))
+      os.exit(1)
+    end
+    print(texts[i], texts[j], sim)
+    j = j + 1
+  end
+  i = i + 1
+end

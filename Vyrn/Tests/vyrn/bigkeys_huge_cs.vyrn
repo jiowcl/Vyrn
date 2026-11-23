@@ -1,0 +1,37 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.71: integral keys above 2^25 (1e9, 3e9, 1e15) are stored in hash slots in
+-- the PB VM instead of growing the dense part (which aborted with
+-- "Invalid memory access" near 2^31). next() still walks them in ascending
+-- order right after the dense keys and before string/negative keys (as rt).
+-- 1.6.112: a hash key set to nil is skipped by next() on both runtimes (Lua).
+def showkv(tb, key, acc)
+    let nk, nv = next(tb, key)
+    if nk == nil then
+        return acc
+    end
+    let piece = acc .. " " .. tostring(nk) .. "=" .. tostring(nv)
+    return showkv(tb, nk, piece)
+end
+let t = {}
+t[1000000000] = "a"
+t["s"] = "S"
+t[3000000000] = "b"
+t[2] = "c"
+t[1] = "o"
+t[-3] = "n"
+t[1000000000000000] = "d"
+t[33554432] = "m"
+t[33554433] = "m1"
+print(#t, t[1000000000], t[3000000000], t[33554433], t[5000000000])
+print(showkv(t, nil, ""))
+t[3000000000] = nil
+t["s"] = nil
+print(showkv(t, nil, ""))
+t[3000000000] = "B"
+print(showkv(t, nil, ""))
+let u = {}
+u[2147483648] = 1
+u[4294967296] = 2
+let k, v = next(u)
+print(k, v)

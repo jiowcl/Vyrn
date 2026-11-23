@@ -1,0 +1,22 @@
+-- @compile-safe
+-- vyrn: 12
+-- examples/vyrn/showcase/process.vyrn — capability-gated process.run (1.6.144)
+-- Requires --allow-process and VYRN_PROCESS_HELPER (ship_smoke / manual).
+-- examples-check leaves the env unset so this prints a skip line and exits 0.
+
+let helper = os.getenv("VYRN_PROCESS_HELPER")
+if not helper or helper == "" then
+  print("process showcase: set VYRN_PROCESS_HELPER and pass --allow-process")
+  return
+end
+
+let r, e = process.run({helper, "--stdout", "hello from process.run"})
+assert(r, e)
+print("code", r.code)
+let out = string.gsub(r.stdout, "%s+$", "")
+print("out", out)
+print("timed_out", r.timed_out)
+
+r, e = process.run({helper, "--print-args", "spaced arg"})
+assert(r, e)
+print("has_space", string.find(r.stdout, "spaced arg", 1, true) ~= nil)

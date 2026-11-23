@@ -1,0 +1,51 @@
+num_lt ok true
+str_lt ok true
+str_case ok false
+str_le ok true
+str_gt ok true
+str_prefix ok true
+eq_nil ok false
+ne_nil ok true
+eq_nil_nil ok true
+nil_lt_num L25: attempt to compare nil with number
+num_lt_nil L26: attempt to compare number with nil
+num_gt_nil L27: attempt to compare nil with number
+nil_ge_num L28: attempt to compare number with nil
+num_lt_str L29: attempt to compare number with string
+str_le_num L30: attempt to compare string with number
+tbl_lt_tbl L31: attempt to compare two table values
+tbl_lt_num L32: attempt to compare table with number
+bool_le L33: attempt to compare two boolean values
+nil_nil L34: attempt to compare two nil values
+fn_lt L35: attempt to compare two function values
+if_local_lt_k L40: attempt to compare nil with number
+if_local_le_k L45: attempt to compare string with number
+if_local_gt_k L50: attempt to compare number with nil
+if_local_ge_k L55: attempt to compare number with table
+if_local_le_local L61: attempt to compare nil with number
+if_local_ge_local L67: attempt to compare number with nil
+if_expr_lt L71: attempt to compare number with nil
+if_expr_gt L75: attempt to compare string with number
+while_nil L80: attempt to compare nil with number
+for_body_cmp L85: attempt to compare number with nil
+if_str_k ok after a
+cat_ok ok 12x3.5
+cat_nil_r L96: attempt to concatenate a nil value
+cat_nil_l L97: attempt to concatenate a nil value
+cat_bool L98: attempt to concatenate a boolean value
+cat_tbl L99: attempt to concatenate a table value
+cat_fn L100: attempt to concatenate a function value (global 'id')
+cat_chain L101: attempt to concatenate a nil value
+cat_first_bad L102: attempt to concatenate a boolean value
+cat_assign L105: attempt to concatenate a nil value
+cat_assign_ok ok x1y
+cat_loop L119: attempt to concatenate a nil value (local 'v')
+tostring ok nil|true|1
+sort_num ok 123
+sort_str ok abc
+sort_mixed attempt to compare string with number
+sort_bool attempt to compare two boolean values
+sort_tbl attempt to compare two table values
+sort_cmp ok 13a
+if_local_le_bigk L159: attempt to compare nil with number
+for_nil_limit L163: 'for' limit must be a number

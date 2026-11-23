@@ -1,0 +1,168 @@
+-- @compile-safe
+-- 1.6.140: rawlen, pairs() __pairs, ipairs __index, and __name in type
+-- errors. Cases follow Lua 5.4 (lbaselib.c luaB_rawlen / luaB_pairs /
+-- ipairs_aux uses lua_geti; luaT_objtypename reads raw mt.__name).
+-- --strict does not type-check metamethod dispatch. next() stays raw.
+-- pairs() on a non-table still errors at the call (table expected).
+
+-- rawlen: table border, string bytes, no __len
+print("rl-arr", rawlen({1, 2, 3, 4}))
+print("rl-str", rawlen("hi"))
+print("rl-empty", rawlen({}), rawlen(""))
+print("rl-hash", rawlen({a = 1}))
+print("rl-hashlen", #{a = 1})
+
+def len99(t)
+    return 99
+end
+let L = {}
+L.__len = len99
+let lt = setmetatable({10, 20, 30}, L)
+
+def try_rl()
+    return rawlen(1)
+end
+let rok, rerr = pcall(try_rl)
+print("rl-err", rok, not (string.find(rerr, "table or string expected") == nil))
+
+-- default pairs / ipairs, no metatable (fast path)
+let acc = 0
+let n = 0
+for k, v in pairs({a = 1, b = 2}) do
+    acc = acc + v
+    n = n + 1
+end
+print("pairs-plain", n, acc)
+
+n = 0
+acc = 0
+for i, v in ipairs({10, 20, 30}) do
+    n = n + 1
+    acc = acc + v
+end
+print("ipairs-plain", n, acc)
+
+-- __pairs: custom iterator, pad missing returns to 3, non-function errors
+def piter(t, k)
+    if k == nil then
+        return "a", t.a
+    end
+    if k == "a" then
+        return "b", t.b
+    end
+    return nil
+end
+
+def ppairs(t)
+    return piter, t, nil
+end
+
+let P = {}
+P.__pairs = ppairs
+let pt = setmetatable({a = 1, b = 2, hidden = 9}, P)
+n = 0
+acc = 0
+let keys = ""
+for k, v in pairs(pt) do
+    keys = keys .. k
+    n = n + 1
+    acc = acc + v
+end
+print("pairs-mm", keys, n, acc)
+
+def one_ret(t)
+    return piter
+end
+let One = {}
+One.__pairs = one_ret
+let ot = setmetatable({}, One)
+let f, a, s = pairs(ot)
+print("pairs-pad", type(f), type(a), type(s))
+
+let Bad = {}
+Bad.__pairs = 1
+let badt = setmetatable({}, Bad)
+def try_pairs()
+    return pairs(badt)
+end
+let pok, perr = pcall(try_pairs)
+print("pairs-bad", pok, not (string.find(perr, "attempt to call") == nil))
+
+-- ipairs factory + for-in: respect __index (Lua 5.4, no __ipairs)
+def idx_fn(t, k)
+    if type(k) == "number" and k <= 3 then
+        return k * 10
+    end
+    return nil
+end
+let I = {}
+I.__index = idx_fn
+let it = setmetatable({}, I)
+print("idx-get", it[1], it[4] == nil)
+
+n = 0
+acc = 0
+for i, v in ipairs(it) do
+    n = n + 1
+    acc = acc + v
+end
+print("ipairs-for", n, acc)
+
+def walk_ipairs(t)
+    let iter, state, ctrl = ipairs(t)
+    let wn = 0
+    let wacc = 0
+    while true do
+        let wi, wv = iter(state, ctrl)
+        if wi == nil then
+            break
+        end
+        ctrl = wi
+        wn = wn + 1
+        wacc = wacc + wv
+    end
+    return wn, wacc
+end
+let wn, wacc = walk_ipairs(it)
+print("ipairs-iter", wn, wacc)
+
+-- hole filled by __index, then a terminating miss
+let hole = {10}
+let Hole = {}
+def hole_idx(t, k)
+    if k == 2 then
+        return 20
+    end
+    return nil
+end
+Hole.__index = hole_idx
+hole = setmetatable(hole, Hole)
+n = 0
+acc = 0
+for i, v in ipairs(hole) do
+    n = n + 1
+    acc = acc + v
+end
+print("ipairs-hole", n, acc)
+
+-- __name in type-error messages (display only; type() unchanged)
+let N = {}
+N.__name = "Vec"
+let nv = setmetatable({}, N)
+print("name-type", type(nv))
+def try_add()
+    return nv + 1
+end
+let aok, aerr = pcall(try_add)
+print("name-add", aok, not (string.find(aerr, "Vec") == nil))
+def try_concat()
+    return nv .. "z"
+end
+let cok, cerr = pcall(try_concat)
+print("name-cat", cok, not (string.find(cerr, "Vec") == nil))
+
+-- Printed after other metamethod uses: a short program whose first
+-- metamethod call is __len can print the table on libvyrnrt (pre-existing
+-- 1.6.139 quirk; metamethods_cs also exercises __eq / __lt first).
+print("rl-vs-len", rawlen(lt), #lt)
+print("ok")

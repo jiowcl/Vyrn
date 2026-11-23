@@ -1,0 +1,10 @@
+err bad argument to 'http' (opts.body and opts.body_path are mutually exclusive)
+err bad argument to 'http' (opts.body_path and opts.multipart are mutually exclusive)
+err bad argument to 'http' (opts.body_path cannot be used with GET or HEAD)
+err bad argument to 'http' (opts.body_path cannot be used with GET or HEAD)
+err bad argument to 'http' (opts.body_path must be a string)
+err bad argument to 'http' (opts.save_path must be a string)
+err bad argument to 'http' (opts.save_path and opts.on_chunk are mutually exclusive)
+err http: file not found
+err http: file too large
+done

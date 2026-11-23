@@ -1,0 +1,64 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- table2d_rowbase (1.6.109): loop-hoisted row bases reject cols < 1 even when
+-- row == 1 (or cols == 0 makes the base 0), like the unhoisted table.get2d; the fused
+-- multiply-accumulate raises on non-number cells (numeric strings still coerce).
+let msg = def(ok, e)
+    if ok then
+        return "ok"
+    end
+    return string.match(e, "bad argument.*") or string.match(e, "attempt.*") or e
+end
+let rowsum = def(t, rows, cols)
+    let s = 0
+    for i = 1, rows do
+        for j = 1, 2 do
+            s = s + table.get2d(t, i, j, cols)
+        end
+    end
+    return s
+end
+let g = table.create2d(2, 3, 1)
+print("rs", rowsum(g, 2, 3))
+print("rs0", msg(pcall(rowsum, g, 1, 0)))
+print("rsneg", msg(pcall(rowsum, g, 1, -1)))
+print("rsstr", rowsum(g, 2, "3"))
+let wsum = def(t, rows, cols)
+    let s = 0
+    let i = 1
+    while i <= rows do
+        let j = 1
+        while j <= 2 do
+            s = s + table.get2d(t, i, j, cols)
+            j = j + 1
+        end
+        i = i + 1
+    end
+    return s
+end
+print("ws", wsum(g, 2, 3))
+print("ws0", msg(pcall(wsum, g, 1, 0)))
+let mm = def(a, b, n)
+    let tot = 0
+    for i = 1, n do
+        for j = 1, n do
+            let s = 0
+            for k = 1, n do
+                s = s + table.get2d(a, i, k, n) * table.get2d(b, k, j, n)
+            end
+            tot = tot + s
+        end
+    end
+    return tot
+end
+let a = table.create2d(2, 2, 2)
+let b = table.create2d(2, 2, 3)
+print("mm", mm(a, b, 2))
+table.set2d(a, 1, 2, 2, "4")
+print("mmstr", mm(a, b, 2))
+table.set2d(a, 1, 2, 2, nil)
+print("mmnil", msg(pcall(mm, a, b, 2)))
+table.set2d(a, 1, 2, 2, 2)
+table.set2d(b, 2, 2, 2, {})
+print("mmtab", msg(pcall(mm, a, b, 2)))
+print("mm0", msg(pcall(mm, a, b, 0)))

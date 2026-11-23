@@ -1,0 +1,41 @@
+-- vyrn: 12
+-- 1.6.161: openai_embeddings + vector.cosine against loopback mock.
+-- Requires --allow-net and VYRN_HTTP_TEST_PORT.
+
+assert(type(package) == "table")
+assert(type(math) == "table")
+
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+
+let openai = require("ai.openai")
+let vec = require("vector")
+
+let e1, err1 = openai.openai_embeddings({
+  key = "sk-test",
+  base = base,
+  input = "cat",
+  timeout = 10
+})
+assert(e1, err1)
+assert(#e1 == 3)
+assert(e1[1] == 1)
+
+let batch, berr = openai.openai_embeddings({
+  key = "sk-test",
+  base = base,
+  input = { "cat", "dog", "car" },
+  timeout = 10
+})
+assert(batch, berr)
+assert(#batch == 3)
+
+let sim_cd, serr = vec.cosine(batch[1], batch[2])
+assert(sim_cd, serr)
+let sim_cc, serr2 = vec.cosine(batch[1], batch[3])
+assert(sim_cc, serr2)
+assert(sim_cd > sim_cc)
+print("cosine_cat_dog", sim_cd > 0.9)
+print("cosine_cat_car", sim_cc == 0)
+print("embeddings_loopback_ok")

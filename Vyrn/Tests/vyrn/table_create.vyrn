@@ -1,0 +1,50 @@
+-- @compile-safe
+-- vyrn: 12
+-- table.create(nseq [, nrec]) (1.7.1): empty table with preallocation hints.
+-- #t stays 0 after create; hints must not fill the array part.
+
+let t = table.create(8)
+print("empty", #t, type(t))
+t[1] = "a"
+t[8] = "h"
+print("fill8", #t, t[1], t[8], t[9])
+
+let z = table.create(0)
+print("zero", #z)
+z[1] = 1
+print("zero_set", #z)
+
+let v = table.create(4, 16)
+v.name = "x"
+v.tag = "y"
+v[1] = 10
+v[2] = 20
+print("hash", #v, v.name, v.tag, v[1], v[2])
+
+let big = table.create(1000)
+let i = 1
+while i <= 1000 do
+  big[i] = i
+  i = i + 1
+end
+print("big", #big, big[1], big[1000])
+
+let ok, err = pcall(function()
+  table.create()
+end)
+print("noarg", ok, type(err) == "string")
+
+ok, err = pcall(function()
+  table.create(-1)
+end)
+print("neg", ok)
+
+ok, err = pcall(function()
+  table.create("x")
+end)
+print("badtype", ok)
+
+ok, err = pcall(function()
+  table.create(1, -2)
+end)
+print("neghash", ok)

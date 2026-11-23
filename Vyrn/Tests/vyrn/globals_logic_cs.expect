@@ -1,0 +1,5 @@
+top 1
+fn 2
+loop 6
+non-number x
+truth F T F T F F T

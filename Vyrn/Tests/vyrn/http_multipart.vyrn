@@ -1,0 +1,101 @@
+-- 1.6.127: loopback multipart/form-data upload (requires --allow-net and VYRN_HTTP_TEST_PORT).
+-- Binary parts use crypto_nul.bin so NULs never go through a Vyrn string.
+
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+
+let fixture_hex = "68656c6c6f0001fffe80776f726c64"
+let fx = path.join("tests", "vyrn", "fixtures", "crypto_nul.bin")
+if not path.isfile(fx) then
+  fx = path.join(os.getenv("TEMP") or os.getenv("TMP") or os.getenv("TMPDIR") or path.cwd(), "vyrn_crypto_nul.bin")
+  let made, me = crypto.fromhex_file(fx, fixture_hex)
+  assert(made, me)
+end
+
+let want_sha, se = crypto.sha256_file(fx)
+assert(want_sha, se)
+let want_size = path.size(fx)
+assert(want_size == 15, "fixture size")
+
+-- hex part is decoded natively (bytes may contain NUL / invalid UTF-8).
+let blob_hex = "0001ff"
+let blob_sha = "26a66b061e8f48f39927c312f25293959729eee95978e2892d49d3512a5cc092"
+
+-- text + file (NUL) + base64 blob
+let r, err = http.request{
+  url = base .. "/multipart",
+  multipart = {
+    {name = "field", value = "hello"},
+    {name = "file", path = fx, content_type = "application/octet-stream"},
+    {name = "blob", hex = blob_hex, filename = "blob.bin", content_type = "application/octet-stream"}
+  }
+}
+assert(r, err)
+print("status", r.status)
+let data, je = json.decode(r.body)
+assert(data, je)
+assert(#data.parts == 3, "part count")
+print("field", data.parts[1].name, data.parts[1].size, data.parts[1].filename == json.null)
+assert(data.parts[2].name == "file", "file name")
+print("file", data.parts[2].filename, data.parts[2].size, data.parts[2].sha256 == want_sha)
+assert(data.parts[2].size == want_size, "file size")
+assert(data.parts[2].sha256 == want_sha, "file sha256")
+assert(data.parts[3].name == "blob", "blob name")
+print("blob", data.parts[3].filename, data.parts[3].size, data.parts[3].sha256 == blob_sha)
+assert(data.parts[3].sha256 == blob_sha, "blob sha256")
+
+-- http.post(url, {multipart=...}) and user Content-Type is replaced
+let hdr = {}
+hdr["Content-Type"] = "text/plain"
+let r2, e2 = http.post(base .. "/multipart", {
+  headers = hdr,
+  multipart = { {name = "only", value = "x"} }
+})
+assert(r2, e2)
+let d2, j2 = json.decode(r2.body)
+assert(d2, j2)
+print("post_opts", r2.status, d2.parts[1].name, d2.parts[1].size)
+
+-- 307/308 must resend the binary body (allowlist is set in this test)
+let r3, e3 = http.request{
+  url = base .. "/redirect/308-multipart",
+  multipart = {
+    {name = "file", path = fx, filename = "crypto_nul.bin"}
+  }
+}
+assert(r3, e3)
+let d3, j3 = json.decode(r3.body)
+assert(d3, j3)
+print("redir308", r3.status, d3.parts[1].sha256 == want_sha)
+
+-- OpenAI Files-shaped mock
+let r4, e4 = http.request{
+  url = base .. "/v1/files",
+  headers = { Authorization = "Bearer testdata" },
+  multipart = {
+    {name = "purpose", value = "assistants"},
+    {name = "file", path = fx, filename = "crypto_nul.bin", content_type = "application/octet-stream"}
+  }
+}
+assert(r4, e4)
+let d4, j4 = json.decode(r4.body)
+assert(d4, j4)
+print("openai_files", r4.status, d4.object, d4.filename, d4.bytes)
+
+-- Gemini File API-shaped mock
+let ghdr = {}
+ghdr["x-goog-api-key"] = "testdata"
+let r5, e5 = http.request{
+  url = base .. "/upload/v1beta/files",
+  headers = ghdr,
+  multipart = {
+    {name = "file", path = fx, filename = "crypto_nul.bin", content_type = "application/octet-stream"}
+  }
+}
+assert(r5, e5)
+let d5, j5 = json.decode(r5.body)
+assert(d5, j5)
+print("gemini_files", r5.status, d5.file.name, d5.file.sizeBytes)
+
+print("done")

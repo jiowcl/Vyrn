@@ -1,0 +1,13 @@
+err bad argument #1 to 'sse_events' (string expected)
+err bad argument to 'stream' (opts.on_chunk function required)
+err bad argument to 'stream' (opts.url string required)
+err bad argument to 'http' (opts.on_chunk must be a function)
+simple 1 message hello 
+multi 1 ping line1\nline2 
+comment 1 message x 
+leftover 0 data: hello\n
+done 1 message [DONE] 7 3000 
+cr 2 a b 
+feed 1 hello data: x
+empty 0
+done

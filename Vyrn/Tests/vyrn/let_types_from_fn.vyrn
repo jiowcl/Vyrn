@@ -1,3 +1,4 @@
+-- vyrn: 12 strict
 def pair() -> number, number
     return 10, 20
 end
@@ -17,7 +18,7 @@ let ok1, err1 = pcall(try_sloppy)
 print(ok1)
 print(err1)
 
-def bad() -> number, number
+def bad()
     return 10, "oops"
 end
 

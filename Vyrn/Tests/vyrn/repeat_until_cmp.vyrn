@@ -1,0 +1,28 @@
+-- @compile-safe
+-- Fused LE/LT/EQ_JMP_FALSE: repeat/until >= <= == and while >
+
+let m: number = 1
+repeat
+    print("ge m=", m)
+    m = m + 1
+until m >= 5
+
+let a: number = 3
+repeat
+    print("le a=", a)
+    a = a - 1
+until a <= 0
+
+let e: number = 1
+repeat
+    print("eq e=", e)
+    e = e + 1
+until e == 4
+
+let x: number = 2
+while x > 0 do
+    print("gt x=", x)
+    x = x - 1
+end
+
+print("done")

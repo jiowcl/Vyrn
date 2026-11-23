@@ -1,0 +1,27 @@
+-- @compile-safe
+-- string gsub/match/pad* + table map/filter/cmp-sort
+-- use (2 * v) not (v * 2): nested callback local*K hits a VM heap quirk
+
+print(string.match("hello-world", "lo%-wo"))
+let g, n = string.gsub("aa-bb-aa", "aa", "X")
+print(g, n)
+print(string.padleft("7", 3, "0"))
+print(string.padright("x", 4, "."))
+
+def dbl(k, v)
+  return 2 * v
+end
+def ge2(k, v)
+  return v >= 2
+end
+def desc(a, b)
+  return a > b
+end
+
+let t = {3, 1, 2}
+let m = table.map(t, dbl)
+print(table.concat(m, ","))
+let f = table.filter(t, ge2)
+print(f[1], f[3])
+table.sort(t, desc)
+print(table.concat(t, ","))

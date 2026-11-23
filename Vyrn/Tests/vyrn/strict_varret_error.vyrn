@@ -1,0 +1,7 @@
+-- vyrn: 12 strict
+def pair() -> number, string
+  return 7, "wrong"
+end
+
+; First binding of pcall is always bool under --strict.
+let ok: number = pcall(pair)

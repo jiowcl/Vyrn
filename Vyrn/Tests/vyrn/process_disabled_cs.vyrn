@@ -1,0 +1,9 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.144: process.run disabled without --allow-process (compile-safe; no spawn).
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+print(type(process), type(process.run))
+print(msg(pcall(process.run, {"nope"})))

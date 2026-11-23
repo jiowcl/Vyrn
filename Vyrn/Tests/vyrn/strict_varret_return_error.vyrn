@@ -1,0 +1,11 @@
+-- vyrn: 12 strict
+def pair() -> number, string
+  return 7, "ok"
+end
+
+-- pcall returns bool, number, string — second declared return is wrong.
+def via_pcall() -> bool, string, string
+  return pcall(pair)
+end
+
+via_pcall()

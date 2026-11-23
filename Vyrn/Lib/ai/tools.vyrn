@@ -1,0 +1,180 @@
+-- vyrn: 12
+-- Thin OpenAI / Gemini tool-calling helpers (1.6.160).
+-- Not part of the product stdlib. Load with require("ai.tools").
+-- Uses require("jsonschema") to validate tool arguments when a schema is supplied.
+-- Note: "function" is a Vyrn keyword — OpenAI tool payloads use bracket keys.
+
+assert(type(package) == "table")
+assert(type(math) == "table")
+let js = require("jsonschema")
+
+@doc("Build one OpenAI tools entry type=function from name, description, and JSON Schema parameters")
+def openai_tool_def(name: string, description: string, parameters: table) -> table
+  let fn = {}
+  fn.name = name
+  fn.description = description or ""
+  fn.parameters = parameters or { type = "object", properties = {} }
+  let tool = { type = "function" }
+  tool["function"] = fn
+  return tool
+end
+
+@doc("Parse OpenAI assistant message tool_calls into id/name/arguments rows; arguments are tables")
+def openai_parse_tool_calls(message)
+  if type(message) ~= "table" then
+    return nil, "openai_parse_tool_calls: message table expected"
+  end
+  let tcs = message.tool_calls
+  if tcs == nil then
+    return {}
+  end
+  if type(tcs) ~= "table" then
+    return nil, "openai_parse_tool_calls: tool_calls must be an array"
+  end
+  let out = {}
+  let i = 1
+  while i <= #tcs do
+    let tc = tcs[i]
+    if type(tc) ~= "table" then
+      return nil, "openai_parse_tool_calls: tool_calls entry not a table"
+    end
+    let fn = tc["function"]
+    if type(fn) ~= "table" then
+      return nil, "openai_parse_tool_calls: missing function on tool_calls entry"
+    end
+    let args = fn.arguments
+    if type(args) == "string" then
+      let decoded, jerr = json.decode(args)
+      if not decoded then
+        return nil, jerr
+      end
+      args = decoded
+    elif type(args) ~= "table" then
+      return nil, "openai_parse_tool_calls: arguments must be a JSON string or table"
+    end
+    out[#out + 1] = {
+      id = tc.id or "",
+      name = fn.name or "",
+      arguments = args
+    }
+    i = i + 1
+  end
+  return out
+end
+
+@doc("Build an OpenAI tool-role message from a tool_call id and string or table content")
+def openai_tool_message(tool_call_id: string, content) -> table
+  let body = content
+  if type(content) == "table" then
+    body = json.encode(content)
+  else
+    body = tostring(content)
+  end
+  return {
+    role = "tool",
+    tool_call_id = tool_call_id,
+    content = body
+  }
+end
+
+@doc("Build one Gemini functionDeclarations entry")
+def gemini_function_decl(name: string, description: string, parameters: table) -> table
+  return {
+    name = name,
+    description = description or "",
+    parameters = parameters or { type = "object", properties = {} }
+  }
+end
+
+@doc("Parse Gemini generateContent response or parts into name/arguments rows")
+def gemini_parse_function_calls(response)
+  let parts = nil
+  if type(response) == "table" and type(response.candidates) == "table" then
+    let c0 = response.candidates[1]
+    if type(c0) == "table" and type(c0.content) == "table" then
+      parts = c0.content.parts
+    end
+  elif type(response) == "table" and type(response.parts) == "table" then
+    parts = response.parts
+  elif type(response) == "table" then
+    parts = response
+  else
+    return nil, "gemini_parse_function_calls: response table expected"
+  end
+  if type(parts) ~= "table" then
+    return {}
+  end
+  let out = {}
+  let i = 1
+  while i <= #parts do
+    let p = parts[i]
+    if type(p) == "table" and type(p.functionCall) == "table" then
+      let fc = p.functionCall
+      let args = fc.args
+      if args == nil then
+        args = {}
+      end
+      if type(args) ~= "table" then
+        return nil, "gemini_parse_function_calls: args must be a table"
+      end
+      out[#out + 1] = {
+        name = fc.name or "",
+        arguments = args
+      }
+    end
+    i = i + 1
+  end
+  return out
+end
+
+@doc("Build a Gemini functionResponse part from name and response table")
+def gemini_function_response(name: string, response: table) -> table
+  return {
+    functionResponse = {
+      name = name,
+      response = response or {}
+    }
+  }
+end
+
+@doc("Validate call.arguments against schema when provided then invoke handlers by name")
+def run_tool(call: table, handlers: table, schemas)
+  if type(call) ~= "table" then
+    return nil, "run_tool: call table expected"
+  end
+  if type(handlers) ~= "table" then
+    return nil, "run_tool: handlers table expected"
+  end
+  let name = call.name or ""
+  if name == "" then
+    return nil, "run_tool: missing tool name"
+  end
+  let handler = handlers[name]
+  if type(handler) ~= "function" then
+    return nil, "run_tool: no handler for " .. name
+  end
+  let args = call.arguments
+  if args == nil then
+    args = {}
+  end
+  if type(args) ~= "table" then
+    return nil, "run_tool: arguments must be a table"
+  end
+  if type(schemas) == "table" and schemas[name] ~= nil then
+    let ok, verr = js.validate(args, schemas[name])
+    if not ok then
+      return nil, verr
+    end
+  end
+  return handler(args)
+end
+
+let M = {}
+M.openai_tool_def = openai_tool_def
+M.openai_parse_tool_calls = openai_parse_tool_calls
+M.openai_tool_message = openai_tool_message
+M.gemini_function_decl = gemini_function_decl
+M.gemini_parse_function_calls = gemini_parse_function_calls
+M.gemini_function_response = gemini_function_response
+M.run_tool = run_tool
+return M

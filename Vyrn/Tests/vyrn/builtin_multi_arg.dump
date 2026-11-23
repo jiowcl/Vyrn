@@ -1,0 +1,6 @@
+; func <main> params=0 locals=4
+  14: CALL_MULTRET a=0 b=0 ; line 8
+  23: CALL_MULTRET a=0 b=0 ; line 9
+  32: CALL_MULTRET a=0 b=0 ; line 10
+  42: CALL_MULTRET a=1 b=0 ; line 15
+  50: TRUNC_LAST_CALL a=0 b=0 ; line 16

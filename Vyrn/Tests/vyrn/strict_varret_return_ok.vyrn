@@ -1,0 +1,35 @@
+-- vyrn: 12 strict
+def pair() -> number, string
+  return 7, "ok"
+end
+
+def via_pcall() -> bool, number, string
+  return pcall(pair)
+end
+
+def via_assert() -> number, string
+  return assert(pair())
+end
+
+def wrap_worker()
+  yield 10, "wrap"
+end
+
+def via_wrap() -> number, string
+  let w = coroutine.wrap(wrap_worker)
+  return w()
+end
+
+def resume_worker() -> number, string
+  yield 3, "resume"
+end
+
+def via_resume() -> bool, number, string
+  let co = coroutine.create(resume_worker)
+  return coroutine.resume(co)
+end
+
+print("pcall", via_pcall())
+print("assert", via_assert())
+print("wrap", via_wrap())
+print("resume", via_resume())

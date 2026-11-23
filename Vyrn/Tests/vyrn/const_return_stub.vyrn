@@ -1,0 +1,9 @@
+-- vyrn: 12
+-- Const-return stub (return literal) is inlined at known call sites.
+
+def always_zero(x: number) -> number
+    return 0
+end
+
+print(always_zero(99))
+print(always_zero(1) + always_zero(2))

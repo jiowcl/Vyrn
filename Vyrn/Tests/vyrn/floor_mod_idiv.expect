@@ -1,0 +1,12 @@
+mod 2 -2 -1 1 1.5 0.5 -0.75
+mod0 0 0 0 0
+modvar 2 -4 0
+idiv 3 -4 -4 3.0 -1.0 2.0
+idivvar -3 -1 -7
+fdiv0 inf -inf
+prec 17 14 7 -4
+str a//b 2 2
+law true
+false attempt to perform 'n//0'
+false attempt to perform 'n%0'
+false attempt to perform arithmetic on a table value

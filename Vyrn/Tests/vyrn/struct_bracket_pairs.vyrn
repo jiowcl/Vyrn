@@ -1,0 +1,43 @@
+-- vyrn: 12
+struct Point
+    x: number
+    y: number
+end
+
+let p = Point { x = 1, y = 2 }
+print("get", p["x"], p["y"])
+
+let key = "y"
+print("dyn", p[key])
+
+p["x"] = 10
+print("set", p.x, p["x"])
+
+let pit, pstate, pvar = pairs(p)
+let k1, v1 = pit(pstate, pvar)
+let k2, v2 = pit(pstate, k1)
+print("pairs1", k1, v1)
+print("pairs2", k2, v2)
+
+let nk, nv = next(p)
+let nk2, nv2 = next(p, nk)
+let sum = 0
+let seenX = 0
+let seenY = 0
+if nk == "x" then
+    seenX = 1
+    sum = sum + nv
+end
+if nk == "y" then
+    seenY = 1
+    sum = sum + nv
+end
+if nk2 == "x" then
+    seenX = 1
+    sum = sum + nv2
+end
+if nk2 == "y" then
+    seenY = 1
+    sum = sum + nv2
+end
+print("next-sum", sum, seenX, seenY)

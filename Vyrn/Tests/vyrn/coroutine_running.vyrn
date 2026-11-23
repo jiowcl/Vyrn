@@ -1,0 +1,10 @@
+-- vyrn: 12
+def worker()
+  print("in", coroutine.status(coroutine.running()))
+  print("yieldable", coroutine.isyieldable())
+  yield 1
+end
+print("before", coroutine.running())
+let co = coroutine.create(worker)
+coroutine.resume(co)
+print("after", coroutine.running())

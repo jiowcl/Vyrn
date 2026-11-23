@@ -1,0 +1,23 @@
+-- vyrn: 12 unlimited
+-- 1.6.93 closure churn: short-lived closures and upvalue cells (reclaimed by the GC).
+def mk(i)
+    let a = i
+    let b = i + 1
+    return function() a = a + b return a end
+end
+let total = 0
+let i = 0
+while i < 300000 do
+    let f = mk(i)
+    total = total + f()
+    let x = i
+    let g = function() return x + 1 end
+    total = total + g() - i
+    i = i + 1
+end
+let keep = {}
+for j = 1, 1000 do
+    let k = j
+    keep[j] = function() return k end
+end
+print(total, keep[1000]())

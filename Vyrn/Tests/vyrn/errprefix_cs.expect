@@ -1,0 +1,5 @@
+false 16: attempt to call a number value (local 'x')
+false 21: attempt to call a nil value (local 'g')
+false 26: length operator requires string or table
+false 29: Type error: type mismatch for parameter #1: expected number, got string
+false boom

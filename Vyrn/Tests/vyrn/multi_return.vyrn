@@ -1,3 +1,4 @@
+-- @compile-safe
 -- Multi-return values
 
 def pair() 

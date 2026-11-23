@@ -1,0 +1,14 @@
+typed true true
+create true
+export true
+images true
+ocr true
+compress true
+linearize true
+protect true
+unprotect true
+html true
+extract true
+props true
+split 2
+done

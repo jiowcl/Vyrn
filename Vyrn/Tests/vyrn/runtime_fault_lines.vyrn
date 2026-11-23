@@ -1,0 +1,110 @@
+-- 1.6.82: runtime errors report the line of the faulting expression.
+-- Lines tagged with the E marker are where each error must be reported (the required-module
+-- case lives in runtime_fault_lines_mod.vyrn). forin_call (3rd t() call) also guards the
+-- deferred CALL_KNOWN leak into nested function bodies.
+def id(v) return v end
+def msg(ok, e)
+  if ok then return 'ok' end
+  return (string.gsub(tostring(e), '^.-(%d+): ', 'L%1: '))
+end
+def t(name, f) print(name, msg(pcall(f))) end
+t("nfor_arith", function()
+  for i = 1, 2 do
+    let a = id(nil) + i --E
+  end
+end)
+t("gfor_index", function()
+  for k, v in pairs({1}) do
+    let a = id(nil).x --E
+  end
+end)
+t("forin_call", function()
+  for v in ipairs({1}) do
+    id(nil)() --E
+  end
+end)
+t("while_cmp", function()
+  let n = 0
+  while n < 1 do
+    n = n + 1
+    let a = id(nil) - 1 --E
+  end
+end)
+t("repeat_body", function()
+  repeat
+    let a = id(nil).y --E
+  until true
+end)
+t("until_cond", function()
+  let n = 0
+  repeat
+    n = n + 1
+  until id(nil)() --E
+end)
+t("if_branch", function()
+  if id(false) then
+    let a = 1
+  elif id(true) then
+    let a = #id(nil) --E
+  else
+    let a = 2
+  end
+end)
+t("else_branch", function()
+  if id(false) then
+    let a = 1
+  else
+    error("boom") --E
+  end
+end)
+t("nested_fn", function()
+  def inner()
+    return id(nil) * 2 --E
+  end
+  return inner()
+end)
+t("closure_loop", function()
+  let fs = {}
+  for i = 1, 2 do
+    fs[i] = function() return id(nil) - i end --E
+  end
+  return fs[1]()
+end)
+t("multiline_expr", function()
+  let a = 1 +
+    2 +
+    id(nil) --E
+end)
+t("multiline_call", function()
+  let f = id(nil)
+  f(1,
+    2) --E
+end)
+t("last_stmt", function()
+  let x = 1
+  x = x + id(nil) --E
+end)
+t("after_continue", function()
+  for i = 1, 3 do
+    if i == 1 then continue end
+    let a = id(nil) + i --E
+  end
+end)
+t("after_break", function()
+  while true do
+    if id(true) then break end
+  end
+  let a = id(nil) + 1 --E
+end)
+t("field_store", function()
+  let a = id(nil)
+  a.x = 1 --E
+end)
+t("global_call", function()
+  undefined_fn_zz(1) --E
+end)
+t("error_tbl", function()
+  for i = 1, 1 do
+    error("in loop " .. i) --E
+  end
+end)

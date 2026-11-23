@@ -1,0 +1,31 @@
+e 10
+e 20
+e 30
+iv 1 10
+iv 2 20
+iv 3 30
+ip 1 10
+ip 2 20
+ip 3 30
+p a 1
+n a 1
+r 1
+r 2
+r 3
+s 1 0
+s 2 10
+s 3 20
+nest 1 1
+nest 1 2
+nest 3 1
+nest 3 2
+sh 1 7
+sh 2 8
+done 2
+w one
+w two
+w three
+kv a 1
+kv b 2
+function 1 22 nil
+pos 4

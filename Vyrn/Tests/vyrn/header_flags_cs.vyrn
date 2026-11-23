@@ -1,0 +1,6 @@
+-- @compile-safe
+-- vyrn: 12
+-- This prose mentions -- vyrn: 12 strict, bench, unlimited, timing, and opcode-hist
+-- but those words are not flags. A typed let must not become a compile error.
+let n: number = "ok"
+print(n)

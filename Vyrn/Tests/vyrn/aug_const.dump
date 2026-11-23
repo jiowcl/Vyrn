@@ -1,0 +1,5 @@
+ADD_LOCAL_K a=0 b=1
+ADD_LOCAL_K a=0 b=2
+!LOAD_LOCAL a=0 b=0 ; line 4
+!PUSH_CONST a=1 b=0 ; line 4
+!ADD a=0 b=0 ; line 4

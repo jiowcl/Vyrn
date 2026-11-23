@@ -1,0 +1,62 @@
+-- vyrn: 12
+-- Practical process.run example (1.6.148): run the Vyrn CLI and capture output.
+-- The official CLI has no --version flag; this uses -e + --batch instead.
+-- Needs --allow-process. If the capability is off, or no exe is found,
+-- prints a short hint and exits 0. Not a paid API.
+
+const SNIPPET: string = "print(1)"
+
+@doc("True when err is the disabled --allow-process message")
+def is_disabled_process(err) -> bool
+  let s = tostring(err)
+  return string.find(s, "process access is disabled", 1, true) ~= nil
+end
+
+@doc("Locate a Vyrn CLI executable from VYRN_EXE or bin/")
+def find_exe()
+  let envp = os.getenv("VYRN_EXE") or ""
+  if envp ~= "" and path.isfile(envp) then
+    return envp
+  end
+  let cands = {
+    path.join("bin", "LuaLiteVM_build.exe"),
+    path.join("bin", "LuaLiteVM_build_c.exe"),
+    path.join("bin", "Vyrn.exe"),
+    path.join("bin", "LuaLiteVM_build")
+  }
+  let i = 1
+  while i <= #cands do
+    if path.isfile(cands[i]) then
+      return cands[i]
+    end
+    i = i + 1
+  end
+  return nil
+end
+
+let exe = find_exe()
+if not exe then
+  print("process_cli: no Vyrn executable found (set VYRN_EXE or run from the repo root).")
+  os.exit(0)
+end
+
+let ok, r, err = pcall(function()
+  return process.run({ exe, "-e", SNIPPET, "--batch" }, { timeout_ms = 10000 })
+end)
+if not ok then
+  if is_disabled_process(r) then
+    print("process_cli: process access is disabled. Rerun with --allow-process.")
+    os.exit(0)
+  end
+  print("process_cli: " .. tostring(r))
+  os.exit(1)
+end
+if not r then
+  print("process_cli: " .. tostring(err))
+  os.exit(1)
+end
+
+let out = string.gsub(r.stdout or "", "%s+$", "")
+print("code", r.code)
+print("out", out)
+print("timed_out", r.timed_out)

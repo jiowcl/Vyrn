@@ -1,0 +1,11 @@
+-- A module compile error is raised (not swallowed) and names the module file + line.
+def has(s, needle)
+  if string.find(s, needle, 1, true) then
+    return true
+  end
+  return false
+end
+let ok, msg = pcall(require, "lib.broken_syntax_error")
+print(ok)
+print(has(msg, "broken_syntax_error.vyrn:4:"))
+print(has(msg, "Expected parameter name"))

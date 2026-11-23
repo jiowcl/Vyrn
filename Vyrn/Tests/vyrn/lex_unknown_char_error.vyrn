@@ -1,0 +1,4 @@
+-- 1.6.77: characters outside the language (here '$') are a syntax error, not dropped.
+let x = 1; print(x)
+let y = 2 $ 3
+print(y)

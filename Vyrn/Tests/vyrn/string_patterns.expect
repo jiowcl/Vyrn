@@ -1,0 +1,32 @@
+key value
+123
+nil
+5 7
+5 7 o w
+2 2
+2 1
+2 2
+trim me
+tag
+(a(b)c)
+quick
+3 5
+ab
+hell0 w0rld 2
+<hello> <world> 2
+aabbcc 3
+X world 1
+-a-b-c- 4
+Ann is 7 2
+A B C 3
+3 one three
+2 a 1 b 2
+2026 10 27
+2 2
+false malformed pattern (missing ']')
+false invalid capture index %2 in replacement string
+false unfinished capture
+false bad argument #3 to 'gsub' (string/function/table expected, got boolean)
+false cb boom
+abc 1
+done

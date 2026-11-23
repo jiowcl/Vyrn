@@ -1,0 +1,73 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- for_neg_step (1.6.106): numeric for honours the step sign (Lua semantics). A negative
+-- step runs while i >= limit; a runtime step picks the direction when the loop starts;
+-- a zero step raises "'for' step is zero". Literal positive steps keep the i <= limit
+-- fast path.
+def join(t) return table.concat(t, ",") end
+let out = {}
+for i = 5, 1, -1 do out[#out + 1] = i end
+print("lit", join(out))
+out = {}
+for i = 10, 1, -3 do out[#out + 1] = i end
+print("lit3", join(out))
+let s = -2
+out = {}
+for i = 6, 1, s do out[#out + 1] = i end
+print("var", join(out))
+s = 2
+out = {}
+for i = 1, 6, s do out[#out + 1] = i end
+print("varpos", join(out))
+out = {}
+for i = 1, 0, -0.25 do out[#out + 1] = i end
+print("float", join(out))
+out = {}
+for i = 0, 1, 0.25 do out[#out + 1] = i end
+print("floatpos", join(out))
+-- empty ranges: wrong direction for the step
+let n = 0
+for i = 1, 5, -1 do n = n + 1 end
+for i = 5, 1 do n = n + 1 end
+for i = 5, 1, 1 do n = n + 1 end
+let s2 = -1
+for i = 1, 5, s2 do n = n + 1 end
+for i = 1, 1, -1 do n = n + 10 end
+print("empty", n)
+-- zero step: literal, runtime, float
+def zmsg(ok, err) return tostring(ok) .. " " .. tostring(string.find(err, "'for' step is zero", 1, true) ~= nil) end
+print("zero_lit", zmsg(pcall(def() for i = 1, 3, 0 do end end)))
+let z = 0
+print("zero_var", zmsg(pcall(def() for i = 1, 3, z do end end)))
+print("zero_float", zmsg(pcall(def() for i = 1, 3, 0.0 do end end)))
+-- step passed as a parameter (sign unknown at compile time)
+def total(a, b, st)
+  let c = 0
+  for i = a, b, st do c = c + i end
+  return c
+end
+print("param", total(10, 1, -1), total(1, 10, 1), total(10, 1, -2.5), total(1, 10, -1))
+-- nested loops, continue, break
+out = {}
+for i = 3, 1, -1 do
+  for j = i, 1, -1 do
+    if j == 2 then continue end
+    out[#out + 1] = i .. ":" .. j
+  end
+end
+print("nest", join(out))
+out = {}
+for i = 10, 1, -1 do
+  if i < 7 then break end
+  out[#out + 1] = i
+end
+print("break", join(out))
+let m = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}
+let acc = 0
+let st = -1
+for i = 3, 1, st do for j = 3, 1, st do acc = acc * 10 + m[i][j] end end
+print("grid", acc)
+-- closures capture each iteration's value
+let fs = {}
+for i = 3, 1, -1 do fs[#fs + 1] = def() return i end end
+print("closures", fs[1](), fs[2](), fs[3]())

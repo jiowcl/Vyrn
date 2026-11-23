@@ -1,0 +1,19 @@
+ctor_bad err Type error: type mismatch for field 'x': expected number, got string
+ctor_missing err Type error: type mismatch for field 'x': expected number, got nil
+ctor_default true 0
+dot_ok true 3.5
+dot_bad err Type error: type mismatch for field 'x': expected number, got string
+dot_nil err Type error: type mismatch for field 'x': expected number, got nil
+dot_default_nil err Type error: type mismatch for field 'y': expected number, got nil
+brk_bad err Type error: type mismatch for field 's': expected string, got number
+brk_ok true bb
+idx_bad err Type error: type mismatch for field 'x': expected number, got string
+cmp_ok true bb1
+cmp_num true 4.5
+cmp_bad err Type error: type mismatch for field 'x': expected number, got string
+dyn err Type error: type mismatch for field 'x': expected number, got string
+box_bad err Type error: type mismatch for field 'p': expected table, got number
+box_ok true 1
+unknown true free
+state 4.5 0 bb1
+rawset true w

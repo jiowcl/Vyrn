@@ -1,0 +1,4 @@
+openai_tools get_weather Taipei
+gemini_tools get_weather Taipei
+dispatched 28
+ai_tools_loopback_ok

@@ -1,0 +1,24 @@
+-- @compile-safe
+-- pairs / ipairs / next for libvyrnrt (1.6.63)
+
+let a = {10, 20, 30}
+let it, st, iv = ipairs(a)
+let i1, v1 = it(st, iv)
+let i2, v2 = it(st, i1)
+let i3, v3 = it(st, i2)
+let i4, v4 = it(st, i3)
+print("ipairs", i1, v1, i2, v2, i3, v3, i4)
+
+let t = {100, 200}
+t.name = "ok"
+let pit, pst, pvar = pairs(t)
+let k1, kv1 = pit(pst, pvar)
+let k2, kv2 = pit(pst, k1)
+let k3, kv3 = pit(pst, k2)
+let k4, kv4 = pit(pst, k3)
+print("pairs", k1, kv1, k2, kv2, k3, kv3, k4)
+
+let nk, nv = next(t)
+let nk2, nv2 = next(t, nk)
+let nk3, nv3 = next(t, nk2)
+print("next", nk, nv, nk2, nv2, nk3, nv3)

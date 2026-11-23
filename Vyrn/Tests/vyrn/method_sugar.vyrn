@@ -1,0 +1,29 @@
+-- vyrn: 10
+-- 1.6.77: method-call sugar on any expression, dotted/colon function definitions.
+print(("abc"):upper())
+let t = {name = "x", sub = {}}
+def t.hi(self, n) return self.name .. n end
+print(t:hi("!"))
+def t:hey(n) return self.name .. "?" .. n end
+print(t:hey(1), t.hey(t, 2))
+def t.sub.deep(a) return a * 2 end
+print(t.sub.deep(21))
+def string.shout(s) return s:upper() .. "!" end
+print(("hi"):shout())
+let s = "hey"
+print(s:shout(), s:len(), ("a,b"):find(",", 1, true))
+t.sub.obj = {v = 5}
+def t.sub.obj:get() return self.v end
+print(t.sub.obj:get())
+print(("%d-%s"):format(3, "x"))
+-- multiple results spread from method / field calls as last argument
+let u = "a,b"
+def t:two() return 1, 2 end
+print(pcall(def() return u:find(",", 1, true) end))
+print(1, u:find(","))
+print(t:two())
+print(t:two(), 9)
+print(u:find(","), 9)
+t.f = def() return 3, 4 end
+print(t.f())
+print(t.f(), 9)

@@ -1,0 +1,39 @@
+-- vyrn: 12 strict
+-- Typed multi-return: pcall, assert, coroutine.resume, and coroutine.wrap (payload only).
+-- Complements examples/vyrn/typed_tour.vyrn and compile-fail typed_tour_error.vyrn.
+
+@doc("Two return values for strict pcall unpacking")
+def pair() -> number, string
+  return 7, "ok"
+end
+
+let pok: bool, pn: number, ps: string = pcall(pair)
+print("pcall", pok, pn, ps)
+
+@doc("Three values through assert")
+def checked() -> bool, number, string
+  return true, 8, "assert"
+end
+
+let av: bool, an: number, astr: string = assert(checked())
+print("assert", av, an, astr)
+
+def worker()
+  yield 9, "resume"
+end
+
+let co = coroutine.create(worker)
+let rok: bool, rn, rs = coroutine.resume(co)
+print("resume", rok, rn, rs)
+
+def wrap_worker()
+  yield 10, "wrap"
+end
+
+let wf = coroutine.wrap(wrap_worker)
+let wn: number, wstr: string = wf()
+print("wrap", wn, wstr)
+
+let _ = pcall(wf)
+let okw: bool, errw = pcall(wf)
+print("wrap_dead", okw == false, type(errw) == "string")

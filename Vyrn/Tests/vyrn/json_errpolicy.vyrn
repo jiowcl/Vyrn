@@ -1,0 +1,49 @@
+-- 1.6.123: json error policy — encode raises; decode returns nil, err
+def msg(ok, err)
+  if ok then return "ok" end
+  return string.gsub(tostring(err), "^.-%d+: ", "")
+end
+
+-- circular reference
+let c = {}
+c.self = c
+let ok1, err1 = pcall(function()
+  json.encode(c)
+end)
+assert(ok1 == false, "expected circular raise")
+assert(string.find(msg(ok1, err1), "circular", 1, true), msg(ok1, err1))
+
+-- unsupported type
+let ok2, err2 = pcall(function()
+  json.encode(json.encode)
+end)
+assert(ok2 == false, "expected function raise")
+assert(string.find(msg(ok2, err2), "function", 1, true), msg(ok2, err2))
+
+-- NaN / Inf
+let ok3, err3 = pcall(function()
+  json.encode(0/0)
+end)
+assert(ok3 == false, "expected NaN raise")
+assert(string.find(msg(ok3, err3), "NaN", 1, true) or string.find(msg(ok3, err3), "infinity", 1, true), msg(ok3, err3))
+
+let ok4, err4 = pcall(function()
+  json.encode(1/0)
+end)
+assert(ok4 == false, "expected Inf raise")
+assert(string.find(msg(ok4, err4), "NaN", 1, true) or string.find(msg(ok4, err4), "infinity", 1, true), msg(ok4, err4))
+
+-- decode soft-fail
+let v, e = json.decode("{")
+assert(v == nil)
+assert(type(e) == "string" and #e > 0)
+
+let v2, e2 = json.decode("true trailing")
+assert(v2 == nil)
+assert(string.find(tostring(e2), "trailing", 1, true), tostring(e2))
+
+let v3, e3 = json.decode("not json")
+assert(v3 == nil and type(e3) == "string")
+
+print("json_errpolicy_ok")
+print("done")

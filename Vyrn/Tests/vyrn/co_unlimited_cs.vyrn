@@ -1,0 +1,25 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- 1.6.70: coroutine snapshots keep PB's fixed capacity (256 frames / 4096
+-- stack slots; PB never grows them). Unlimited mode with coroutines stays
+-- below 256 live frames here: past that PB's frame array (Dim 256, never
+-- ReDim) is written out of bounds and the coroutine object gets corrupted,
+-- which libvyrnrt does not reproduce.
+
+def sum(n)
+    if n == 0 then
+        return 0
+    end
+    return n + sum(n - 1)
+end
+let co = coroutine.create(def(a)
+    let total = sum(a)
+    let b = coroutine.yield(total)
+    let total2 = sum(b)
+    let c = coroutine.yield(total2)
+    return c + 1
+end)
+print(coroutine.resume(co, 250))
+print(coroutine.resume(co, 200))
+print(coroutine.resume(co, 41))
+print(coroutine.status(co))

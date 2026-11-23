@@ -1,0 +1,14 @@
+-- vyrn: 12
+def wrapped()
+  yield 3, 4
+end
+
+def make()
+  let w = coroutine.wrap(wrapped)
+  def run()
+    print("uv-wrap", w())
+  end
+  run()
+end
+
+make()

@@ -1,0 +1,8 @@
+sum 30
+count 1
+y1 1 a
+y2 2 b
+dead false cannot resume dead coroutine
+err false co blew up
+zero 0
+ok

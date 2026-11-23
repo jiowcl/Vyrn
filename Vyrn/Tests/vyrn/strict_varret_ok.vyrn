@@ -26,5 +26,5 @@ def wrap_worker()
 end
 
 let wf = coroutine.wrap(wrap_worker)
-let wok: bool, wn: number, wstr: string = wf()
-print("wrap", wok, wn, wstr)
+let wn: number, wstr: string = wf()
+print("wrap", wn, wstr)

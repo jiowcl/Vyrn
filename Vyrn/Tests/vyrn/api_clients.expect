@@ -1,0 +1,6 @@
+openai Hello
+gemini Hello
+missing_key true missing API key
+openai_img true
+gemini_img true
+done

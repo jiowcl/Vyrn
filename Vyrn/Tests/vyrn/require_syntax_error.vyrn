@@ -1,0 +1,4 @@
+-- Uncaught module compile error must stop the script.
+print("before")
+let m = require("lib.broken_syntax_error")
+print("after")

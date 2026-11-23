@@ -1,0 +1,54 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.174: Lua-style (local 'x') / (global 'g') suffixes on call/index faults.
+-- 1.6.175: same suffixes on arith / concat / bitwise integer-representation faults.
+
+def call_local()
+  let x = nil
+  return x()
+end
+
+def index_local()
+  let n = nil
+  return n.a
+end
+
+def arith_local()
+  let n = nil
+  return n + 1
+end
+
+def concat_local()
+  let t = {}
+  return "x" .. t
+end
+
+def bit_int_local()
+  let a = 1.5
+  return a & 1
+end
+
+let ok1, e1 = pcall(call_local)
+print(ok1, string.find(e1, "(local 'x')", 1, true) ~= nil)
+
+let ok2, e2 = pcall(index_local)
+print(ok2, string.find(e2, "(local 'n')", 1, true) ~= nil)
+
+-- Nested call captures top-level let as an upvalue.
+let g = nil
+let ok3, e3 = pcall(function()
+  return g()
+end)
+print(ok3, string.find(e3, "(upvalue 'g')", 1, true) ~= nil)
+
+let ok4, e4 = pcall(arith_local)
+print(ok4, string.find(e4, "(local 'n')", 1, true) ~= nil)
+
+let ok5, e5 = pcall(concat_local)
+print(ok5, string.find(e5, "(local 't')", 1, true) ~= nil)
+
+let ok6, e6 = pcall(bit_int_local)
+print(ok6, string.find(e6, "has no integer representation", 1, true) ~= nil,
+  string.find(e6, "(local 'a')", 1, true) ~= nil)
+
+print("operand_name_ok")

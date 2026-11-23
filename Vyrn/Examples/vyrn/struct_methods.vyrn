@@ -1,0 +1,27 @@
+-- vyrn: 12
+-- struct methods: `def name(self)` inside a struct becomes `instance:method()`.
+-- Complements free functions on tables in examples/vyrn/demo.vyrn and Point in typed_tour.vyrn.
+
+struct Vec2
+  x: number
+  y: number
+  def length2(self) -> number
+    return self.x * self.x + self.y * self.y
+  end
+  def dot(self, ox, oy)
+    return self.x * ox + self.y * oy
+  end
+end
+
+let a = Vec2 { x = 1, y = 2 }
+print("len2", a:length2())
+print("dot", a:dot(3, 4))
+
+struct Token
+  kind: number
+  text: string
+  value: number = 0
+end
+
+let t = Token { kind = 1, text = "pi" }
+print("default", t.value)

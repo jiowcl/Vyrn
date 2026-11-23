@@ -1,0 +1,11 @@
+let 1 5
+sum 11
+field 10 4
+assign 1
+compound 11
+wrap 100 42
+loop 200
+loop 300
+later 7
+multi 1 2
+args 1 10 20 30

@@ -1,0 +1,94 @@
+-- @compile-safe
+-- 1.6.85: a multi-value call or ... keeps one value as an operand, in parens, as a key,
+-- field base or non-last list element; it expands only as the last element.
+def two() return 1, 2 end
+def three() return 7, 8, 9 end
+def none() end
+def cnt(...) return select("#", ...) end
+def va(...) return (...) end
+def vall(...) return ... end
+let t = {10, 20, 30}
+let s = "abc"
+print(two() + 0, two() or 5, (two()))
+print((three()), three() * 2, -two(), not two())
+print(none() == nil, none(), (none()))
+print(cnt(two()), cnt(two(), 5), cnt((two())), cnt(two(), two()))
+print(cnt(three()), cnt((three())), cnt(three(), three()))
+print(two() .. "x", "x" .. two(), #(two() .. ""))
+print(t[two()], t[three() - 5])
+print(two() == 1, two() < 2, 1 + two() * 3)
+print(two() and three(), (two() and three()))
+print(cnt(two() and three()), cnt(nil or three()))
+let a1, a2, a3 = two()
+print(a1, a2, a3)
+let b1, b2, b3 = two(), three()
+print(b1, b2, b3)
+let c1, c2 = (two())
+print(c1, c2)
+let tt = {two(), three()}
+print(#tt, tt[1], tt[2], tt[4])
+let tu = {three(), two()}
+print(#tu, tu[1], tu[2], tu[3])
+let tp = {(three())}
+print(#tp)
+let tk = {}
+tk[two()] = "k"
+print(tk[1], tk[2])
+def r1() return two() end
+def r2() return (two()) end
+def r3() return two(), 5 end
+def r4() return 5, two() end
+print(cnt(r1()), cnt(r2()), cnt(r3()), cnt(r4()))
+print(va(4, 5, 6), cnt(vall(4, 5, 6)), cnt((vall(4, 5, 6))))
+def vp(...) return cnt((...)), cnt(...), (...) end
+print(vp(1, 2, 3))
+print(cnt(vp(1, 2, 3)))
+print(string.upper(s) .. "!", tostring(two()), type(two()))
+print(select("#", s:upper()), cnt(s:find("b")), (s:find("b")))
+print(s:find("b") + 0, cnt((s:find("b"))))
+let m = {}
+def m.f() return 3, 4 end
+def m:g() return self == m, 6 end
+print(m.f() + 1, (m.f()), cnt(m.f()), m:g())
+print(cnt((m:g())), m:g() and "y")
+let x, y = two(), 9
+print(x, y)
+let z = {math.max(two())}
+print(#z, z[1])
+for i = 1, 2 do
+  print(i + two(), (three()))
+end
+let fn = function() return two() end
+print(fn() + 0, cnt(fn()))
+def vx(...) return ... + 0, cnt((...)), cnt(..., 5) end
+print(vx(4, 5, 6))
+def vt(...)
+  let a, b = ...
+  let c, d = (...)
+  let t = {(...)}
+  let u = {..., 0}
+  let w = {}
+  w[...] = "w"
+  return a, b, c, d, #t, #u, w[4]
+end
+print(vt(4, 5, 6))
+def rr() return two(), three() end
+print(rr())
+print(cnt(rr()))
+let tt = {two(), three()}
+print(#tt, tt[1], tt[2], tt[4])
+let tn = {none(), none()}
+print(#tn)
+print(none() == nil, (none()) == nil)
+print(two() .. "x", -three() + 1, two() < three())
+gx = two()
+print(gx)
+let o = {}
+o.k = three()
+print(o.k)
+let s2 = "a,b"
+print(s2:find(","), s2:find(",") + 1)
+print(cnt(s2:find(","), 1), cnt(1, s2:find(",")))
+print(math.max(three()), math.max(three(), 1), math.max(1, three()))
+print(table.unpack({1, 2, 3}), (table.unpack({1, 2, 3})))
+print(cnt(table.unpack({1, 2, 3}), 0))

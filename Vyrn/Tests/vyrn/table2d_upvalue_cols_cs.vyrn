@@ -1,0 +1,51 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.114: table.get2d / set2d inside a loop where the column count is an upvalue
+-- (a top-level let read inside a function) or a global. The loop row-base hoist only
+-- works with locals; before the fix the row base stayed nil and get2d raised
+-- "bad arguments to 'get2d'". Expected output hand-checked (row-major r*cols+c).
+let size = 3
+let grid = table.create2d(size, size, 0)
+def fill()
+  for r = 1, size do
+    for c = 1, size do
+      table.set2d(grid, r, c, size, r * 10 + c)
+    end
+  end
+end
+def row_sum(r)
+  let s = 0
+  for c = 1, size do
+    s = s + table.get2d(grid, r, c, size)
+  end
+  return s
+end
+def show()
+  for r = 1, size do
+    print(table.get2d(grid, r, 1, size), table.get2d(grid, r, size, size))
+  end
+end
+fill()
+show()
+print(row_sum(1), row_sum(2), row_sum(3))
+WIDTH = 2
+let g2 = table.create2d(2, WIDTH, 7)
+def gsum()
+  let s = 0
+  for r = 1, 2 do
+    for c = 1, WIDTH do
+      s = s + table.get2d(g2, r, c, WIDTH)
+    end
+  end
+  return s
+end
+print(gsum())
+def local_cols()
+  let n = size
+  let s = 0
+  for r = 1, n do
+    s = s + table.get2d(grid, r, r, n)
+  end
+  return s
+end
+print(local_cols())

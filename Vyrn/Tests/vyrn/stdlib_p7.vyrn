@@ -1,0 +1,25 @@
+-- vyrn: 12
+-- P7: path.size / mtime / copy; file:read(n) byte count
+
+path.mkdirs("artifacts")
+let p = path.join("artifacts", "_p7_src.txt")
+let q = path.join("artifacts", "_p7_dst.txt")
+os.remove(p)
+os.remove(q)
+
+let w = io.open(p, "w")
+w:write("hello!")
+w:close()
+
+print(path.size(p))
+print(type(path.mtime(p)))
+print(path.mtime(p) > 0)
+print(path.copy(p, q))
+print(path.size(q))
+print(path.size("artifacts/_p7_missing.txt"))
+
+let f = io.open(p, "r")
+print(f:read(2))
+print(f:read(3))
+print(f:read("*a"))
+f:close()

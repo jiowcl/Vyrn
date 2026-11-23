@@ -1,0 +1,4 @@
+-- vyrn: 12 strict
+def worker() -> number, string
+  yield "bad", 1
+end

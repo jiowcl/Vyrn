@@ -1,0 +1,6 @@
+-- @compile-safe
+-- vyrn: 10
+-- named import via Compile auto-bundle
+
+import { run, tag } from "lib.mod_exports"
+print(run("x"), tag())

@@ -1,0 +1,317 @@
+-- vyrn: 12
+-- OpenAI Chat Completions + file-upload helpers (extracted 1.6.136).
+-- Doc comments and opts: table hints added in 1.6.145.
+-- Load with require("ai.openai"). Caller passes opts.key / opts.base.
+-- Image: opts.image_path (crypto.tobase64_file) or opts.image_b64,
+-- and optional opts.image_mime (default image/png).
+
+let net = require("net.util")
+
+@doc("Chat Completions helper (opts.key, optional opts.base / opts.model / opts.prompt / image)")
+def openai_chat(opts: table)
+  if type(opts) ~= "table" then
+    return nil, "openai_chat: options table expected"
+  end
+  let key = opts.key or ""
+  let base = opts.base or "https://api.openai.com"
+  let model = opts.model or "gpt-4o-mini"
+  let prompt = opts.prompt or "Say hello in one word."
+  let timeout = opts.timeout or 30
+  if key == "" then
+    return nil, "missing API key"
+  end
+  let img, mime, ierr = net.resolve_image(opts)
+  if ierr then
+    return nil, ierr
+  end
+  let url = base .. "/v1/chat/completions"
+  let hdr = {}
+  hdr["Authorization"] = "Bearer " .. key
+  hdr["Content-Type"] = "application/json"
+  let content
+  if img then
+    content = {
+      { type = "text", text = prompt },
+      { type = "image_url", image_url = { url = "data:" .. mime .. ";base64," .. img } }
+    }
+  else
+    content = prompt
+  end
+  let body = json.encode({
+    model = model,
+    messages = {
+      { role = "user", content = content }
+    }
+  })
+  let r, err = http.request({ method = "POST", url = url, headers = hdr, body = body, timeout = timeout })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+  end
+  let data, jerr = json.decode(r.body)
+  if not data then
+    return nil, jerr
+  end
+  let choices = data.choices
+  if type(choices) ~= "table" or type(choices[1]) ~= "table" then
+    return nil, "unexpected OpenAI response"
+  end
+  let msg = choices[1].message
+  if type(msg) ~= "table" then
+    return nil, "unexpected OpenAI response"
+  end
+  return msg.content
+end
+
+@doc("Chat Completions with tools; returns the assistant message table (may include tool_calls)")
+def openai_chat_tools(opts: table)
+  if type(opts) ~= "table" then
+    return nil, "openai_chat_tools: options table expected"
+  end
+  let key = opts.key or ""
+  let base = opts.base or "https://api.openai.com"
+  let model = opts.model or "gpt-4o-mini"
+  let timeout = opts.timeout or 30
+  let tools = opts.tools
+  if key == "" then
+    return nil, "missing API key"
+  end
+  if type(tools) ~= "table" or #tools < 1 then
+    return nil, "openai_chat_tools: opts.tools array required"
+  end
+  let messages = opts.messages
+  if type(messages) ~= "table" then
+    let prompt = opts.prompt or "Say hello in one word."
+    messages = { { role = "user", content = prompt } }
+  end
+  let url = base .. "/v1/chat/completions"
+  let hdr = {}
+  hdr["Authorization"] = "Bearer " .. key
+  hdr["Content-Type"] = "application/json"
+  let payload = {
+    model = model,
+    messages = messages,
+    tools = tools
+  }
+  if opts.tool_choice ~= nil then
+    payload.tool_choice = opts.tool_choice
+  end
+  let body = json.encode(payload)
+  let r, err = http.request({ method = "POST", url = url, headers = hdr, body = body, timeout = timeout })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+  end
+  let data, jerr = json.decode(r.body)
+  if not data then
+    return nil, jerr
+  end
+  let choices = data.choices
+  if type(choices) ~= "table" or type(choices[1]) ~= "table" then
+    return nil, "unexpected OpenAI response"
+  end
+  let msg = choices[1].message
+  if type(msg) ~= "table" then
+    return nil, "unexpected OpenAI response"
+  end
+  return msg
+end
+
+@doc("POST /v1/files multipart upload (opts.key, opts.path, optional purpose / filename)")
+def openai_files_upload(opts: table)
+  if type(opts) ~= "table" then
+    return nil, "openai_files_upload: options table expected"
+  end
+  let key = opts.key or ""
+  let base = opts.base or "https://api.openai.com"
+  let file_path = opts.path or ""
+  let purpose = opts.purpose or "assistants"
+  let timeout = opts.timeout or 30
+  let filename = opts.filename
+  let content_type = opts.content_type or "application/octet-stream"
+  if key == "" then
+    return nil, "missing API key"
+  end
+  if file_path == "" then
+    return nil, "missing file path"
+  end
+  let hdr = {}
+  hdr["Authorization"] = "Bearer " .. key
+  let r, err = http.request({
+    method = "POST",
+    url = base .. "/v1/files",
+    headers = hdr,
+    timeout = timeout,
+    multipart = {
+      {name = "purpose", value = purpose},
+      {name = "file", path = file_path, filename = filename, content_type = content_type}
+    }
+  })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+  end
+  let data, jerr = json.decode(r.body)
+  if not data then
+    return nil, jerr
+  end
+  return data
+end
+
+-- 1.6.128: streaming helper. on_delta(piece) is optional. [DONE] is handled here.
+@doc("Streaming Chat Completions; optional opts.on_delta(piece) and [DONE] handling")
+def openai_chat_stream(opts: table)
+  if type(opts) ~= "table" then
+    return nil, "openai_chat_stream: options table expected"
+  end
+  let key = opts.key or ""
+  let base = opts.base or "https://api.openai.com"
+  let model = opts.model or "gpt-4o-mini"
+  let prompt = opts.prompt or "Say hello in one word."
+  let timeout = opts.timeout or 60
+  if key == "" then
+    return nil, "missing API key"
+  end
+  let url = base .. "/v1/chat/completions"
+  let hdr = {}
+  hdr["Authorization"] = "Bearer " .. key
+  hdr["Content-Type"] = "application/json"
+  let payload = {
+    model = model,
+    stream = true,
+    messages = {
+      { role = "user", content = prompt }
+    }
+  }
+  let acc = ""
+  let text = ""
+  let r, err = http.request({
+    method = "POST",
+    url = url,
+    headers = hdr,
+    body = json.encode(payload),
+    timeout = timeout,
+    on_chunk = function(chunk)
+      acc = acc .. chunk
+      let evs, rest = http.sse_events(acc)
+      acc = rest
+      let i = 1
+      while i <= #evs do
+        let d = evs[i].data
+        if d == "[DONE]" then
+          return false
+        end
+        let obj, je = json.decode(d)
+        if obj and obj.choices and obj.choices[1] and obj.choices[1].delta then
+          let piece = obj.choices[1].delta.content or ""
+          text = text .. piece
+          if type(opts.on_delta) == "function" and piece ~= "" then
+            opts.on_delta(piece)
+          end
+        end
+        i = i + 1
+      end
+    end
+  })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status)
+  end
+  return text
+end
+
+@doc("Embeddings helper; opts.input is a string or array of strings; returns one vector or an array of vectors")
+def openai_embeddings(opts: table)
+  if type(opts) ~= "table" then
+    return nil, "openai_embeddings: options table expected"
+  end
+  let key = opts.key or ""
+  let base = opts.base or "https://api.openai.com"
+  let model = opts.model or "text-embedding-3-small"
+  let timeout = opts.timeout or 30
+  let input = opts.input
+  if key == "" then
+    return nil, "missing API key"
+  end
+  if type(input) ~= "string" and type(input) ~= "table" then
+    return nil, "openai_embeddings: opts.input string or array required"
+  end
+  if type(input) == "table" and #input < 1 then
+    return nil, "openai_embeddings: opts.input array must be non-empty"
+  end
+  let url = base .. "/v1/embeddings"
+  let hdr = {}
+  hdr["Authorization"] = "Bearer " .. key
+  hdr["Content-Type"] = "application/json"
+  let body = json.encode({
+    model = model,
+    input = input
+  })
+  let r, err = http.request({ method = "POST", url = url, headers = hdr, body = body, timeout = timeout })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+  end
+  let data, jerr = json.decode(r.body)
+  if not data then
+    return nil, jerr
+  end
+  let rows = data.data
+  if type(rows) ~= "table" or #rows < 1 then
+    return nil, "unexpected OpenAI embeddings response"
+  end
+  -- Sort by index when present so batch order matches input.
+  let i = 1
+  while i <= #rows do
+    let j = i + 1
+    while j <= #rows do
+      let ii = rows[i].index
+      let jj = rows[j].index
+      if type(ii) == "number" and type(jj) == "number" and jj < ii then
+        let tmp = rows[i]
+        rows[i] = rows[j]
+        rows[j] = tmp
+      end
+      j = j + 1
+    end
+    i = i + 1
+  end
+  if type(input) == "string" then
+    let emb = rows[1].embedding
+    if type(emb) ~= "table" then
+      return nil, "unexpected OpenAI embeddings response"
+    end
+    return emb
+  end
+  let out = {}
+  let k = 1
+  while k <= #rows do
+    let emb = rows[k].embedding
+    if type(emb) ~= "table" then
+      return nil, "unexpected OpenAI embeddings response"
+    end
+    out[k] = emb
+    k = k + 1
+  end
+  return out
+end
+
+let M = {}
+M.openai_chat = openai_chat
+M.openai_chat_tools = openai_chat_tools
+M.openai_files_upload = openai_files_upload
+M.openai_chat_stream = openai_chat_stream
+M.openai_embeddings = openai_embeddings
+M.is_disabled_net = net.is_disabled_net
+M.resolve_image = net.resolve_image
+return M

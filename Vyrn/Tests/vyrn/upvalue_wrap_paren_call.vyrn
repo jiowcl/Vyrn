@@ -1,0 +1,19 @@
+-- vyrn: 12
+-- Paren-wrapped upvalue call before bind still warns + expands.
+def wrapped()
+  yield 7, 8
+end
+
+def make()
+  let w = 0
+  def run()
+    print("paren", (w)())
+  end
+  def bind()
+    w = coroutine.wrap(wrapped)
+  end
+  bind()
+  run()
+end
+
+make()

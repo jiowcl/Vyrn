@@ -1,0 +1,5 @@
+# Rename to on_run_finish.ps1 to run after each F5 (fast, non-interactive).
+$log = Join-Path $env:TEMP "vyrn_ide_hooks.log"
+$line = "$(Get-Date -Format o) run_ok=$env:VYRN_IDE_RUN_OK file=$env:VYRN_IDE_FILE"
+Add-Content -LiteralPath $log -Value $line -Encoding UTF8
+Write-Output "[hook] run_finish ok=$env:VYRN_IDE_RUN_OK -> $log"

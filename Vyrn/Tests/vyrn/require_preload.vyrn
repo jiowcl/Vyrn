@@ -1,0 +1,18 @@
+-- @compile-safe
+-- require + package.preload (no filesystem load)
+
+def __mod_m(name)
+  def greeter(x)
+    return "hi:" .. x
+  end
+  return greeter
+end
+
+let pl = package.preload
+pl["m"] = __mod_m
+
+let f = require("m")
+print(f("a"))
+let f2 = require("m")
+print(f2("b"))
+print(type(package.loaded["m"]))

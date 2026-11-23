@@ -1,0 +1,10 @@
+err bad argument to 'http' (opts.body and opts.multipart are mutually exclusive)
+err bad argument to 'http' (opts.multipart cannot be used with GET or HEAD)
+err bad argument to 'http' (opts.multipart must be a table)
+err bad argument to 'http' (opts.multipart entries must be tables)
+err bad argument to 'http' (multipart part name string required)
+err bad argument to 'http' (multipart part must have exactly one of value, path, base64, or hex)
+err bad argument to 'http' (multipart part needs value, path, base64, or hex)
+err bad argument to 'http' (opts.max must be a number between 0 and 1073741824)
+err http: file not found
+done

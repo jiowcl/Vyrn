@@ -1,0 +1,14 @@
+-- @compile-safe
+-- vyrn: 12
+-- examples/vyrn/showcase/http_serve.vyrn — capability-gated http.serve (1.6.156)
+-- Without --allow-listen, serve raises a clear error (examples-check / ship_smoke).
+
+let ok, err = pcall(http.serve, {
+  host = "127.0.0.1",
+  port = 18766,
+  max_requests = 1,
+  handler = function(req) return "x" end
+})
+assert(ok == false)
+assert(type(err) == "string")
+print("disabled", string.find(err, "allow%-listen", 1, false) ~= nil or string.find(err, "listen is disabled", 1, false) ~= nil)

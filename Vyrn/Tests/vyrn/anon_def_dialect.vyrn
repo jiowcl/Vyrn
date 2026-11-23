@@ -1,0 +1,11 @@
+-- Anonymous def(...) below dialect 8 gives a clear compile error naming the module + line.
+def has(s, needle)
+  if string.find(s, needle, 1, true) then
+    return true
+  end
+  return false
+end
+let ok, msg = pcall(require, "lib.anon_def_low")
+print(ok)
+print(has(msg, "anon_def_low.vyrn:3:"))
+print(has(msg, "anonymous def(...) requires dialect >= 8"))

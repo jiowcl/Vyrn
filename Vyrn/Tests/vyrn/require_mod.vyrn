@@ -1,0 +1,5 @@
+-- @compile-safe
+-- require via Compile auto-bundle of lib.greet
+
+let greet = require("lib.greet")
+print(greet("Vyrn"))

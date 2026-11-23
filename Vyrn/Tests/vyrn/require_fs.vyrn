@@ -1,0 +1,11 @@
+-- @compile-safe
+-- filesystem require via package.path -> companion .vyrnc
+-- libvyrnrt cannot compile .vyrn/.lua source; ship emits fsmod.vyrnc into suite dir
+-- ship_smoke cwd is native/rt when running compile_suite
+
+package.path = "../../artifacts/ship_smoke/compile_suite/?.vyrnc;" .. package.path
+let f = require("fsmod")
+print(f("a"))
+let f2 = require("fsmod")
+print(f2("b"))
+print(type(package.loaded["fsmod"]))

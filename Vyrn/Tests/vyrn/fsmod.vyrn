@@ -1,0 +1,5 @@
+-- module for filesystem require (.vyrnc); returns a function
+def greet(name)
+  return "fs:" .. name
+end
+return greet

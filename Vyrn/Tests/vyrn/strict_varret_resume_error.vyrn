@@ -1,0 +1,8 @@
+-- vyrn: 12 strict
+def worker()
+  yield 1, "x"
+end
+
+let co = coroutine.create(worker)
+; First resume binding is always bool under --strict.
+let ok: number, a, b = coroutine.resume(co)

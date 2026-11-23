@@ -1,0 +1,15 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- 1.6.71: the frame array grows past 256 / ~12190 frames (both PB and rt);
+-- an unlimited header allows deep recursion up to the hard cap, and going
+-- beyond it is a clean "Call stack overflow" error (caught by pcall).
+def f(n)
+    if n == 0 then return 0 end
+    return 1 + f(n - 1)
+end
+print(f(300))
+print(f(20000))
+print(f(150000))
+let ok, msg = pcall(f, 250000)
+print("overflow", ok)
+print(f(10))

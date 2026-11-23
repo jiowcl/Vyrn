@@ -1,0 +1,31 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.114: a function value passed as the FIRST argument to a known Vyrn function.
+-- libvyrnrt mistook the argument for the callee (CALL_KNOWN puts the first argument
+-- at call_base) and the parameter read as nil. Expected output checked against Lua 5.4.
+def show(b)
+  print(type(b), b == nil)
+end
+def double(x)
+  return x * 2
+end
+show(double)
+show(def(x) return x + 1 end)
+def apply(f, v)
+  return f(v)
+end
+print(apply(double, 21))
+print(apply(def(x) return x .. "!" end, "hi"))
+def run(body)
+  let co = coroutine.create(body)
+  let ok, v = coroutine.resume(co, 5)
+  return ok, v
+end
+print(run(def(n) return n * 10 end))
+def first_only(f)
+  return f
+end
+print(first_only(double)(4))
+let g = double
+show(g)
+show(print)

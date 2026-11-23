@@ -1,0 +1,31 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.112: strings are UTF-8 byte sequences on both runtimes. # and string.*
+-- count and index bytes (Lua 5.4); the utf8 library works on code points.
+-- Expected output checked against Lua 5.4.
+
+let s = "héllo中"
+print(#s, string.len(s), s:len(), utf8.len(s))
+print(string.byte(s, 1, 3))
+print(string.sub(s, 2, 3), string.sub(s, -3))
+print(string.upper(s))
+print(string.find(s, "llo"))
+print(string.find(s, "中", 1, true))
+print(string.match(s, "h(.+)o"))
+print(s:gsub("l", "L"))
+print(string.rep("é", 3), #string.rep("é", 3))
+print(string.format("%s|%d", s, #s))
+print(string.reverse("abc"), string.char(104, 195, 169))
+print(("中文"):len(), utf8.len("中文"))
+print(utf8.char(72, 233, 20013, 128512))
+print(utf8.codepoint(s, 1, -1))
+print(utf8.offset(s, 3), utf8.offset(s, -1), utf8.offset(s, 0, 3))
+for p, c in utf8.codes(s) do
+    print(p, c)
+end
+print(utf8.len(s, 2), utf8.len(s, 4))
+print(utf8.len(s, 3))
+print((pcall(utf8.len, s, 20)))
+print((pcall(utf8.codepoint, s, 3)))
+print((pcall(utf8.char, -1)))
+print(select('#', utf8.codepoint(s, 4, 3)))

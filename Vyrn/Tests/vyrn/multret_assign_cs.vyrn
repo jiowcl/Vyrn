@@ -1,0 +1,36 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.71: a multi-return call used as an operand / assigned value is
+-- truncated to its first value, so later locals do not read stray
+-- return values (e.g. a later yield from a wrap call used as a single value).
+def two() return 1, 2 end
+def three() return 10, 20, 30 end
+let x = two()
+let y = 5
+print("let", x, y)
+let s = two() + three()
+print("sum", s)
+let t = {}
+t.a = three()
+t.b = two() * 4
+print("field", t.a, t.b)
+let z = 0
+z = two()
+print("assign", z)
+z += three()
+print("compound", z)
+let gen = coroutine.wrap(def()
+    for i = 1, 3 do coroutine.yield(i * 100) end
+end)
+let v = gen()
+let after = 42
+print("wrap", v, after)
+for j = 1, 2 do
+    let v2 = gen()
+    print("loop", v2)
+end
+let later = 7
+print("later", later)
+let p, q = two()
+print("multi", p, q)
+print("args", two(), three())

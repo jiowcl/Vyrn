@@ -1,0 +1,29 @@
+arg 0 0 0 1
+arg2 1 2 1 2
+nest 1 1 0 0
+vk 0 0 1
+
+after-empty
+meth 0 0 0 1 1
+tbl 0 1 0 0
+lit 1 1 2 1 1
+lit2 1 0 1 function
+pack 0 1 1
+ret 0 0
+ret2 1 1
+let nil nil
+let1 nil
+paren 1 1
+ops d true true
+pcall 1 true
+pcall2 3 true 1 2
+co-start 0
+res1 1
+co-r nil
+res2 1
+co-s nil
+res3 1
+res4 1
+wr-start 0
+wrap 0 0
+insert 0

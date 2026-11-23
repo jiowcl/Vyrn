@@ -1,0 +1,12 @@
+-- 1.6.122: allowlist blocks redirect hop to 127.0.0.2.
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+let ok, err = pcall(function()
+  http.get(base .. "/redirect/other")
+end)
+assert(ok == false, "expected raise on disallowed redirect hop")
+let msg = string.gsub(tostring(err), "^.-%d+: ", "")
+assert(string.find(msg, "network access to host 127.0.0.2 is not allowed", 1, true), msg)
+print("redir_deny_ok")
+print("done")

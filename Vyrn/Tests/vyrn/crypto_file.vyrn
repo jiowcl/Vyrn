@@ -1,0 +1,85 @@
+-- @compile-safe
+-- vyrn: 13
+-- 1.6.126: crypto.*_file — native binary I/O (NUL / high bytes), both runtimes.
+-- Fixture is checked in; do not put NULs in Vyrn string literals.
+
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+
+def soft(v, e)
+  if v ~= nil then return "ok" end
+  return "err " .. tostring(e)
+end
+
+let fixture_hex = "68656c6c6f0001fffe80776f726c64"
+let fx = path.join("tests", "vyrn", "fixtures", "crypto_nul.bin")
+let outdir = path.join("tests", "vyrn", "fixtures")
+if not path.isdir(outdir) then
+  -- compile_suite / vbc_run may not start in the repo root.
+  outdir = os.getenv("TEMP") or os.getenv("TMP") or os.getenv("TMPDIR") or ""
+  if outdir == "" or not path.isdir(outdir) then
+    outdir = path.join(path.cwd(), "_vyrn_crypto_file_tmp")
+    path.mkdirs(outdir)
+  end
+end
+if not path.isfile(fx) then
+  fx = path.join(outdir, "vyrn_crypto_nul.bin")
+  let made, me = crypto.fromhex_file(fx, fixture_hex)
+  assert(made, me)
+end
+
+let b64, be = crypto.tobase64_file(fx)
+assert(b64, be)
+print("b64", b64)
+
+let hx, he = crypto.tohex_file(fx)
+assert(hx, he)
+print("hex", hx)
+
+print("md5", crypto.md5_file(fx))
+print("sha1", crypto.sha1_file(fx))
+print("sha256", crypto.sha256_file(fx))
+print("crc", crypto.crc32_file(fx))
+
+let tmp = path.join(outdir, "_crypto_file_rt.bin")
+os.remove(tmp)
+let ok, we = crypto.frombase64_file(tmp, b64)
+assert(ok, we)
+print("rt_b64", crypto.tobase64_file(tmp) == b64, crypto.tohex_file(tmp) == hx)
+os.remove(tmp)
+
+let okh, weh = crypto.fromhex_file(tmp, hx)
+assert(okh, weh)
+print("rt_hex", crypto.sha256_file(tmp) == crypto.sha256_file(fx))
+os.remove(tmp)
+
+-- Empty file via writer
+let empty = path.join(outdir, "_crypto_file_empty.bin")
+os.remove(empty)
+assert(crypto.frombase64_file(empty, ""), "empty write")
+print("empty", crypto.tobase64_file(empty) == "", crypto.tohex_file(empty) == "", crypto.md5_file(empty), crypto.crc32_file(empty))
+os.remove(empty)
+
+-- Oversize / missing / invalid data (nil, err — not a raise)
+let ov, ove = crypto.tobase64_file(fx, { max = 1 })
+print("oversize", soft(ov, ove))
+let miss, mise = crypto.tobase64_file(path.join(outdir, "no_such_crypto_file_zzz.bin"))
+print("missing", soft(miss, mise))
+let bad, bade = crypto.frombase64_file(tmp, "!!!!")
+print("bad_b64", soft(bad, bade), path.isfile(tmp) ~= true)
+let badh, badhe = crypto.fromhex_file(tmp, "zz")
+print("bad_hex", soft(badh, badhe))
+let wow, wowe = crypto.frombase64_file(tmp, b64, { max = 1 })
+print("write_oversize", soft(wow, wowe), path.isfile(tmp) ~= true)
+
+-- Bad arguments raise
+print(msg(pcall(crypto.tobase64_file, 1)))
+print(msg(pcall(crypto.tobase64_file, fx, 9)))
+print(msg(pcall(crypto.frombase64_file, tmp)))
+print(msg(pcall(crypto.md5_file, { max = 1 })))
+print(msg(pcall(crypto.tobase64_file, fx, { max = -1 })))
+print(msg(pcall(crypto.tobase64_file, fx, { max = 2147483648 })))
+
+print("done")

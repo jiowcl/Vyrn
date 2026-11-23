@@ -1,0 +1,8 @@
+-- @compile-safe
+-- math.clamp / sign / lerp / remap on libvyrnrt
+
+print(math.clamp(5, 0, 3), math.clamp(-1, 0, 3), math.clamp(2, 0, 3))
+print(math.clamp(1, 5, 2))
+print(math.sign(5), math.sign(0), math.sign(-2))
+print(math.lerp(0, 10, 0.5), math.lerp(2, 8, 0.25))
+print(math.remap(5, 0, 10, 0, 100), math.remap(0, 0, 0, 7, 9))

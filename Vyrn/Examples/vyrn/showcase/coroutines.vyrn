@@ -3,17 +3,9 @@
 -- Showcase: coroutines as generators, a producer/filter/consumer pipeline, status.
 -- Run: bin\LuaLiteVM_build.exe examples\vyrn\showcase\coroutines.vyrn
 
--- A generator: wrap a yielding function in an iterator for a generic for.
--- (Vyrn's coroutine.wrap returns resume's (ok, ...) tuple, so iterate with resume.)
+-- A generator: coroutine.wrap is a Lua 5.4 iterator (payload only; errors re-raise).
 def generator(body)
-    let co = coroutine.create(body)
-    return def()
-        let ok, v = coroutine.resume(co)
-        if ok then
-            return v
-        end
-        error(v, 0)
-    end
+    return coroutine.wrap(body)
 end
 
 def range(n, step)

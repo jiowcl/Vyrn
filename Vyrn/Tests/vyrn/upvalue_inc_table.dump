@@ -1,0 +1,4 @@
+# chat-like upvalue inc then bracket assign
+STORE_UPVALUE
+SET_TABLE
+!INC_GLOBAL

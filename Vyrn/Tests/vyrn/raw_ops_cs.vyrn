@@ -1,0 +1,18 @@
+-- @compile-safe
+-- rawget / rawset / rawequal / unpack
+
+let t = {a = 1, b = 2}
+print(rawget(t, "a"))
+print(rawget(t, "missing") == nil)
+rawset(t, "c", 3)
+print(rawget(t, "c"))
+print(t.c)
+let u = t
+print(rawequal(t, u))
+print(rawequal(t, {a = 1}) == false)
+print(rawequal(1, 1))
+print(rawequal(1, "1") == false)
+
+let arr = {10, 20, 30}
+let x, y = unpack(arr, 1, 2)
+print("unpack", x, y)

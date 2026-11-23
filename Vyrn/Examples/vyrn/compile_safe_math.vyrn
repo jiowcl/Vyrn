@@ -1,5 +1,6 @@
 -- @compile-safe
 -- vyrn: 12
 -- Compile-safe math sample (libvyrnrt): subset + unary minus.
+-- See docs/CompileSafeMatrix.md / docs/VyrnShip-Phase7.md
 
 print(math.abs(-4), math.sqrt(16), math.floor(math.pi), math.pow(2, 3))

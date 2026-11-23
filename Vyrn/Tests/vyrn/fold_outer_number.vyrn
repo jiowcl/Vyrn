@@ -1,0 +1,12 @@
+-- vyrn: 12
+-- Outer `const` number bindings fold into nested funcs (no upvalue / CLOSURE).
+
+const scale: number = 2
+const bias: number = 10
+
+def scale_add(n: number) -> number
+    return n * scale + bias
+end
+
+print(scale_add(3))
+print(scale_add(5))

@@ -1,0 +1,14 @@
+-- @compile-safe
+-- io.write + io.stdin/stdout/stderr numeric handles (PB parity, 1.6.62)
+
+io.write("a", "b", 1, "\n")
+io.write(io.stdout, "x")
+io.write(io.stdout, "y\n")
+print(io.type(io.stdout))
+print(io.type(io.stdin))
+print(io.type(io.stderr))
+io.write("partial ")
+print("then print")
+io.write(io.stderr, "")
+io.flush()
+print("done")

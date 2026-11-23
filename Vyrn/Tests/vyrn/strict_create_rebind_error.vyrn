@@ -1,0 +1,13 @@
+-- vyrn: 12 strict
+def f() -> number
+  yield 1
+end
+
+def g() -> string
+  yield "x"
+end
+
+let co = coroutine.create(f)
+co = coroutine.create(g)
+-- After rebind, resume payload is string; number binding is wrong.
+let ok: bool, n: number = coroutine.resume(co)

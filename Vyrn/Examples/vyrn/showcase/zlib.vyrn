@@ -1,4 +1,7 @@
+-- @compile-safe
+-- vyrn: 12
 -- Showcase: json + zlib roundtrip (1.6.124). Stable output (no object key order).
+
 let body = json.encode({10, 20, 30})
 print("json", body)
 let z = zlib.compress(body, {encoding = "hex"})

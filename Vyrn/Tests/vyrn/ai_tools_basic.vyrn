@@ -1,0 +1,83 @@
+-- vyrn: 12
+-- 1.6.160: lib/ai/tools helpers (offline; no network)
+assert(type(package) == "table")
+assert(type(math) == "table")
+let tools = require("ai.tools")
+
+const WeatherParams: table = {
+  type = "object",
+  properties = {
+    city = { type = "string", minLength = 1 }
+  },
+  required = { "city" },
+  additionalProperties = false
+}
+
+let odef = tools.openai_tool_def("get_weather", "Look up weather", WeatherParams)
+assert(odef.type == "function")
+assert(odef["function"].name == "get_weather")
+
+let gdecl = tools.gemini_function_decl("get_weather", "Look up weather", WeatherParams)
+assert(gdecl.name == "get_weather")
+
+-- Canned OpenAI assistant message with tool_calls (arguments as JSON string)
+let ofn = {
+  name = "get_weather",
+  arguments = json.encode({ city = "Taipei" })
+}
+let otc = { id = "call_1", type = "function" }
+otc["function"] = ofn
+let omsg = {
+  role = "assistant",
+  content = json.null,
+  tool_calls = { otc }
+}
+let calls, cerr = tools.openai_parse_tool_calls(omsg)
+assert(calls, cerr)
+assert(#calls == 1)
+assert(calls[1].name == "get_weather")
+assert(calls[1].arguments.city == "Taipei")
+
+let handlers = {}
+handlers.get_weather = function(args)
+  return { ok = true, city = args.city, celsius = 28 }
+end
+let schemas = {}
+schemas.get_weather = WeatherParams
+
+let result, rerr = tools.run_tool(calls[1], handlers, schemas)
+assert(result, rerr)
+assert(result.ok == true and result.city == "Taipei")
+
+let bad_call = { name = "get_weather", arguments = { city = "" } }
+let bad, berr = tools.run_tool(bad_call, handlers, schemas)
+assert(bad == nil)
+assert(type(berr) == "string")
+
+let tool_msg = tools.openai_tool_message(calls[1].id, result)
+assert(tool_msg.role == "tool")
+assert(tool_msg.tool_call_id == "call_1")
+let back, jerr = json.decode(tool_msg.content)
+assert(back, jerr)
+assert(back.celsius == 28)
+
+-- Canned Gemini functionCall
+let gresp = {
+  candidates = {
+    {
+      content = {
+        parts = {
+          { functionCall = { name = "get_weather", args = { city = "Taipei" } } }
+        },
+        role = "model"
+      }
+    }
+  }
+}
+let gcalls, gerr = tools.gemini_parse_function_calls(gresp)
+assert(gcalls, gerr)
+assert(#gcalls == 1 and gcalls[1].name == "get_weather")
+let gres = tools.gemini_function_response("get_weather", { celsius = 28 })
+assert(gres.functionResponse.name == "get_weather")
+
+print("ai_tools_basic_ok")

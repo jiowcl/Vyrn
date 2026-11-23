@@ -1,0 +1,19 @@
+map1 false bad argument #1 to 'map' (table expected)
+map2 false bad argument #2 to 'map' (function expected)
+filter1 false bad argument #1 to 'filter' (table expected)
+filter2 false bad argument #2 to 'filter' (function expected)
+sort2 false bad argument #2 to 'table.sort' (function expected)
+sortinv false invalid order function for sorting
+create2d false bad argument #1 to 'create2d' (positive number expected)
+cocreate false bad argument #1 to 'coroutine.create' (function expected)
+costatus false bad argument #1 to 'coroutine.status' (coroutine expected)
+cowrap false bad argument #1 to 'coroutine.wrap' (function expected)
+ipairs false bad argument #1 to 'ipairs' (table expected)
+pairs false bad argument #1 to 'pairs' (table expected)
+next false bad argument #1 to 'next' (table expected)
+osdate false bad argument #1 to 'os.date' (string expected)
+resumed false bad argument #1 to 'map' (table expected) dead
+wrapped false bad argument #2 to 'table.sort' (function expected)
+callback false cb
+map ok 2 4 6
+reached 0

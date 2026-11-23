@@ -1,0 +1,4 @@
+code 0
+out hello from process.run
+timed_out false
+has_space true

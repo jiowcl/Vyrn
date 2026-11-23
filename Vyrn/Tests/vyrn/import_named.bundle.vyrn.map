@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "file": "import_named.bundle.vyrn",
+  "entry": "tests\\vyrn\\import_named.vyrn",
+  "sources": [
+    "tests\\vyrn\\import_named.vyrn",
+    "tests\\vyrn\\lib\\mod_exports.vyrn"
+  ],
+  "mappings": [
+    {"line": 1, "source": "tests\\vyrn\\import_named.vyrn", "sourceLine": 1},
+    {"line": 2, "source": "tests\\vyrn\\import_named.vyrn", "sourceLine": 1},
+    {"line": 4, "source": "tests\\vyrn\\import_named.vyrn", "sourceLine": 2},
+    {"line": 6, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 1},
+    {"line": 7, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 1},
+    {"line": 8, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 1},
+    {"line": 9, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 2},
+    {"line": 10, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 3},
+    {"line": 11, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 4},
+    {"line": 12, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 5},
+    {"line": 13, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 6},
+    {"line": 14, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 7},
+    {"line": 15, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 8},
+    {"line": 16, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 9},
+    {"line": 17, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 10},
+    {"line": 18, "source": "tests\\vyrn\\lib\\mod_exports.vyrn", "sourceLine": 10},
+    {"line": 20, "source": "tests\\vyrn\\import_named.vyrn", "sourceLine": 2},
+    {"line": 21, "source": "tests\\vyrn\\import_named.vyrn", "sourceLine": 2},
+    {"line": 22, "source": "tests\\vyrn\\import_named.vyrn", "sourceLine": 3}
+  ]
+}

@@ -1,0 +1,11 @@
+-- vyrn: 10
+-- 1.6.77: error(msg, level) prefixes "chunk:line: " (level 1 = caller of error, 2 = its caller, 0 = none).
+def where(ok, m) return ok, (tostring(m):gsub("^.-(%d+): ", "L%1: ")) end
+def f() error("boom") end
+print(where(pcall(f)))
+def g() error("lvl2", 2) end
+def h() g() end
+print(where(pcall(h)))
+print(pcall(def() error("nopos", 0) end))
+print(pcall(def() error({}) end) == false)
+print(pcall(error, "x", 0))

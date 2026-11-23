@@ -1,0 +1,52 @@
+-- vyrn: 10 strict
+-- 1.6.81: declared struct field types are enforced on assignment under strict mode.
+struct P
+    x: number
+    y: number = 0
+    s: string
+end
+struct Box
+    p: P
+    n: number
+end
+def id(v) return v end
+def msg(ok, e)
+  if ok then return tostring(ok) .. ' ' .. tostring(e) end
+  return 'err ' .. string.gsub(tostring(e), '^.-%d+: ', '')
+end
+def tryit(name, f)
+  let ok, e = pcall(f)
+  print(name, msg(ok, e))
+end
+let p = P { x = 1, s = "a" }
+-- constructor
+tryit("ctor_bad", function() return P { x = id("1"), s = "a" } end)
+tryit("ctor_missing", function() return P { s = "a" } end)
+tryit("ctor_default", function() let q = P { x = 2, y = id(nil), s = "b" } return q.y end)
+-- dot store
+tryit("dot_ok", function() p.x = id(3.5) return p.x end)
+tryit("dot_bad", function() p.x = id("str") return p.x end)
+tryit("dot_nil", function() p.x = id(nil) return p.x end)
+tryit("dot_default_nil", function() p.y = id(nil) return p.y end)
+-- bracket store and integer alias
+tryit("brk_bad", function() p["s"] = id(1) return p.s end)
+tryit("brk_ok", function() p["s"] = id("bb") return p.s end)
+def setidx(t, v) t[1] = v end
+tryit("idx_bad", function() setidx(p, "one") return p.x end)
+-- compound assignment
+tryit("cmp_ok", function() p.s ..= 1 return p.s end)
+tryit("cmp_num", function() p.x += id(1) return p.x end)
+tryit("cmp_bad", function() p.x ..= "a" return p.x end)
+-- dynamic receiver (untyped parameter)
+def dyn(t) t.x = "zz" return t.x end
+tryit("dyn", function() return dyn(p) end)
+-- struct-typed field is checked as a table
+let b = Box { p = p, n = 1 }
+tryit("box_bad", function() b.p = id(5) return b.n end)
+tryit("box_ok", function() b.p = id({}) return b.n end)
+-- unknown fields stay dynamic
+tryit("unknown", function() p.z = "free" return p.z end)
+-- state after failed stores is unchanged
+print("state", p.x, p.y, p.s)
+-- not checked: rawset bypasses the guard
+tryit("rawset", function() rawset(p, "x", "w") return p.x end)

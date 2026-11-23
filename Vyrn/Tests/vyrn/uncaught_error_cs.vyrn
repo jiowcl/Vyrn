@@ -1,0 +1,15 @@
+-- @compile-safe
+-- vyrn: 12 strict
+-- 1.6.68: uncaught top-level error. PB CLI and the Compile app_main both print
+-- stdout "[error] <entry path as given>:<line>: Call stack overflow" and exit 1
+-- (ship_smoke compares the compiled exe byte-for-byte against PB).
+
+print("before")
+
+def rec(n)
+    let r = rec(n + 1)
+    return r
+end
+
+rec(1)
+print("unreachable")

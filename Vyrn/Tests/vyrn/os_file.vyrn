@@ -1,0 +1,22 @@
+-- vyrn: 12
+let tmp = "__os_remove_test__.tmp"
+let f = io.open(tmp, "w")
+
+f:write("x")
+f:close()
+
+if os.remove(tmp) then
+    print("remove ok")
+end
+
+let a = "__os_rename_a__.tmp"
+let b = "__os_rename_b__.tmp"
+let g = io.open(a, "w")
+
+g:write("y")
+g:close()
+
+if os.rename(a, b) then
+    print("rename ok")
+    os.remove(b)
+end

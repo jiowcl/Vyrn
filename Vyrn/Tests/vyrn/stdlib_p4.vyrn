@@ -1,0 +1,46 @@
+-- vyrn: 12
+-- Builtins P4a/b/c: math.sign/lerp/remap/atan2, path.mkdirs/rmdir, xpcall, collectgarbage
+
+print(math.sign(-3))
+print(math.sign(0))
+print(math.sign(2))
+print(math.lerp(0, 10, 0.5))
+print(math.remap(5, 0, 10, 0, 100))
+print(math.abs(math.atan2(0, 1)) < 0.0000001)
+print(math.abs(math.atan2(1, 0) - math.pi / 2) < 0.0000001)
+
+let root = path.join("artifacts", "_p4_tmpdir")
+let nested = path.join(root, "a", "b")
+print(path.mkdirs(nested))
+print(path.isdir(nested))
+print(path.rmdir(root))
+print(path.exists(root) == false)
+
+def boom()
+    error("kaboom", 0)
+end
+
+def msgh(err)
+    return "handled:" .. tostring(err)
+end
+
+let ok, payload = xpcall(boom, msgh)
+print(ok)
+print(payload)
+
+def fortytwo()
+    return 42
+end
+
+let ok2, v = xpcall(fortytwo, msgh)
+print(ok2)
+print(v)
+
+print(collectgarbage("collect") == true)
+let n = collectgarbage("count")
+print(type(n) == "number")
+print(n >= 0)
+-- 1.6.79: "count" is approximate KB in use; it grows as tables and strings are allocated
+let gcBig = {}
+for gi = 1, 4000 do gcBig[gi] = "item" .. gi end
+print(collectgarbage("count") > n)

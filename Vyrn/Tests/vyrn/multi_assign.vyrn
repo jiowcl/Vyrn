@@ -1,0 +1,149 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.86: multiple assignment to existing targets (t1, t2, ... = e1, ...).
+-- Order: target prefixes/keys left to right, then all RHS values, then the stores.
+struct Point
+  x: number
+  y: number
+end
+
+-- swaps and rotations (locals)
+let a, b = 1, 2
+a, b = b, a
+print("swap", a, b)
+let x, y, z = 1, 2, 3
+x, y, z = z, x, y
+print("rot", x, y, z)
+
+-- globals
+g1, g2 = 10, 20
+g1, g2 = g2, g1
+print("glob", g1, g2)
+def setg() gx, gy = 1, "y" end
+setg()
+print("glob2", gx, gy)
+
+-- index uses the old i (keys are evaluated before any store)
+let t = {1, 2, 3}
+let i = 1
+i, t[i] = i + 1, 20
+print("idx", i, t[1], t[2])
+t[1], t[3] = t[3], t[1]
+print("tswap", t[1], t[2], t[3])
+
+-- fields, struct fields, chained postfix targets
+let o = {k = 1}
+o.k, o.j = "K", "J"
+print("field", o.k, o.j)
+let p = Point { x = 1, y = 2 }
+p.x, p.y = p.y, p.x
+print("struct", p.x, p.y)
+p["x"], p.y = 7, 8
+print("struct2", p.x, p.y)
+let s = {a = {b = {}}}
+s.a.b.c, s.a.d = 5, 6
+print("chain", s.a.b.c, s.a.d)
+def get() return s end
+get().a.e, get().a["f"] = "E", "F"
+print("callpfx", s.a.e, s.a.f)
+let rows = {{x = 1}, {x = 2}}
+rows[1].x, rows[2].x = rows[2].x, rows[1].x
+print("rows", rows[1].x, rows[2].x)
+
+-- mixed targets
+let m = 0
+let mt = {}
+m, mt.v, mt[2], gm = "m", "v", "two", "g"
+print("mixed", m, mt.v, mt[2], gm)
+
+-- fewer / more RHS values
+a, b = 5
+print("fewer", a, b)
+a, b = 1, 2, print("extra evaluated")
+print("more", a, b)
+
+-- call expansion and truncation
+def two() return 1, 2 end
+def three() return 1, 2, 3 end
+def none() end
+a, b = two()
+print("exp", a, b)
+a, b = three(), 9
+print("trunc", a, b)
+x, y, z = 0, two()
+print("tail", x, y, z)
+x, y, z = two()
+print("pad", x, y, z)
+a, b = (two())
+print("paren", a, b)
+a, b = two(), two()
+print("twotwo", a, b)
+a, b = none()
+print("none", a, b)
+a, b = none(), 5
+print("none1", a, b)
+let obj = {n = "o"}
+def obj:name() return self.n end
+a, b = obj:name(), obj:name() .. "!"
+print("method", a, b)
+
+-- varargs
+def va(...)
+  let p1, p2, p3 = 0, 0, 0
+  p1, p2 = ...
+  print("va", p1, p2)
+  p1, p2, p3 = ..., "z"
+  return p1, p2, p3
+end
+print("vaz", va(7, 8, 9))
+print("vaz0", va())
+
+-- upvalues inside closures
+def mk()
+  let c1, c2 = 0, 0
+  let f = function(u, v) c1, c2 = c2 + u, c1 + v end
+  f(1, 2)
+  f(10, 20)
+  return c1, c2
+end
+print("upv", mk())
+let mk2 = function()
+  let u = 1
+  return function()
+    let w = 2
+    u, w = w, u
+    return u, w
+  end
+end
+print("upv2", mk2()())
+
+-- inside loops
+let fa, fb = 0, 1
+for n = 1, 10 do
+  fa, fb = fb, fa + fb
+end
+print("fib", fa, fb)
+let k = 0
+let acc = {}
+while k < 3 do
+  k, acc[k + 1] = k + 1, k * 10
+end
+print("while", k, acc[1], acc[2], acc[3])
+
+-- multi-line target list
+a,
+  b = "L1", "L2"
+print("lines", a, b)
+
+-- errors and pcall (file:line prefix normalised to L<line>: as in runtime_fault_lines)
+def em(ok, e)
+  return ok, (string.gsub(tostring(e), "^.-(%d+): ", "L%1: "))
+end
+print(em(pcall(function() nilvar.x, y = 1, 2 end)))
+print(em(pcall(function()
+  let q = 1
+  q, nilvar[1] = 2, 3
+end)))
+let q2 = 1
+print(em(pcall(function() q2, t[1] = 99, error("rhs boom") end)))
+print("q2", q2, t[1])

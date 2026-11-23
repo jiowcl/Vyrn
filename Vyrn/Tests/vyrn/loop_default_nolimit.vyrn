@@ -1,0 +1,36 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.112: no default loop or instruction limit (user decision; was 100000 loop
+-- ticks and 1000000 instructions). Without any header these loops finish on both
+-- runtimes; hosts opt in with --max-loops / --max-ins or vyrn_set_limits.
+
+let i = 0
+while i < 150000 do
+    i = i + 1
+end
+print("while", i)
+
+let s = 0
+for j = 1, 400000 do
+    s = s + j % 7
+end
+print("for", s)
+
+let n = 0
+repeat
+    n = n + 2
+until n >= 300000
+print("repeat", n)
+
+def count(k)
+    let c = 0
+    for q = 1, k do
+        c = c + 1
+    end
+    return c
+end
+let total = 0
+for r = 1, 300 do
+    total = total + count(1000)
+end
+print("calls", total)

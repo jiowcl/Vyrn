@@ -1,0 +1,141 @@
+-- @compile-safe
+-- vyrn: 13
+-- 1.6.129: zlib.*_file — streaming native I/O (NUL / high bytes), both runtimes.
+-- Reuses the crypto NUL fixture; do not put NULs in Vyrn string literals.
+
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+
+def soft(v, e)
+  if v ~= nil then return "ok" end
+  return "err " .. tostring(e)
+end
+
+let fixture_hex = "68656c6c6f0001fffe80776f726c64"
+let hello_hex = "68656c6c6f"
+let hello_gz = "1f8b08000000000000ff010500faff68656c6c6f86a6103605000000"
+let hello_zl = "789c010500faff68656c6c6f062c0215"
+let hello_raw = "010500faff68656c6c6f"
+
+let fx = path.join("tests", "vyrn", "fixtures", "crypto_nul.bin")
+let outdir = path.join("tests", "vyrn", "fixtures")
+if not path.isdir(outdir) then
+  outdir = os.getenv("TEMP") or os.getenv("TMP") or os.getenv("TMPDIR") or ""
+  if outdir == "" or not path.isdir(outdir) then
+    outdir = path.join(path.cwd(), "_vyrn_zlib_file_tmp")
+    path.mkdirs(outdir)
+  end
+end
+if not path.isfile(fx) then
+  fx = path.join(outdir, "vyrn_crypto_nul.bin")
+  let made, me = crypto.fromhex_file(fx, fixture_hex)
+  assert(made, me)
+end
+
+let hello = path.join(outdir, "_zlib_file_hello.bin")
+let gz = path.join(outdir, "_zlib_file_hello.gz")
+let zl = path.join(outdir, "_zlib_file_hello.zl")
+let raw = path.join(outdir, "_zlib_file_hello.raw")
+let outp = path.join(outdir, "_zlib_file_out.bin")
+os.remove(hello)
+os.remove(gz)
+os.remove(zl)
+os.remove(raw)
+os.remove(outp)
+os.remove(gz .. ".vyrnz.tmp")
+assert(crypto.fromhex_file(hello, hello_hex))
+
+assert(zlib.gzip_file(hello, gz))
+print("hello_gz", crypto.tohex_file(gz))
+print("tmp_gone", path.isfile(gz .. ".vyrnz.tmp") ~= true)
+
+let b64, be = crypto.tobase64_file(gz)
+assert(b64, be)
+let gt, ge = zlib.gunzip(b64)
+assert(gt == "hello", ge)
+print("interop_gunzip", gt)
+
+let gz2 = zlib.gzip("hello")
+assert(crypto.frombase64_file(path.join(outdir, "_zlib_file_fromstr.gz"), gz2))
+assert(zlib.gunzip_file(path.join(outdir, "_zlib_file_fromstr.gz"), outp))
+print("interop_gzip_file", crypto.tohex_file(outp) == hello_hex)
+os.remove(path.join(outdir, "_zlib_file_fromstr.gz"))
+os.remove(outp)
+
+assert(zlib.gunzip_file(gz, outp))
+print("hello_rt", crypto.tohex_file(outp) == hello_hex)
+os.remove(outp)
+
+assert(zlib.compress_file(hello, zl))
+print("hello_zl", crypto.tohex_file(zl))
+assert(zlib.decompress_file(zl, outp))
+print("zl_rt", crypto.tohex_file(outp) == hello_hex)
+os.remove(outp)
+
+assert(zlib.deflate_file(hello, raw))
+print("hello_raw", crypto.tohex_file(raw))
+assert(zlib.inflate_file(raw, outp))
+print("raw_rt", crypto.tohex_file(outp) == hello_hex)
+os.remove(outp)
+
+-- NUL fixture: file API never puts payload in a Vyrn string
+let nulg = path.join(outdir, "_zlib_file_nul.gz")
+os.remove(nulg)
+assert(zlib.gzip_file(fx, nulg))
+let nhex, nhe = zlib.gunzip(crypto.tobase64_file(nulg), { output = "hex" })
+assert(nhex == fixture_hex, nhe)
+assert(zlib.gunzip_file(nulg, outp))
+print("nul_rt", crypto.tohex_file(outp) == fixture_hex, crypto.sha256_file(outp) == crypto.sha256_file(fx))
+os.remove(nulg)
+os.remove(outp)
+
+-- Empty file
+let empty = path.join(outdir, "_zlib_file_empty.bin")
+let emptyz = path.join(outdir, "_zlib_file_empty.zl")
+os.remove(empty)
+os.remove(emptyz)
+assert(crypto.frombase64_file(empty, ""))
+assert(zlib.compress_file(empty, emptyz))
+assert(zlib.decompress_file(emptyz, outp))
+print("empty_rt", crypto.tohex_file(outp) == "", crypto.tohex_file(emptyz))
+os.remove(empty)
+os.remove(emptyz)
+os.remove(outp)
+
+-- Oversize / missing / corrupt are nil, err; dst is unchanged and no temp remains
+let ov, ove = zlib.gzip_file(hello, gz, { max = 1 })
+print("oversize", soft(ov, ove), crypto.tohex_file(gz) == hello_gz, path.isfile(gz .. ".vyrnz.tmp") ~= true)
+
+let miss, mise = zlib.gzip_file(path.join(outdir, "no_such_zlib_file_zzz.bin"), outp)
+print("missing", soft(miss, mise), path.isfile(outp) ~= true)
+
+assert(crypto.fromhex_file(outp, "deadbeef"))
+let badsrc = path.join(outdir, "_zlib_file_bad.gz")
+os.remove(badsrc)
+assert(crypto.fromhex_file(badsrc, "ffff"))
+let cor, core = zlib.gunzip_file(badsrc, outp)
+print("corrupt", soft(cor, core), crypto.tohex_file(outp) == "deadbeef", path.isfile(outp .. ".vyrnz.tmp") ~= true)
+os.remove(badsrc)
+os.remove(outp)
+
+let direrr, dire = zlib.gzip_file(outdir, gz)
+print("not_reg", soft(direrr, dire))
+
+-- Same path raises
+print("same_path", msg(pcall(zlib.gzip_file, hello, hello)))
+
+-- Bad arguments raise
+print(msg(pcall(zlib.gzip_file, 1, gz)))
+print(msg(pcall(zlib.gzip_file, hello)))
+print(msg(pcall(zlib.gzip_file, hello, gz, 9)))
+print(msg(pcall(zlib.gzip_file, hello, gz, { level = 99 })))
+print(msg(pcall(zlib.gunzip_file, gz, outp, { max = -1 })))
+print(msg(pcall(zlib.compress_file, "", gz)))
+
+os.remove(hello)
+os.remove(gz)
+os.remove(zl)
+os.remove(raw)
+print("done")

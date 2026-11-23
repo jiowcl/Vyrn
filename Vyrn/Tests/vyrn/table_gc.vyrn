@@ -1,0 +1,79 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- table_gc (1.6.104): unreachable tables (cycles included) are reclaimed and their ids
+-- reused; reachable ones (globals, locals, upvalues, coroutines, nested tables, struct
+-- values, table.map results) survive collectgarbage(). Prints booleans only; the
+-- collectgarbage("count") checks live in table_gc_count.
+struct P2
+  x: number
+  y: number
+end
+def counter()
+  let n = 0
+  return function() n = n + 1 return n end
+end
+-- 1: churn of short-lived tables, nothing kept
+let s = 0
+for i = 1, 100000 do
+  let t = {i, i, name = "n" .. i}
+  s = s + t[2]
+end
+collectgarbage()
+
+print("churn", s == 5000050000)
+-- 2: survivors
+gkeep = {1, 2, 3, inner = {deep = {v = "deep"}}}
+let lkeep = {k = "local"}
+let upt = {u = 41}
+def readUp() return upt.u + 1 end
+let co = coroutine.create(function()
+  let ct = {c = "co"}
+  coroutine.yield(1)
+  return ct.c
+end)
+coroutine.resume(co)
+let pt = P2 { x = 3, y = 4 }
+let mapped = table.map({1, 2, 3}, function(k, v) return {v * 2} end)
+let cnt = counter()
+for i = 1, 50000 do let junk = {i} end
+collectgarbage()
+collectgarbage()
+print("survive", gkeep[3] == 3, gkeep.inner.deep.v == "deep", lkeep.k == "local", readUp() == 42)
+let okc, cv = coroutine.resume(co)
+print("co", okc, cv == "co", pt.x + pt.y == 7, mapped[3][1] == 6, cnt() == 1)
+-- 3: cycles and a long chain (marking is iterative)
+for i = 1, 20000 do
+  let a = {}
+  let b = {a = a}
+  a.b = b
+  a.self = a
+end
+let head = nil
+for i = 1, 100000 do head = {next = head, v = i} end
+collectgarbage()
+let n = 0
+let p = head
+while p do n = n + 1 p = p.next end
+
+head = nil
+p = nil
+collectgarbage()
+
+print("cycle", n == 100000, head == nil)
+-- 4: identity across id reuse
+let old = {tag = "old"}
+for i = 1, 30000 do let x = {i} end
+collectgarbage()
+let fresh = {}
+for i = 1, 1000 do fresh[i] = {i} end
+let same = 0
+for i = 1, 1000 do if fresh[i] == old then same = same + 1 end end
+print("ident", old.tag == "old", same == 0, fresh[1000][1] == 1000)
+-- 5: tables kept through pcall / error unwinding
+let ok, e = pcall(function()
+  let t = {v = "err"}
+  error(t)
+end)
+for i = 1, 30000 do let y = {i} end
+collectgarbage()
+print("pcall", ok == false, type(e) == "table", e.v == "err")

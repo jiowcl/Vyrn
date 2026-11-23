@@ -7,8 +7,8 @@ assert-tail true 11 ok
 assert-mid true 9
 assert-let true 11 ok
 wrap-type function
-wrap-tail true 7 8
-wrap-mid true 9
-wrap-assign true 1 2
-wrap-direct true 1 2
-wrap-direct-mid true 9
+wrap-tail 7 8
+wrap-mid 7 9
+wrap-assign 1 2
+wrap-direct 1 2
+wrap-direct-mid 1 9

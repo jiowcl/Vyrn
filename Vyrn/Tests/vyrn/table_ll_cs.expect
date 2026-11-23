@@ -1,0 +1,9 @@
+primes100 25
+primes1000 168
+get 20
+set 7
+sget y
+sset z z
+miss true
+hits 2
+big 5000 7 1

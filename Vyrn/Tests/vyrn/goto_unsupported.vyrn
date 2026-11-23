@@ -1,0 +1,8 @@
+-- vyrn: 12
+-- 1.6.112: goto is rejected at compile time (ship_smoke checks the message).
+let i = 0
+while i < 3 do
+    i = i + 1
+    goto done
+end
+print(i)

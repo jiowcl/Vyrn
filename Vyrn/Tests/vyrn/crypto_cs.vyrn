@@ -1,0 +1,60 @@
+-- @compile-safe
+-- vyrn: 13
+-- 1.6.119: crypto library — RFC 1321 / FIPS 180-4 / RFC 4231 / RFC 4648 vectors.
+-- Digests and encode/decode return lowercase hex / ASCII; decode rejects NUL / invalid UTF-8.
+-- crypto.random is checked for length and charset only (CSPRNG).
+
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+
+-- Empty digests (RFC 1321 / FIPS 180-4)
+print("empty", crypto.md5(""), crypto.sha1(""), crypto.sha256(""))
+
+-- "abc"
+print("abc", crypto.md5("abc"), crypto.sha1("abc"), crypto.sha256("abc"))
+
+-- SHA-256 fox
+print("fox", crypto.sha256("The quick brown fox jumps over the lazy dog"))
+
+-- HMAC (key = "key", msg = fox) — common test vectors
+let fox = "The quick brown fox jumps over the lazy dog"
+print("hmac_md5", crypto.hmac("md5", "key", fox))
+print("hmac_sha1", crypto.hmac("sha1", "key", fox))
+print("hmac_sha256", crypto.hmac("sha256", "key", fox))
+
+-- RFC 4231 test case 1 (SHA-256): key = 20 * 0x0b, data = "Hi There"
+let k1 = string.rep(string.char(11), 20)
+print("rfc4231_1", crypto.hmac("sha256", k1, "Hi There"))
+
+-- Hex encode/decode roundtrip
+print("hex", crypto.tohex("hi"), crypto.fromhex("6869"))
+print("hex_empty", crypto.tohex(""), crypto.fromhex(""))
+
+-- Base64 RFC 4648
+print("b64", crypto.tobase64(""), crypto.tobase64("f"), crypto.tobase64("fo"), crypto.tobase64("foo"))
+print("b64b", crypto.tobase64("foob"), crypto.tobase64("fooba"), crypto.tobase64("foobar"))
+print("b64d", crypto.frombase64("Zm9vYmFy"), crypto.frombase64(""))
+
+-- CRC32 (IEEE; empty → 0; "123456789" → 0xCBF43926)
+print("crc", crypto.crc32(""), crypto.crc32("123456789"))
+
+-- CSPRNG: length and charset only
+let r0 = crypto.random(0)
+let r4 = crypto.random(4)
+let r16 = crypto.random(16)
+print("rand0", r0 == "", #r0)
+print("rand4", #r4 == 8, string.match(r4, "^[0-9a-f]+$") ~= nil)
+print("rand16", #r16 == 32, string.match(r16, "^[0-9a-f]+$") ~= nil)
+
+-- Decode errors
+print(msg(pcall(crypto.fromhex, "abc")))
+print(msg(pcall(crypto.fromhex, "zz")))
+print(msg(pcall(crypto.fromhex, "00")))
+print(msg(pcall(crypto.fromhex, "ff")))
+print(msg(pcall(crypto.frombase64, "!!!!")))
+print(msg(pcall(crypto.frombase64, "AA==")))  -- decodes to NUL
+print(msg(pcall(crypto.hmac, "sha512", "k", "m")))
+print(msg(pcall(crypto.random, -1)))
+print(msg(pcall(crypto.md5, 1)))

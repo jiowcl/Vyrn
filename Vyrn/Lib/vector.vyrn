@@ -1,0 +1,253 @@
+-- vyrn: 12
+-- Small vector helpers for embeddings glue (1.6.161; extended 1.6.169 / 1.6.170).
+-- Pure Vyrn; no native deps. Not part of the product stdlib.
+-- Load with require("vector").
+--
+-- Contract:
+--   - Inputs are 1-based tables of numbers (embedding-shaped arrays).
+--   - Success returns a number or a new table; failure returns nil, err string.
+--   - Helpers never mutate their inputs (allocate a fresh table when returning one).
+--   - Empty vectors and length mismatches are errors; zero-norm errors where noted.
+--
+-- API groups:
+--   products / norms:  dot, norm, cosine, l2_distance
+--   element-wise:      add, sub, mul, scale, axpy
+--   unit vector:       normalize
+
+assert(type(math) == "table")
+
+-- --- products / norms -------------------------------------------------------
+
+@doc("Dot product of two equal-length number arrays")
+def dot(a: table, b: table)
+  if type(a) ~= "table" or type(b) ~= "table" then
+    return nil, "vector.dot: two arrays expected"
+  end
+  if #a ~= #b then
+    return nil, "vector.dot: length mismatch"
+  end
+  if #a == 0 then
+    return nil, "vector.dot: empty vector"
+  end
+  let s = 0.0
+  let i = 1
+  while i <= #a do
+    if type(a[i]) ~= "number" or type(b[i]) ~= "number" then
+      return nil, "vector.dot: non-number component"
+    end
+    s = s + a[i] * b[i]
+    i = i + 1
+  end
+  return s
+end
+
+@doc("Euclidean L2 norm of a number array")
+def norm(a: table)
+  if type(a) ~= "table" then
+    return nil, "vector.norm: array expected"
+  end
+  if #a == 0 then
+    return nil, "vector.norm: empty vector"
+  end
+  let s = 0.0
+  let i = 1
+  while i <= #a do
+    if type(a[i]) ~= "number" then
+      return nil, "vector.norm: non-number component"
+    end
+    s = s + a[i] * a[i]
+    i = i + 1
+  end
+  return math.sqrt(s)
+end
+
+@doc("Cosine similarity of two equal-length number arrays; nil err on zero norm or bad input")
+def cosine(a: table, b: table)
+  let d, derr = dot(a, b)
+  if d == nil then
+    return nil, derr
+  end
+  let na, nerr = norm(a)
+  if na == nil then
+    return nil, nerr
+  end
+  let nb, merr = norm(b)
+  if nb == nil then
+    return nil, merr
+  end
+  if na == 0 or nb == 0 then
+    return nil, "vector.cosine: zero-norm vector"
+  end
+  return d / (na * nb)
+end
+
+@doc("Euclidean L2 distance between two equal-length number arrays; same as norm of a minus b")
+def l2_distance(a: table, b: table)
+  if type(a) ~= "table" or type(b) ~= "table" then
+    return nil, "vector.l2_distance: two arrays expected"
+  end
+  if #a ~= #b then
+    return nil, "vector.l2_distance: length mismatch"
+  end
+  if #a == 0 then
+    return nil, "vector.l2_distance: empty vector"
+  end
+  let s = 0.0
+  let i = 1
+  while i <= #a do
+    if type(a[i]) ~= "number" or type(b[i]) ~= "number" then
+      return nil, "vector.l2_distance: non-number component"
+    end
+    let d = a[i] - b[i]
+    s = s + d * d
+    i = i + 1
+  end
+  return math.sqrt(s)
+end
+
+-- --- element-wise -----------------------------------------------------------
+
+@doc("Element-wise sum of two equal-length number arrays; returns a new table")
+def add(a: table, b: table)
+  if type(a) ~= "table" or type(b) ~= "table" then
+    return nil, "vector.add: two arrays expected"
+  end
+  if #a ~= #b then
+    return nil, "vector.add: length mismatch"
+  end
+  if #a == 0 then
+    return nil, "vector.add: empty vector"
+  end
+  let out = {}
+  let i = 1
+  while i <= #a do
+    if type(a[i]) ~= "number" or type(b[i]) ~= "number" then
+      return nil, "vector.add: non-number component"
+    end
+    out[i] = a[i] + b[i]
+    i = i + 1
+  end
+  return out
+end
+
+@doc("Element-wise difference of two equal-length number arrays; returns a new table")
+def sub(a: table, b: table)
+  if type(a) ~= "table" or type(b) ~= "table" then
+    return nil, "vector.sub: two arrays expected"
+  end
+  if #a ~= #b then
+    return nil, "vector.sub: length mismatch"
+  end
+  if #a == 0 then
+    return nil, "vector.sub: empty vector"
+  end
+  let out = {}
+  let i = 1
+  while i <= #a do
+    if type(a[i]) ~= "number" or type(b[i]) ~= "number" then
+      return nil, "vector.sub: non-number component"
+    end
+    out[i] = a[i] - b[i]
+    i = i + 1
+  end
+  return out
+end
+
+@doc("Element-wise Hadamard product of two equal-length number arrays; returns a new table")
+def mul(a: table, b: table)
+  if type(a) ~= "table" or type(b) ~= "table" then
+    return nil, "vector.mul: two arrays expected"
+  end
+  if #a ~= #b then
+    return nil, "vector.mul: length mismatch"
+  end
+  if #a == 0 then
+    return nil, "vector.mul: empty vector"
+  end
+  let out = {}
+  let i = 1
+  while i <= #a do
+    if type(a[i]) ~= "number" or type(b[i]) ~= "number" then
+      return nil, "vector.mul: non-number component"
+    end
+    out[i] = a[i] * b[i]
+    i = i + 1
+  end
+  return out
+end
+
+@doc("Scale a number array by a scalar; returns a new table")
+def scale(a: table, k: number)
+  if type(a) ~= "table" then
+    return nil, "vector.scale: array expected"
+  end
+  if type(k) ~= "number" then
+    return nil, "vector.scale: scalar number expected"
+  end
+  if #a == 0 then
+    return nil, "vector.scale: empty vector"
+  end
+  let out = {}
+  let i = 1
+  while i <= #a do
+    if type(a[i]) ~= "number" then
+      return nil, "vector.scale: non-number component"
+    end
+    out[i] = a[i] * k
+    i = i + 1
+  end
+  return out
+end
+
+@doc("axpy: alpha * x + y for equal-length number arrays; alpha is a scalar; returns a new table")
+def axpy(alpha: number, x: table, y: table)
+  if type(alpha) ~= "number" then
+    return nil, "vector.axpy: scalar number expected"
+  end
+  if type(x) ~= "table" or type(y) ~= "table" then
+    return nil, "vector.axpy: two arrays expected"
+  end
+  if #x ~= #y then
+    return nil, "vector.axpy: length mismatch"
+  end
+  if #x == 0 then
+    return nil, "vector.axpy: empty vector"
+  end
+  let out = {}
+  let i = 1
+  while i <= #x do
+    if type(x[i]) ~= "number" or type(y[i]) ~= "number" then
+      return nil, "vector.axpy: non-number component"
+    end
+    out[i] = alpha * x[i] + y[i]
+    i = i + 1
+  end
+  return out
+end
+
+-- --- unit vector ------------------------------------------------------------
+
+@doc("Unit vector a / norm(a); nil err on zero norm or bad input; returns a new table")
+def normalize(a: table)
+  let n, nerr = norm(a)
+  if n == nil then
+    return nil, nerr
+  end
+  if n == 0 then
+    return nil, "vector.normalize: zero-norm vector"
+  end
+  return scale(a, 1.0 / n)
+end
+
+let M = {}
+M.dot = dot
+M.norm = norm
+M.cosine = cosine
+M.l2_distance = l2_distance
+M.add = add
+M.sub = sub
+M.mul = mul
+M.scale = scale
+M.axpy = axpy
+M.normalize = normalize
+return M

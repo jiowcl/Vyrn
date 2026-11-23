@@ -1,0 +1,38 @@
+swap 2 1
+rot 3 1 2
+glob 20 10
+glob2 1 y
+idx 2 20 2
+tswap 3 2 20
+field K J
+struct 2 1
+struct2 7 8
+chain 5 6
+callpfx E F
+rows 2 1
+mixed m v two g
+fewer 5 nil
+extra evaluated
+more 1 2
+exp 1 2
+trunc 1 9
+tail 0 1 2
+pad 1 2 nil
+paren 1 nil
+twotwo 1 1
+none nil nil
+none1 nil 5
+method o o!
+va 7 8
+vaz 7 z nil
+va nil nil
+vaz0 nil z nil
+upv 12 21
+upv2 2 1
+fib 55 89
+while 3 0 10 20
+lines L1 L2
+false L142: attempt to index a nil value
+false L145: attempt to index a nil value
+false L148: rhs boom
+q2 1 3

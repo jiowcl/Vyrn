@@ -1,0 +1,7 @@
+pack-n 3
+pack1 1 2 3
+unpack-pack 1 2 3
+next1 1 10
+next2 2 20
+next3 3 30
+next-end nil

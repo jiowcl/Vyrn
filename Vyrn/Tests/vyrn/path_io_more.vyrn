@@ -1,0 +1,24 @@
+-- @compile-safe
+-- path.mkdir/listdir/glob + io.lines/seek
+
+let d = path.join(path.cwd(), "_cs_mkdir_tmp")
+print(path.mkdir(d))
+let fpath = path.join(d, "a.txt")
+let f = io.open(fpath, "w")
+f:write("one\ntwo\n")
+f:close()
+
+let names = path.listdir(d)
+print(#names >= 1)
+let g = path.glob(path.join(d, "*.txt"))
+print(#g >= 1)
+
+let lines = io.lines(fpath)
+print(lines[1], lines[2])
+
+let r = io.open(fpath, "r")
+print(type(r:seek("set", 0)))
+print(r:seek("cur"))
+let fl = r:lines()
+print(fl[1], fl[2])
+r:close()

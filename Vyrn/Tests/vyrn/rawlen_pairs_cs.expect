@@ -1,0 +1,20 @@
+rl-arr 4
+rl-str 2
+rl-empty 0 0
+rl-hash 0
+rl-hashlen 0
+rl-err false true
+pairs-plain 2 3
+ipairs-plain 3 60
+pairs-mm ab 2 3
+pairs-pad function nil nil
+pairs-bad false true
+idx-get 10 true
+ipairs-for 3 60
+ipairs-iter 3 60
+ipairs-hole 2 30
+name-type table
+name-add false true
+name-cat false true
+rl-vs-len 3 99
+ok

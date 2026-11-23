@@ -1,0 +1,8 @@
+-- vyrn: 12
+-- Fixture module for require_exelib_cs (resolved via <exe dir>/lib).
+def hello()
+  return "exelib_ok"
+end
+let M = {}
+M.hello = hello
+return M

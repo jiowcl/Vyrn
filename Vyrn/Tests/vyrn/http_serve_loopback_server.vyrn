@@ -1,0 +1,18 @@
+-- Started by the test harness with --allow-listen; serves one request then exits.
+-- Port from VYRN_HTTP_SERVE_PORT.
+-- 1.6.159: duration_ms = 0 means forever; max_requests still stops the loop.
+let port = tonumber(os.getenv("VYRN_HTTP_SERVE_PORT") or "0")
+assert(port > 0)
+let r = http.serve({
+  host = "127.0.0.1",
+  port = port,
+  max_requests = 1,
+  duration_ms = 0,
+  handler = function(req)
+    if req.method == "GET" and req.path == "/hello" then
+      return {status = 200, body = "serve-ok", content_type = "text/plain; charset=utf-8"}
+    end
+    return {status = 404, body = "nope"}
+  end
+})
+print("served=" .. tostring(r.served))

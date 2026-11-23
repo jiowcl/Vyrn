@@ -1,0 +1,6 @@
+sum (4, 6)
+eq true false
+len 10
+call B7
+upper HI
+smt true

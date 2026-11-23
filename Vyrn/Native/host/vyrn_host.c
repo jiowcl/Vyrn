@@ -27,7 +27,27 @@
 #include <string.h>
 
 #define VYRN_STATIC
-#include "../include/vyrn.h"
+#include "../../include/vyrn.h"
+
+static void host_print_version(void)
+{
+  const char *plat =
+#ifdef _WIN32
+#  if defined(_WIN64) || defined(_M_X64)
+      "windows-x64"
+#  else
+      "windows-x86"
+#  endif
+#else
+      "linux-x64"
+#endif
+  ;
+  printf("Vyrn %s (dialect %d, ABI %d, bytecode VYBC v%d-v%d, VYBX %d) %s host-c\n",
+         VYRN_VERSION_STRING, VYRN_DIALECT_VERSION, VYRN_ABI_VERSION,
+         VYRN_VYBC_MIN, VYRN_VYBC_MAX, VYRN_VYBX_VERSION, plat);
+  fflush(stdout);
+}
+
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -72,6 +92,7 @@ typedef struct VyrnApi {
   fn_err last_error;
   fn_set_caps set_capabilities; /* ABI 8+; may be NULL */
   fn_set_allowlist set_net_allowlist; /* ABI 9+; may be NULL */
+  fn_set_allowlist set_listen_allowlist; /* optional export (http.serve); may be NULL */
 } VyrnApi;
 
 #ifdef _WIN32
@@ -314,6 +335,7 @@ static int host_load_api(VyrnApi *api, const char *dll_path)
   api->last_error = (fn_err)host_sym(api->lib, "vyrn_last_error");
   api->set_capabilities = (fn_set_caps)host_sym(api->lib, "vyrn_set_capabilities");
   api->set_net_allowlist = (fn_set_allowlist)host_sym(api->lib, "vyrn_set_net_allowlist");
+  api->set_listen_allowlist = (fn_set_allowlist)host_sym(api->lib, "vyrn_set_listen_allowlist");
   if (!api->abi || !api->create || !api->destroy || !api->run_file || !api->last_error) {
     host_out("[error] missing Vyrn.dll export (need ABI >= 3)\n");
     host_close_lib(api->lib);
@@ -363,6 +385,7 @@ static void host_join(char *out, size_t outlen, const char *dir, const char *nam
 */
 int main(int argc, char **argv)
 {
+  int vi;
   char exe_dir[1024];
   char dll_path[1100];
   char *script = NULL;
@@ -370,6 +393,13 @@ int main(int argc, char **argv)
   VyrnApi api;
   VyrnVM *vm;
   int ok;
+
+  for (vi = 1; vi < argc; ++vi) {
+    if (argv[vi] && (strcmp(argv[vi], "--version") == 0 || strcmp(argv[vi], "-v") == 0)) {
+      host_print_version();
+      return 0;
+    }
+  }
 
   host_exe_dir(exe_dir, sizeof(exe_dir));
   if (!exe_dir[0]) {
@@ -397,7 +427,11 @@ int main(int argc, char **argv)
   {
     int i;
     int allow_net = 0;
+    int allow_process = 0;
+    int allow_listen = 0;
     const char *allow_hosts = NULL;
+    const char *listen_hosts = NULL;
+    unsigned int caps = 0;
     for (i = 1; i < argc; ++i) {
       if (!argv[i]) continue;
       if (strcmp(argv[i], "--allow-net") == 0) {
@@ -406,6 +440,14 @@ int main(int argc, char **argv)
       } else if (strncmp(argv[i], "--allow-net=", 12) == 0) {
         allow_net = 1;
         allow_hosts = argv[i] + 12;
+      } else if (strcmp(argv[i], "--allow-process") == 0) {
+        allow_process = 1;
+      } else if (strcmp(argv[i], "--allow-listen") == 0) {
+        allow_listen = 1;
+        listen_hosts = NULL; /* bare = loopback only */
+      } else if (strncmp(argv[i], "--allow-listen=", 15) == 0) {
+        allow_listen = 1;
+        listen_hosts = argv[i] + 15;
       } else if (!script && argv[i][0] != '-') script = argv[i];
     }
     if (!script) {
@@ -416,7 +458,7 @@ int main(int argc, char **argv)
       }
       free_script = 1;
       if (!script) {
-        host_out("[error] usage: VyrnHost.exe <script.vyrnc | script.bundle.vyrn> [--allow-net[=hosts]]\n");
+        host_out("[error] usage: VyrnHost.exe [--version|-v] | <script.vyrnc | script.bundle.vyrn> [--allow-net[=hosts]] [--allow-process] [--allow-listen[=hosts]]\n");
         host_out("       (or place exactly one *.vyrnc or *.bundle.vyrn beside VyrnHost.exe)\n");
         host_close_lib(api.lib);
         return 1;
@@ -433,11 +475,24 @@ int main(int argc, char **argv)
       return 1;
     }
 
-    if (allow_net && api.set_capabilities) {
-      api.set_capabilities(vm, VYRN_CAP_NET);
+    if (allow_net) caps |= VYRN_CAP_NET;
+    if (allow_process) caps |= VYRN_CAP_PROCESS;
+    if (allow_listen) caps |= VYRN_CAP_LISTEN;
+    if (caps && api.set_capabilities) {
+      api.set_capabilities(vm, caps);
     }
     if (allow_net && allow_hosts && api.set_net_allowlist) {
       api.set_net_allowlist(vm, allow_hosts);
+    }
+    if (allow_listen) {
+      /* Bare --allow-listen: empty allowlist = loopback only. */
+      if (api.set_listen_allowlist) {
+        api.set_listen_allowlist(vm, listen_hosts ? listen_hosts : "");
+      } else if (listen_hosts && listen_hosts[0]) {
+        /* Older Vyrn.dll without the export: stays loopback-only (never widens silently). */
+        fprintf(stderr, "[warn] Vyrn.dll has no vyrn_set_listen_allowlist; "
+                        "--allow-listen=%s ignored (loopback only)\n", listen_hosts);
+      }
     }
   }
 

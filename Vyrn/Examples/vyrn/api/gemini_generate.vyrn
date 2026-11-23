@@ -1,10 +1,23 @@
 -- vyrn: 12
--- Gemini generateContent client example (1.6.125).
+-- Gemini generateContent client example (1.6.125; Doc / const / types in 1.6.147).
 -- Reads GEMINI_API_KEY (required) and optional GEMINI_BASE_URL / GEMINI_MODEL.
 -- Never hardcodes secrets. Needs --allow-net (or a host allowlist that includes the API host).
 -- This file is not run against the real API in CI; see tests/vyrn/api_clients.vyrn.
 
-let api = require("clients")
+const DEFAULT_BASE: string = "https://generativelanguage.googleapis.com"
+const DEFAULT_MODEL: string = "gemini-2.5-flash"
+const DEFAULT_PROMPT: string = "Say hello in one word."
+
+@doc("Return the env value, or fallback when unset or empty")
+def env_or(name: string, fallback: string) -> string
+  let v = os.getenv(name) or ""
+  if v == "" then
+    return fallback
+  end
+  return v
+end
+
+let api = require("ai.gemini")
 
 let key = os.getenv("GEMINI_API_KEY") or ""
 if key == "" then
@@ -14,9 +27,9 @@ end
 
 let opts = {
   key = key,
-  base = os.getenv("GEMINI_BASE_URL") or "https://generativelanguage.googleapis.com",
-  model = os.getenv("GEMINI_MODEL") or "gemini-2.5-flash",
-  prompt = "Say hello in one word.",
+  base = env_or("GEMINI_BASE_URL", DEFAULT_BASE),
+  model = env_or("GEMINI_MODEL", DEFAULT_MODEL),
+  prompt = DEFAULT_PROMPT,
   timeout = 30
 }
 

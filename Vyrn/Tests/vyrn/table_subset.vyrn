@@ -1,0 +1,10 @@
+-- @compile-safe
+-- table subset for libvyrnrt
+
+let t = {10, 20, 30}
+table.insert(t, 2, 15)
+print(table.concat(t, ","))
+print(table.remove(t, 2))
+print(table.concat(t, "-"))
+table.clear(t)
+print(#t, table.concat(t, ","))

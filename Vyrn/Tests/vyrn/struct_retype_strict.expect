@@ -1,0 +1,4 @@
+d ok 1
+b expected B, got B with struct A layout
+q ok 3
+a expected B, got A

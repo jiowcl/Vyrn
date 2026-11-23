@@ -1,0 +1,15 @@
+-- vyrn: 12
+-- 1.6.136: VYRN_PATH (semicolon-separated) is searched after the script dir.
+let prev = os.getenv("VYRN_PATH")
+os.setenv("VYRN_PATH", "tests/vyrn/vyrn_path_lib")
+let m = require("hello_probe")
+if type(m) ~= "table" or type(m.hello) ~= "function" then
+  error("hello_probe missing")
+end
+print(m.hello())
+if prev then
+  os.setenv("VYRN_PATH", prev)
+else
+  os.setenv("VYRN_PATH", nil)
+end
+print("require_vyrn_path_ok")

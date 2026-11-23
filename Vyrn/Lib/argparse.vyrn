@@ -1,0 +1,361 @@
+-- vyrn: 12
+-- Small CLI argument parser (1.9.0).
+-- Pure Vyrn; no native deps. Not part of the product stdlib.
+-- Load with require("argparse").
+--
+-- Contract:
+--   ap.new(prog) -> parser table with :add_flag / :add_option / :add_argument / :parse
+--   ap.help(p) -> usage string
+--   p:parse(argv) -> args table or nil, err
+--     args keys: option names (from long or short), positionals, ["_"] = leftover positionals array
+--   Supports `--` end-of-options; unknown flags and missing positionals are errors.
+
+@doc("Derive result-table key from --long-name or -s")
+def field_key(short, long)
+  if type(long) == "string" and #long > 0 then
+    let name = long
+    if string.sub(name, 1, 2) == "--" then
+      name = string.sub(name, 3)
+    elseif string.sub(name, 1, 1) == "-" then
+      name = string.sub(name, 2)
+    end
+    name = string.gsub(name, "-", "_")
+    return name
+  end
+  if type(short) == "string" and #short > 0 then
+    let name = short
+    if string.sub(name, 1, 2) == "--" then
+      name = string.sub(name, 3)
+    elseif string.sub(name, 1, 1) == "-" then
+      name = string.sub(name, 2)
+    end
+    return name
+  end
+  return nil
+end
+
+@doc("Ensure short and/or long flag spelling; at least one required")
+def normalize_opt_name(short, long, kind: string)
+  let s = short
+  let l = long
+  if s == nil and l == nil then
+    return nil, nil, "argparse." .. kind .. ": short or long name required"
+  end
+  if s ~= nil and type(s) ~= "string" then
+    return nil, nil, "argparse." .. kind .. ": short must be string"
+  end
+  if l ~= nil and type(l) ~= "string" then
+    return nil, nil, "argparse." .. kind .. ": long must be string"
+  end
+  if s ~= nil and #s == 0 then
+    s = nil
+  end
+  if l ~= nil and #l == 0 then
+    l = nil
+  end
+  if s == nil and l == nil then
+    return nil, nil, "argparse." .. kind .. ": short or long name required"
+  end
+  if s ~= nil and string.sub(s, 1, 1) ~= "-" then
+    return nil, nil, "argparse." .. kind .. ": short must start with '-'"
+  end
+  if s ~= nil and string.sub(s, 1, 2) == "--" then
+    return nil, nil, "argparse." .. kind .. ": short must be a single-dash form"
+  end
+  if l ~= nil and string.sub(l, 1, 2) ~= "--" then
+    return nil, nil, "argparse." .. kind .. ": long must start with '--'"
+  end
+  return s, l, nil
+end
+
+@doc("Register a boolean flag on parser p")
+def parser_add_flag(p, short, long)
+  if type(p) ~= "table" then
+    error("argparse.add_flag: parser expected")
+  end
+  let s, l, ferr = normalize_opt_name(short, long, "add_flag")
+  if s == nil and l == nil then
+    error(ferr)
+  end
+  let key = field_key(s, l)
+  if key == nil then
+    error("argparse.add_flag: cannot derive field name")
+  end
+  table.insert(p.flag_specs, { short = s, long = l, key = key })
+  return p
+end
+
+@doc("Register an option that takes one string value")
+def parser_add_option(p, short, long)
+  if type(p) ~= "table" then
+    error("argparse.add_option: parser expected")
+  end
+  let s, l, ferr = normalize_opt_name(short, long, "add_option")
+  if s == nil and l == nil then
+    error(ferr)
+  end
+  let key = field_key(s, l)
+  if key == nil then
+    error("argparse.add_option: cannot derive field name")
+  end
+  table.insert(p.option_specs, { short = s, long = l, key = key })
+  return p
+end
+
+@doc("Register a required positional argument name")
+def parser_add_argument(p, name)
+  if type(p) ~= "table" then
+    error("argparse.add_argument: parser expected")
+  end
+  if type(name) ~= "string" or #name == 0 then
+    error("argparse.add_argument: name expected")
+  end
+  table.insert(p.positionals, { name = name })
+  return p
+end
+
+@doc("Find flag or option spec by argv token")
+def lookup_spec(p, tok: string)
+  if string.sub(tok, 1, 2) == "--" then
+    let i = 1
+    while i <= #p.flag_specs do
+      let f = p.flag_specs[i]
+      if f.long == tok then
+        return "flag", f
+      end
+      i = i + 1
+    end
+    let j = 1
+    while j <= #p.option_specs do
+      let o = p.option_specs[j]
+      if o.long == tok then
+        return "option", o
+      end
+      j = j + 1
+    end
+    return nil, nil
+  end
+  if string.sub(tok, 1, 1) == "-" and #tok > 1 then
+    let i = 1
+    while i <= #p.flag_specs do
+      let f = p.flag_specs[i]
+      if f.short == tok then
+        return "flag", f
+      end
+      i = i + 1
+    end
+    let j = 1
+    while j <= #p.option_specs do
+      let o = p.option_specs[j]
+      if o.short == tok then
+        return "option", o
+      end
+      j = j + 1
+    end
+    return nil, nil
+  end
+  return nil, nil
+end
+
+@doc("Parse argv (1-based string array); nil uses empty argv")
+def parser_parse(p, argv)
+  if type(p) ~= "table" then
+    return nil, "argparse.parse: parser expected"
+  end
+  let av = argv
+  if av == nil then
+    av = {}
+  end
+  if type(av) ~= "table" then
+    return nil, "argparse.parse: argv table expected"
+  end
+
+  let out = {}
+  let posvals = {}
+  let i = 1
+  while i <= #p.flag_specs do
+    out[p.flag_specs[i].key] = false
+    i = i + 1
+  end
+  i = 1
+  while i <= #p.option_specs do
+    out[p.option_specs[i].key] = nil
+    i = i + 1
+  end
+
+  let options_end = false
+  i = 1
+  while i <= #av do
+    let tok = av[i]
+    if type(tok) ~= "string" then
+      return nil, "argparse.parse: argv elements must be strings"
+    end
+    if not options_end and tok == "--" then
+      options_end = true
+      i = i + 1
+    elseif not options_end and string.sub(tok, 1, 1) == "-" and #tok > 1 then
+      let opt = tok
+      let val = nil
+      let eq = string.find(tok, "=", 2, true)
+      if eq ~= nil then
+        opt = string.sub(tok, 1, eq - 1)
+        val = string.sub(tok, eq + 1)
+      end
+      let kind, spec = lookup_spec(p, opt)
+      if kind == nil then
+        return nil, "argparse.parse: unknown flag: " .. opt
+      end
+      if kind == "flag" then
+        if val ~= nil then
+          return nil, "argparse.parse: flag does not take a value: " .. opt
+        end
+        out[spec.key] = true
+      else
+        if val == nil then
+          if i >= #av then
+            return nil, "argparse.parse: option requires a value: " .. opt
+          end
+          let nxt = av[i + 1]
+          if type(nxt) ~= "string" then
+            return nil, "argparse.parse: option requires a value: " .. opt
+          end
+          if string.sub(nxt, 1, 1) == "-" and #nxt > 1 then
+            return nil, "argparse.parse: option requires a value: " .. opt
+          end
+          val = nxt
+          i = i + 1
+        end
+        out[spec.key] = val
+      end
+      i = i + 1
+    else
+      table.insert(posvals, tok)
+      i = i + 1
+    end
+  end
+
+  let pi = 1
+  i = 1
+  while i <= #p.positionals do
+    let spec = p.positionals[i]
+    if pi > #posvals then
+      return nil, "argparse.parse: missing required argument: " .. spec.name
+    end
+    out[spec.name] = posvals[pi]
+    pi = pi + 1
+    i = i + 1
+  end
+
+  let rest = {}
+  while pi <= #posvals do
+    table.insert(rest, posvals[pi])
+    pi = pi + 1
+  end
+  out["_"] = rest
+  return out, nil
+end
+
+@doc("Format usage text for parser p")
+def help_parser(p)
+  if type(p) ~= "table" then
+    return "argparse.help: parser expected"
+  end
+  let prog = p.prog
+  if type(prog) ~= "string" or #prog == 0 then
+    prog = "prog"
+  end
+  let parts = {}
+  let i = 1
+  while i <= #p.flag_specs do
+    let f = p.flag_specs[i]
+    if f.short ~= nil and f.long ~= nil then
+      table.insert(parts, f.short)
+    elseif f.long ~= nil then
+      table.insert(parts, f.long)
+    else
+      table.insert(parts, f.short)
+    end
+    i = i + 1
+  end
+  i = 1
+  while i <= #p.option_specs do
+    let o = p.option_specs[i]
+    if o.short ~= nil and o.long ~= nil then
+      table.insert(parts, o.short .. " VAL")
+    elseif o.long ~= nil then
+      table.insert(parts, o.long .. "=VAL")
+    else
+      table.insert(parts, o.short .. " VAL")
+    end
+    i = i + 1
+  end
+  i = 1
+  while i <= #p.positionals do
+    table.insert(parts, p.positionals[i].name)
+    i = i + 1
+  end
+  let syn = "Usage: " .. prog
+  if #parts > 0 then
+    syn = syn .. " [" .. table.concat(parts, "] [") .. "]"
+  end
+  let lines = { syn }
+  if #p.flag_specs > 0 or #p.option_specs > 0 then
+    table.insert(lines, "")
+    table.insert(lines, "Options:")
+    i = 1
+    while i <= #p.flag_specs do
+      let f = p.flag_specs[i]
+      let lab = ""
+      if f.short ~= nil and f.long ~= nil then
+        lab = f.short .. ", " .. f.long
+      elseif f.long ~= nil then
+        lab = f.long
+      else
+        lab = f.short
+      end
+      table.insert(lines, "  " .. lab)
+      i = i + 1
+    end
+    i = 1
+    while i <= #p.option_specs do
+      let o = p.option_specs[i]
+      let lab = ""
+      if o.short ~= nil and o.long ~= nil then
+        lab = o.short .. " VAL, " .. o.long .. "=VAL"
+      elseif o.long ~= nil then
+        lab = o.long .. "=VAL"
+      else
+        lab = o.short .. " VAL"
+      end
+      table.insert(lines, "  " .. lab)
+      i = i + 1
+    end
+  end
+  return table.concat(lines, "\n")
+end
+
+@doc("Create a new CLI parser for program name prog")
+def new(prog)
+  if type(prog) ~= "string" or #prog == 0 then
+    error("argparse.new: program name expected")
+  end
+  let p = {}
+  p.prog = prog
+  p.flag_specs = {}
+  p.option_specs = {}
+  p.positionals = {}
+  p.add_flag = parser_add_flag
+  p.add_option = parser_add_option
+  p.add_argument = parser_add_argument
+  p.parse = parser_parse
+  return p
+end
+
+let M = {}
+M.new = new
+M.help = help_parser
+M.add_flag = parser_add_flag
+M.add_option = parser_add_option
+M.add_argument = parser_add_argument
+M.parse = parser_parse
+return M

@@ -5,7 +5,7 @@ false true
 true 3
 false assert message
 false attempt to perform arithmetic on a nil value
-false attempt to index a nil value
+false attempt to index a nil value (local 't')
 cleanup ran
 true
 cleanup ran

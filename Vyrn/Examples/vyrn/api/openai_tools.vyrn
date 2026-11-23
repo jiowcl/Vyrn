@@ -1,0 +1,86 @@
+-- vyrn: 12
+-- OpenAI Chat Completions + tools example (1.6.160).
+-- Reads OPENAI_API_KEY; optional OPENAI_BASE_URL / OPENAI_MODEL.
+-- Missing key exits 0 (CI). Needs --allow-net for a real call.
+-- Offline helper walkthrough: examples/vyrn/tool_call_demo.vyrn
+
+const DEFAULT_BASE: string = "https://api.openai.com"
+const DEFAULT_MODEL: string = "gpt-4o-mini"
+
+@doc("Return the env value, or fallback when unset or empty")
+def env_or(name: string, fallback: string) -> string
+  let v = os.getenv(name) or ""
+  if v == "" then
+    return fallback
+  end
+  return v
+end
+
+assert(type(package) == "table")
+assert(type(math) == "table")
+let api = require("ai.openai")
+let tools = require("ai.tools")
+
+let key = os.getenv("OPENAI_API_KEY") or ""
+if key == "" then
+  print("openai_tools: OPENAI_API_KEY is not set. Export a key (never commit it) and rerun with --allow-net.")
+  os.exit(0)
+end
+
+const WeatherParams: table = {
+  type = "object",
+  properties = {
+    city = { type = "string", minLength = 1 }
+  },
+  required = { "city" },
+  additionalProperties = false
+}
+
+let tool_list = {
+  tools.openai_tool_def("get_weather", "Look up weather by city", WeatherParams)
+}
+
+let msg, err = api.openai_chat_tools({
+  key = key,
+  base = env_or("OPENAI_BASE_URL", DEFAULT_BASE),
+  model = env_or("OPENAI_MODEL", DEFAULT_MODEL),
+  prompt = "What is the weather in Taipei? Use the get_weather tool.",
+  tools = tool_list,
+  timeout = 30
+})
+if not msg then
+  if api.is_disabled_net(err) then
+    print("openai_tools: network access is disabled. Rerun with --allow-net.")
+    os.exit(0)
+  end
+  print("openai_tools: " .. tostring(err))
+  os.exit(1)
+end
+
+let calls, cerr = tools.openai_parse_tool_calls(msg)
+if not calls then
+  print("openai_tools: " .. tostring(cerr))
+  os.exit(1)
+end
+if #calls == 0 then
+  print(tostring(msg.content))
+  os.exit(0)
+end
+
+let handlers = {}
+handlers.get_weather = function(args)
+  return { city = args.city, celsius = 28, note = "demo handler (not a real weather API)" }
+end
+let schemas = {}
+schemas.get_weather = WeatherParams
+
+let i = 1
+while i <= #calls do
+  let result, rerr = tools.run_tool(calls[i], handlers, schemas)
+  if not result then
+    print("openai_tools: " .. tostring(rerr))
+    os.exit(1)
+  end
+  print(calls[i].name, json.encode(result))
+  i = i + 1
+end

@@ -1,3 +1,4 @@
+-- @compile-safe
 -- vyrn: 12
 def gen()
   print("A")

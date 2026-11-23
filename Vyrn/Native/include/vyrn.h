@@ -33,8 +33,16 @@ extern "C" {
 #endif
 
 #define VYRN_ABI_VERSION 9
+/* Product stamp — keep in sync with root VERSION (ci_version_check). Frozen with dialect 12 / VYBC v2-v6 / VYBX 1 for 1.7.x. */
+#define VYRN_VERSION_STRING "1.7.0"
+#define VYRN_DIALECT_VERSION 12
+#define VYRN_VYBC_MIN 2
+#define VYRN_VYBC_MAX 6
+#define VYRN_VYBX_VERSION 1
 
 #define VYRN_CAP_NET 1
+#define VYRN_CAP_PROCESS 2
+#define VYRN_CAP_LISTEN 4
 
 #define VYRN_TYPE_NIL    0
 #define VYRN_TYPE_BOOL   1
@@ -128,9 +136,10 @@ VYRN_API int         vyrn_set_limits(VyrnVM *vm, int max_loops, int max_calls, i
 
 /**
  * Set capability bits for this VM (ABI 8). Default is 0 (sandboxed).
- * VYRN_CAP_NET enables http.*. Keep ABI-7 hosts working: they simply never call this.
+ * VYRN_CAP_NET enables http.*; VYRN_CAP_PROCESS enables process.run;
+ * VYRN_CAP_LISTEN enables http.serve. Keep ABI-7 hosts working: they simply never call this.
  * @param vm   VM handle.
- * @param caps Bitmask (VYRN_CAP_NET = 1).
+ * @param caps Bitmask (VYRN_CAP_NET = 1, VYRN_CAP_PROCESS = 2, VYRN_CAP_LISTEN = 4).
  * @return Non-zero on success.
  */
 VYRN_API int         vyrn_set_capabilities(VyrnVM *vm, unsigned int caps);
@@ -153,6 +162,19 @@ VYRN_API int vyrn_set_net_allowlist(VyrnVM *vm, const char *hosts_csv);
  * @return Current allowlist CSV ("" when unrestricted); owned by the DLL (ABI 9).
  */
 VYRN_API const char *vyrn_get_net_allowlist(VyrnVM *vm);
+
+/**
+ * Set an optional bind allowlist for http.serve (1.6.156).
+ * NULL or "" with VYRN_CAP_LISTEN means loopback only (127.0.0.1, localhost, ::1).
+ * Non-empty CSV of exact bind hosts (no port). Disallowed binds raise.
+ * Optional export: older DLLs may omit it (hosts treat missing as loopback-only).
+ */
+VYRN_API int vyrn_set_listen_allowlist(VyrnVM *vm, const char *hosts_csv);
+
+/**
+ * @return Current listen allowlist CSV ("" = loopback-only when CAP_LISTEN set); owned by the DLL.
+ */
+VYRN_API const char *vyrn_get_listen_allowlist(VyrnVM *vm);
 
 /**
  * Install a print logger for script print output.

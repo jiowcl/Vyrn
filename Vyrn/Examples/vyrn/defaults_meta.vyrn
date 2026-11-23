@@ -1,0 +1,25 @@
+-- vyrn: 12
+-- Practical metatable example (1.6.148): a config table with defaults via __index.
+-- Complements the Vector showcase in examples/vyrn/showcase/metatable.vyrn.
+
+const DEFAULT_TIMEOUT: number = 30
+const DEFAULT_BASE: string = "https://example.invalid"
+
+@doc("Wrap values so missing keys fall back to defaults")
+def with_defaults(defaults: table) -> table
+  return setmetatable({}, { __index = defaults })
+end
+
+let defaults = {
+  timeout = DEFAULT_TIMEOUT,
+  base = DEFAULT_BASE,
+  model = "demo"
+}
+let cfg = with_defaults(defaults)
+cfg.model = "demo-2"
+
+print("timeout", cfg.timeout)
+print("base", cfg.base)
+print("model", cfg.model)
+print("own_model", rawget(cfg, "model") == "demo-2")
+print("own_timeout", rawget(cfg, "timeout") == nil)

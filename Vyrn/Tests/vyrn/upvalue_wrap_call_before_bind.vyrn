@@ -1,0 +1,21 @@
+-- vyrn: 12
+-- Call site compiled before wrap bind: conservative VAR expand still works.
+def wrapped()
+  yield 5, 6
+end
+
+def make()
+  let w = 0
+  def run()
+    print("before")
+    print("early", w())
+    print("after")
+  end
+  def bind()
+    w = coroutine.wrap(wrapped)
+  end
+  bind()
+  run()
+end
+
+make()

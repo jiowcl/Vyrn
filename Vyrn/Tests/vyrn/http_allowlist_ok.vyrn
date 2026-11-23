@@ -1,0 +1,7 @@
+-- 1.6.121: --allow-net=127.0.0.1 permits loopback.
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let r, e = http.get("http://127.0.0.1:" .. port .. "/json")
+assert(r, e)
+print("allow_ok", r.status)
+print("done")

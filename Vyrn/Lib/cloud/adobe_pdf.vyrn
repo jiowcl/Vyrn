@@ -1,0 +1,579 @@
+-- vyrn: 12
+-- Adobe PDF Services helpers (extracted 1.6.136; body_path / save_path in 1.6.137;
+-- shared job helper and additional operations in 1.6.145).
+-- Load with require("cloud.adobe_pdf"). Caller passes client_id / client_secret / token.
+-- Upload uses http.request opts.body_path (raw binary PUT). Download uses opts.save_path.
+-- Public functions keep accepting plain option tables (backward compatible).
+
+let net = require("net.util")
+
+@doc("IMS-style access token (opts.client_id, opts.client_secret, optional opts.base)")
+def adobe_get_token(opts: table)
+  if type(opts) ~= "table" then
+    return nil, "adobe_get_token: options table expected"
+  end
+  let client_id = opts.client_id or ""
+  let client_secret = opts.client_secret or ""
+  let base = opts.base or "https://pdf-services.adobe.io"
+  let timeout = opts.timeout or 30
+  if client_id == "" or client_secret == "" then
+    return nil, "missing client_id or client_secret"
+  end
+  let url = base .. "/token"
+  let hdr = {}
+  hdr["Content-Type"] = "application/x-www-form-urlencoded"
+  -- form body (secrets normally have no reserved chars; keep simple like other examples)
+  let body = "client_id=" .. client_id .. "&client_secret=" .. client_secret
+  let r, err = http.request({
+    method = "POST",
+    url = url,
+    headers = hdr,
+    body = body,
+    timeout = timeout
+  })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+  end
+  let data, jerr = json.decode(r.body)
+  if not data then
+    return nil, jerr
+  end
+  if type(data.access_token) ~= "string" or data.access_token == "" then
+    return nil, "unexpected token response"
+  end
+  return data.access_token
+end
+
+@doc("Upload a local file and return the assetID after a raw PUT to the pre-signed uploadUri")
+def adobe_upload_asset(opts: table)
+  if type(opts) ~= "table" then
+    return nil, "adobe_upload_asset: options table expected"
+  end
+  let token = opts.token or ""
+  let client_id = opts.client_id or ""
+  let file_path = opts.path or ""
+  let base = opts.base or "https://pdf-services.adobe.io"
+  let media_type = opts.media_type or "application/pdf"
+  let timeout = opts.timeout or 60
+  if token == "" or client_id == "" then
+    return nil, "missing token or client_id"
+  end
+  if file_path == "" then
+    return nil, "missing file path"
+  end
+  if not path.isfile(file_path) then
+    return nil, "file not found: " .. file_path
+  end
+
+  -- 1) obtain pre-signed uploadUri + assetID
+  let hdr = {}
+  hdr["Authorization"] = "Bearer " .. token
+  hdr["x-api-key"] = client_id
+  hdr["Content-Type"] = "application/json"
+  let body = json.encode({ mediaType = media_type })
+  let r, err = http.request({
+    method = "POST",
+    url = base .. "/assets",
+    headers = hdr,
+    body = body,
+    timeout = timeout
+  })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+  end
+  let data, jerr = json.decode(r.body)
+  if not data then
+    return nil, jerr
+  end
+  let asset_id = data.assetID
+  let upload_uri = data.uploadUri
+  if type(asset_id) ~= "string" or type(upload_uri) ~= "string" then
+    return nil, "unexpected assets response"
+  end
+
+  -- 2) PUT raw bytes to the pre-signed uploadUri. No Bearer on this hop
+  -- (the URI is already authorized). Content-Type is the declared media type;
+  -- body_path does not invent a type of its own.
+  let uh = {}
+  uh["Content-Type"] = media_type
+  let pr, perr = http.request({
+    method = "PUT",
+    url = upload_uri,
+    headers = uh,
+    body_path = file_path,
+    timeout = timeout
+  })
+  if not pr then
+    return nil, perr
+  end
+  if pr.status < 200 or pr.status >= 300 then
+    return nil, "upload http " .. tostring(pr.status) .. ": " .. tostring(pr.body)
+  end
+  return asset_id
+end
+
+@doc("Bearer + x-api-key JSON headers for PDF Services")
+def adobe_headers(token: string, client_id: string) -> table
+  let hdr = {}
+  hdr["Authorization"] = "Bearer " .. token
+  hdr["x-api-key"] = client_id
+  hdr["Content-Type"] = "application/json"
+  return hdr
+end
+
+def apply_params(body: table, opts: table) -> table
+  if type(opts.params) == "table" then
+    for k, v in pairs(opts.params) do
+      body[k] = v
+    end
+  end
+  return body
+end
+
+def make_job(opts: table, op_name: string, body: table) -> table
+  let job = {}
+  job.token = opts.token
+  job.client_id = opts.client_id
+  job.base = opts.base
+  job.timeout = opts.timeout
+  job.poll_interval = opts.poll_interval
+  job.poll_timeout = opts.poll_timeout
+  job.operation = op_name
+  job.body = body
+  return job
+end
+
+@doc("POST /operation/<name> with opts.body; returns the Location header")
+def adobe_submit_job(opts: table)
+  if type(opts) ~= "table" then
+    return nil, "adobe_submit_job: options table expected"
+  end
+  let token = opts.token or ""
+  let client_id = opts.client_id or ""
+  let operation = opts.operation or ""
+  let base = opts.base or "https://pdf-services.adobe.io"
+  let timeout = opts.timeout or 30
+  if token == "" or client_id == "" then
+    return nil, "missing token or client_id"
+  end
+  if operation == "" then
+    return nil, "missing operation"
+  end
+  if type(opts.body) ~= "table" then
+    return nil, "missing job body table"
+  end
+  let hdr = adobe_headers(token, client_id)
+  let r, err = http.request({
+    method = "POST",
+    url = base .. "/operation/" .. operation,
+    headers = hdr,
+    body = json.encode(opts.body),
+    timeout = timeout
+  })
+  if not r then
+    return nil, err
+  end
+  if r.status ~= 201 then
+    return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+  end
+  let location = nil
+  if type(r.headers) == "table" then
+    location = r.headers["Location"] or r.headers["location"] or r.headers["LOCATION"]
+  end
+  if type(location) ~= "string" or location == "" then
+    return nil, "missing Location header from " .. operation
+  end
+  return location
+end
+
+@doc("Poll a job Location until done, failed, or timeout; returns the done status table")
+def adobe_poll_job(opts: table)
+  if type(opts) ~= "table" then
+    return nil, "adobe_poll_job: options table expected"
+  end
+  let token = opts.token or ""
+  let client_id = opts.client_id or ""
+  let location = opts.location or ""
+  let timeout = opts.timeout or 30
+  let poll_interval = opts.poll_interval or 2
+  let poll_timeout = opts.poll_timeout or 120
+  let operation = opts.operation or "job"
+  if token == "" or client_id == "" then
+    return nil, "missing token or client_id"
+  end
+  if type(location) ~= "string" or location == "" then
+    return nil, "missing job Location"
+  end
+  let hdr = adobe_headers(token, client_id)
+  -- poll (busy-wait). timer() returns milliseconds; poll_* opts are seconds
+  -- like http timeout (default 2s interval, 120s deadline).
+  let poll_interval_ms = poll_interval * 1000
+  let poll_timeout_ms = poll_timeout * 1000
+  let t0 = timer()
+  while (timer() - t0) < poll_timeout_ms do
+    let sr, serr = http.request({
+      method = "GET",
+      url = location,
+      headers = hdr,
+      timeout = timeout
+    })
+    if not sr then
+      return nil, serr
+    end
+    if sr.status < 200 or sr.status >= 300 then
+      return nil, "poll http " .. tostring(sr.status) .. ": " .. tostring(sr.body)
+    end
+    let sdata, sjerr = json.decode(sr.body)
+    if not sdata then
+      return nil, sjerr
+    end
+    let status = sdata.status or ""
+    if status == "done" then
+      return sdata
+    end
+    if status == "failed" then
+      let msg = operation .. " failed"
+      if type(sdata.error) == "table" then
+        msg = msg .. ": " .. tostring(sdata.error.message or sdata.error.code or "")
+      end
+      return nil, msg
+    end
+    let tw = timer()
+    while (timer() - tw) < poll_interval_ms do end
+  end
+  return nil, "poll timed out"
+end
+
+@doc("Read asset.downloadUri and asset.assetID from a done status table")
+def adobe_asset_from_status(status: table)
+  if type(status) ~= "table" then
+    return nil, "status table expected"
+  end
+  let asset = status.asset
+  if type(asset) ~= "table" or type(asset.downloadUri) ~= "string" or asset.downloadUri == "" then
+    return nil, "done but missing downloadUri"
+  end
+  return asset.downloadUri, asset.assetID
+end
+
+@doc("Submit + poll an operation; returns the done status table")
+def adobe_run_job(opts: table)
+  let loc, err = adobe_submit_job(opts)
+  if not loc then
+    return nil, err
+  end
+  opts.location = loc
+  return adobe_poll_job(opts)
+end
+
+@doc("Submit + poll an operation that yields one asset; returns downloadUri, assetID")
+def adobe_run_asset_job(opts: table)
+  let st, err = adobe_run_job(opts)
+  if not st then
+    return nil, err
+  end
+  return adobe_asset_from_status(st)
+end
+
+def require_auth(opts: table)
+  if type(opts) ~= "table" then
+    return "options table expected"
+  end
+  if (opts.token or "") == "" or (opts.client_id or "") == "" then
+    return "missing token or client_id"
+  end
+  return nil
+end
+
+def require_asset(opts: table)
+  let err = require_auth(opts)
+  if err then
+    return err
+  end
+  if type(opts.asset_id) ~= "string" or opts.asset_id == "" then
+    return "missing asset_id"
+  end
+  return nil
+end
+
+@doc("Combine two or more assets (POST /operation/combinepdf); returns downloadUri, assetID")
+def adobe_combine_pdf(opts: table)
+  if type(opts) ~= "table" then
+    return nil, "adobe_combine_pdf: options table expected"
+  end
+  let err = require_auth(opts)
+  if err then
+    return nil, err
+  end
+  let asset_ids = opts.asset_ids
+  if type(asset_ids) ~= "table" or #asset_ids < 2 then
+    return nil, "need at least 2 asset_ids"
+  end
+  let assets = {}
+  let i = 1
+  while i <= #asset_ids do
+    assets[#assets + 1] = { assetID = asset_ids[i] }
+    i = i + 1
+  end
+  return adobe_run_asset_job(make_job(opts, "combinepdf", { assets = assets }))
+end
+
+@doc("Create a PDF from an uploaded Office, HTML, or text asset (POST /operation/createpdf)")
+def adobe_create_pdf(opts: table)
+  let err = require_asset(opts)
+  if err then
+    return nil, err
+  end
+  let body = { assetID = opts.asset_id }
+  if opts.document_language then
+    body.documentLanguage = opts.document_language
+  end
+  apply_params(body, opts)
+  return adobe_run_asset_job(make_job(opts, "createpdf", body))
+end
+
+@doc("Convert HTML (uploaded asset or opts.input_url) to PDF (POST /operation/htmltopdf)")
+def adobe_html_to_pdf(opts: table)
+  let err = require_auth(opts)
+  if err then
+    return nil, err
+  end
+  let body = {}
+  if type(opts.asset_id) == "string" and opts.asset_id ~= "" then
+    body.assetID = opts.asset_id
+  elseif type(opts.input_url) == "string" and opts.input_url ~= "" then
+    body.inputUrl = opts.input_url
+  else
+    return nil, "missing asset_id or input_url"
+  end
+  apply_params(body, opts)
+  return adobe_run_asset_job(make_job(opts, "htmltopdf", body))
+end
+
+@doc("Export a PDF asset to Office or text (POST /operation/exportpdf); opts.target_format default docx")
+def adobe_export_pdf(opts: table)
+  let err = require_asset(opts)
+  if err then
+    return nil, err
+  end
+  let body = {
+    assetID = opts.asset_id,
+    targetFormat = opts.target_format or "docx"
+  }
+  if opts.ocr_lang then
+    body.ocrLang = opts.ocr_lang
+  end
+  apply_params(body, opts)
+  return adobe_run_asset_job(make_job(opts, "exportpdf", body))
+end
+
+@doc("Export PDF pages to JPEG or PNG (POST /operation/pdftoimages)")
+def adobe_pdf_to_images(opts: table)
+  let err = require_asset(opts)
+  if err then
+    return nil, err
+  end
+  let body = {
+    assetID = opts.asset_id,
+    targetFormat = opts.target_format or "jpeg",
+    outputType = opts.output_type or "zipOfPageImages"
+  }
+  apply_params(body, opts)
+  return adobe_run_asset_job(make_job(opts, "pdftoimages", body))
+end
+
+@doc("OCR a PDF asset (POST /operation/ocr); optional opts.ocr_lang / opts.ocr_type")
+def adobe_ocr(opts: table)
+  let err = require_asset(opts)
+  if err then
+    return nil, err
+  end
+  let body = { assetID = opts.asset_id }
+  if opts.ocr_lang then
+    body.ocrLang = opts.ocr_lang
+  end
+  if opts.ocr_type then
+    body.ocrType = opts.ocr_type
+  end
+  apply_params(body, opts)
+  return adobe_run_asset_job(make_job(opts, "ocr", body))
+end
+
+@doc("Compress a PDF asset (POST /operation/compresspdf); optional opts.compression_level")
+def adobe_compress_pdf(opts: table)
+  let err = require_asset(opts)
+  if err then
+    return nil, err
+  end
+  let body = { assetID = opts.asset_id }
+  if opts.compression_level then
+    body.compressionLevel = opts.compression_level
+  end
+  apply_params(body, opts)
+  return adobe_run_asset_job(make_job(opts, "compresspdf", body))
+end
+
+@doc("Linearize a PDF for fast web view (POST /operation/linearizepdf)")
+def adobe_linearize_pdf(opts: table)
+  let err = require_asset(opts)
+  if err then
+    return nil, err
+  end
+  let body = { assetID = opts.asset_id }
+  apply_params(body, opts)
+  return adobe_run_asset_job(make_job(opts, "linearizepdf", body))
+end
+
+@doc("Password-protect a PDF (POST /operation/protectpdf); opts.password / user_password / owner_password")
+def adobe_protect_pdf(opts: table)
+  let err = require_asset(opts)
+  if err then
+    return nil, err
+  end
+  let body = { assetID = opts.asset_id }
+  let user_pw = opts.user_password or opts.password or ""
+  let owner_pw = opts.owner_password or ""
+  if user_pw ~= "" or owner_pw ~= "" then
+    let prot = {}
+    if user_pw ~= "" then
+      prot.userPassword = user_pw
+    end
+    if owner_pw ~= "" then
+      prot.ownerPassword = owner_pw
+    end
+    body.passwordProtection = prot
+  end
+  if opts.encryption_algorithm then
+    body.encryptionAlgorithm = opts.encryption_algorithm
+  end
+  apply_params(body, opts)
+  return adobe_run_asset_job(make_job(opts, "protectpdf", body))
+end
+
+@doc("Remove password protection (POST /operation/removeprotection); opts.password")
+def adobe_remove_protection(opts: table)
+  let err = require_asset(opts)
+  if err then
+    return nil, err
+  end
+  let body = { assetID = opts.asset_id }
+  if opts.password then
+    body.password = opts.password
+  end
+  apply_params(body, opts)
+  return adobe_run_asset_job(make_job(opts, "removeprotection", body))
+end
+
+@doc("Split a PDF (POST /operation/splitpdf); returns the done status table (assets list)")
+def adobe_split_pdf(opts: table)
+  let err = require_asset(opts)
+  if err then
+    return nil, err
+  end
+  let body = { assetID = opts.asset_id }
+  if opts.page_count then
+    body.splitOption = { splitByPageCount = opts.page_count }
+  elseif opts.file_count then
+    body.splitOption = { splitByFileCount = opts.file_count }
+  elseif opts.page_ranges then
+    body.splitOption = { splitByPageRanges = opts.page_ranges }
+  end
+  apply_params(body, opts)
+  return adobe_run_job(make_job(opts, "splitpdf", body))
+end
+
+@doc("Extract text and tables to a result asset (POST /operation/extractpdf); returns downloadUri, assetID")
+def adobe_extract_pdf(opts: table)
+  let err = require_asset(opts)
+  if err then
+    return nil, err
+  end
+  let body = { assetID = opts.asset_id }
+  if opts.elements_to_extract then
+    body.elementsToExtract = opts.elements_to_extract
+  end
+  if opts.renditions_to_extract then
+    body.renditionsToExtract = opts.renditions_to_extract
+  end
+  apply_params(body, opts)
+  return adobe_run_asset_job(make_job(opts, "extractpdf", body))
+end
+
+@doc("Read PDF properties (POST /operation/pdfproperties); returns metadata, or the done status table")
+def adobe_pdf_properties(opts: table)
+  let err = require_asset(opts)
+  if err then
+    return nil, err
+  end
+  let body = { assetID = opts.asset_id }
+  apply_params(body, opts)
+  let st, jerr = adobe_run_job(make_job(opts, "pdfproperties", body))
+  if not st then
+    return nil, jerr
+  end
+  if type(st.metadata) == "table" then
+    return st.metadata
+  end
+  if type(st.properties) == "table" then
+    return st.properties
+  end
+  return st
+end
+
+@doc("Download the raw response body to opts.out_path via http.request save_path")
+def adobe_download(opts: table)
+  if type(opts) ~= "table" then
+    return nil, "adobe_download: options table expected"
+  end
+  let url = opts.url or ""
+  let out_path = opts.out_path or "combine_output.pdf"
+  let timeout = opts.timeout or 60
+  if url == "" then
+    return nil, "missing download url"
+  end
+  let r, err = http.request({
+    method = "GET",
+    url = url,
+    timeout = timeout,
+    save_path = out_path
+  })
+  if not r then
+    return nil, err
+  end
+  if r.status < 200 or r.status >= 300 then
+    return nil, "download http " .. tostring(r.status)
+  end
+  return out_path
+end
+
+let M = {}
+M.adobe_get_token = adobe_get_token
+M.adobe_upload_asset = adobe_upload_asset
+M.adobe_headers = adobe_headers
+M.adobe_submit_job = adobe_submit_job
+M.adobe_poll_job = adobe_poll_job
+M.adobe_asset_from_status = adobe_asset_from_status
+M.adobe_run_job = adobe_run_job
+M.adobe_run_asset_job = adobe_run_asset_job
+M.adobe_combine_pdf = adobe_combine_pdf
+M.adobe_create_pdf = adobe_create_pdf
+M.adobe_html_to_pdf = adobe_html_to_pdf
+M.adobe_export_pdf = adobe_export_pdf
+M.adobe_pdf_to_images = adobe_pdf_to_images
+M.adobe_ocr = adobe_ocr
+M.adobe_compress_pdf = adobe_compress_pdf
+M.adobe_linearize_pdf = adobe_linearize_pdf
+M.adobe_protect_pdf = adobe_protect_pdf
+M.adobe_remove_protection = adobe_remove_protection
+M.adobe_split_pdf = adobe_split_pdf
+M.adobe_extract_pdf = adobe_extract_pdf
+M.adobe_pdf_properties = adobe_pdf_properties
+M.adobe_download = adobe_download
+M.is_disabled_net = net.is_disabled_net
+return M

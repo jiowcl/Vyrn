@@ -1,0 +1,35 @@
+-- vyrn: 12
+-- Small path + io utility demo (not strict; not a bench).
+-- Uses method-style file IO like tests/vyrn/io_file_object.vyrn.
+
+def file_exists(p: string) -> boolean
+  return path.exists(p)
+end
+
+print("=== path_io_tool ===")
+
+let scratch = "examples/vyrn/_path_io_scratch.txt"
+print("scratch:", scratch)
+
+let wf = io.open(scratch, "w")
+if wf == nil then
+  print("open for write failed")
+else
+  wf:write("hello-from-path-io\n")
+  wf:close()
+end
+
+print("exists:", file_exists(scratch))
+
+let rf = io.open(scratch, "r")
+if rf == nil then
+  print("open for read failed")
+else
+  print("type:", io.type(rf))
+  print("first line:", rf:read("*l"))
+  rf:close()
+end
+
+print("join demo:", path.join("examples", "vyrn", "hello.vyrn"))
+print("basename:", path.basename(scratch))
+print("=== done ===")

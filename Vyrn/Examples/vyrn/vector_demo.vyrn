@@ -1,0 +1,24 @@
+-- vyrn: 12
+-- Offline vector helpers demo (1.6.161 / 1.6.169 / 1.6.170). No network.
+
+assert(type(math) == "table")
+let v = require("vector")
+
+let cat = { 1, 0, 0 }
+let dog = { 0.9, 0.1, 0 }
+let car = { 0, 0, 1 }
+
+print("dot", v.dot(cat, dog))
+print("cosine_cat_dog", v.cosine(cat, dog) > 0.9)
+print("cosine_cat_car", v.cosine(cat, car) == 0)
+print("l2_cat_dog", v.l2_distance(cat, dog) < 0.2)
+
+let blend, berr = v.axpy(0.5, cat, dog)
+assert(blend, berr)
+let mid, merr = v.normalize(blend)
+assert(mid, merr)
+print("blend_norm", v.norm(mid) > 0.99)
+
+let gated, gerr = v.mul(cat, dog)
+assert(gated, gerr)
+print("mul_gate", gated[1] > 0.8 and gated[2] == 0 and gated[3] == 0)

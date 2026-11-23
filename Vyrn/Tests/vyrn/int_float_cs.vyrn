@@ -1,0 +1,24 @@
+-- @compile-safe
+-- vyrn: 12
+-- Showcase: Lua 5.4 integer / float subtypes (1.6.116).
+-- Run: bin\LuaLiteVM_build.exe examples\vyrn\showcase\int_float.vyrn
+
+-- math.type distinguishes 3 from 3.0; tostring keeps the subtype.
+print(math.type(3), math.type(3.0), math.type("x"))
+print(tostring(3), tostring(3.0), 3 == 3.0)
+
+-- Integer arithmetic wraps; / and ^ always give floats.
+print(math.maxinteger + 1 == math.mininteger)
+print(string.format("%s %s", math.type(1 + 2), math.type(1 / 2)))
+print(2 ^ 10, math.type(2 ^ 10))
+
+-- Floor division and modulo stay exact on integers.
+print(7 // 2, -7 // 2, -7 % 3, math.type(7 // 2))
+
+-- 64-bit bitwise ops use the integer representation.
+print(string.format("0x%x", (1 << 40) | 0xff))
+print(~0, math.type(~0))
+
+-- math.tointeger / ult / floor return integers when they fit.
+print(math.tointeger(3.0), math.tointeger(3.5), math.ult(0, -1))
+print(math.type(math.floor(3.7)), math.type(math.ceil(-1.2)))

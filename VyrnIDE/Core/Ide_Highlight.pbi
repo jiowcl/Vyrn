@@ -47,10 +47,64 @@ CompilerIf Defined(Ide_Highlight, #PB_Constant) = #False
   Global Ide_HighlightReady.i = #False
 
   ; <summary>
-  ; Load keyword and type maps from DataSection once (idempotent).
+  ; Resolve keywords.txt or types.txt beside the exe, ide\Output parent, or ide\ source tree.
+  ; </summary>
+  ; <param name="fileName">Base name such as keywords.txt or types.txt.</param>
+  ; <returns>First existing path, or empty when none is found.</returns>
+  Procedure.s Ide_Highlight_FindWordList(fileName.s)
+    Protected dir.s = GetPathPart(ProgramFilename())
+    Protected candidates.s
+    candidates = dir + fileName
+    If FileSize(candidates) >= 0
+      ProcedureReturn candidates
+    EndIf
+    candidates = dir + "..\" + fileName
+    If FileSize(candidates) >= 0
+      ProcedureReturn candidates
+    EndIf
+    candidates = dir + "..\..\ide\" + fileName
+    If FileSize(candidates) >= 0
+      ProcedureReturn candidates
+    EndIf
+    ProcedureReturn ""
+  EndProcedure
+
+  ; <summary>
+  ; Fill a keyword/type map from a UTF-8 line-based list (comments with #, blank lines skipped).
+  ; </summary>
+  ; <param name="path">List file path.</param>
+  ; <param name="mapName">Map name passed by reference via ForEach target (Ide_Keywords or Ide_Types).</param>
+  ; <returns>#True when at least one word was loaded.</returns>
+  Procedure.i Ide_Highlight_LoadMapFile(path.s, mapName.s)
+    Protected f.i, line.s, w.s, count.i = 0
+    If path = "" Or FileSize(path) < 0
+      ProcedureReturn #False
+    EndIf
+    f = ReadFile(#PB_Any, path)
+    If f = 0
+      ProcedureReturn #False
+    EndIf
+    While Eof(f) = #False
+      line = Trim(ReadString(f))
+      If line <> "" And Left(line, 1) <> "#"
+        w = LCase(line)
+        If mapName = "keywords"
+          Ide_Keywords(w) = 1
+        Else
+          Ide_Types(w) = 1
+        EndIf
+        count = count + 1
+      EndIf
+    Wend
+    CloseFile(f)
+    ProcedureReturn Bool(count > 0)
+  EndProcedure
+
+  ; <summary>
+  ; Load keyword and type maps from ide\keywords.txt / types.txt, else embedded DataSection (idempotent).
   ; </summary>
   Procedure Ide_Highlight_InitMaps()
-    Protected k.s
+    Protected k.s, kwPath.s, tyPath.s
     If Ide_HighlightReady
       ProcedureReturn
     EndIf
@@ -58,23 +112,28 @@ CompilerIf Defined(Ide_Highlight, #PB_Constant) = #False
     ForEach Ide_Keywords() : DeleteMapElement(Ide_Keywords()) : Next
     ForEach Ide_Types() : DeleteMapElement(Ide_Types()) : Next
 
-    Restore Ide_KeywordData
-    Repeat
-      Read.s k
-      If k = ""
-        Break
-      EndIf
-      Ide_Keywords(LCase(k)) = 1
-    ForEver
-
-    Restore Ide_TypeData
-    Repeat
-      Read.s k
-      If k = ""
-        Break
-      EndIf
-      Ide_Types(LCase(k)) = 1
-    ForEver
+    kwPath = Ide_Highlight_FindWordList("keywords.txt")
+    tyPath = Ide_Highlight_FindWordList("types.txt")
+    If Ide_Highlight_LoadMapFile(kwPath, "keywords") = #False
+      Restore Ide_KeywordData
+      Repeat
+        Read.s k
+        If k = ""
+          Break
+        EndIf
+        Ide_Keywords(LCase(k)) = 1
+      ForEver
+    EndIf
+    If Ide_Highlight_LoadMapFile(tyPath, "types") = #False
+      Restore Ide_TypeData
+      Repeat
+        Read.s k
+        If k = ""
+          Break
+        EndIf
+        Ide_Types(LCase(k)) = 1
+      ForEver
+    EndIf
 
     Ide_HighlightReady = #True
   EndProcedure

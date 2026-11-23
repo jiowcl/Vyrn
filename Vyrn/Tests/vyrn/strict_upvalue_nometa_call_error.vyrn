@@ -1,0 +1,15 @@
+-- vyrn: 12 strict
+-- Statement-position no-meta upvalue call is a hard error under strict.
+def make()
+  let w = 0
+  def run()
+    w()
+  end
+  def bind()
+    w = print
+  end
+  bind()
+  run()
+end
+
+make()

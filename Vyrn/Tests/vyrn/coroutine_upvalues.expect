@@ -1,0 +1,56 @@
+1a true 1
+1b 1
+1c true 11
+1d 11
+1e true 11
+1f 11 dead
+2a 6
+2c 106
+2b 107 107
+2d 214 215
+3b true init
+3c main
+3a main
+3d true main+co
+3e main+co
+3f true again
+3g again dead
+4a A B
+4b true B!
+4c A B!
+4d true A!
+4e A! B!
+5a 1 11 12 22 22
+6a true 1
+6b 11
+6c true 2
+6d 12 21
+6e true 3
+6f true loop
+6g 13 22 31
+7a 2 1
+7b 7 6
+7c 3 103 107
+7d nil
+7e 3 7 103 107
+8a true outer/inner
+8c true outer2/inner
+8d outer2/inner
+8b true outer2/inner2
+8e true outer3/inner2
+8f outer3/inner2 dead suspended
+8g true
+8h outer3/inner2 dead
+9a true 42
+9b 43
+9c false true dead
+9d 101 102
+10a 1 2
+10b ww
+10c true dead
+10d www wwww
+11a true leaf
+11b true leaf2
+11c true leaf2@150 leaf2 dead
+12a M
+12b M2 6

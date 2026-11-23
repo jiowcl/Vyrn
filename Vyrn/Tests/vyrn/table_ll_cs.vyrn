@@ -1,0 +1,71 @@
+-- @compile-safe
+-- vyrn: 12
+-- Local-indexed table fused opcodes: GET_TABLE_LL, SET_TABLE_LL_K,
+-- SET_TABLE_LL_K_ADD, GET_TABLE_LL_EQ_K_JMP (sieve-style loops; >4096 dense slots).
+
+def CreateArray(size)
+    let arr = {}
+    for i = 1, size do
+        arr[i] = 1
+    end
+    return arr
+end
+
+def Sieve(max)
+    let flags = CreateArray(max + 1)
+    let count = 0
+    let p = 2
+    while p * p <= max do
+        if flags[p] == 1 then
+            let i = p * p
+            while i <= max do
+                flags[i] = 0
+                i = i + p
+            end
+        end
+        p = p + 1
+    end
+    let j = 2
+    while j <= max do
+        if flags[j] == 1 then
+            count = count + 1
+        end
+        j = j + 1
+    end
+    return count
+end
+
+def Lookup()
+    let t = {10, 20, 30}
+    let k = 2
+    print("get", t[k])
+    t[k] = 7
+    print("set", t[k])
+    let names = {a = "x", b = "y"}
+    let key = "b"
+    print("sget", names[key])
+    names[key] = "z"
+    print("sset", names[key], names.b)
+    let missing = 9
+    print("miss", t[missing] == nil)
+    let words = {"go", "stop", "go"}
+    let hits = 0
+    let w = 1
+    while w <= 3 do
+        if words[w] == "go" then
+            hits = hits + 1
+        end
+        w = w + 1
+    end
+    print("hits", hits)
+    -- Dense array beyond the old 4096-slot rt cap (`#` is uncapped since 1.6.105, PB and rt).
+    let big = table.create2d(1, 5000, 1)
+    let bk = 5000
+    big[bk] = 7
+    let bj = 4999
+    print("big", #big, big[bk], big[bj])
+end
+
+print("primes100", Sieve(100))
+print("primes1000", Sieve(1000))
+Lookup()

@@ -1,0 +1,14 @@
+-- @compile-safe
+-- OP_MOD (%) and tonumber (1.6.62)
+
+print(10 % 3)
+print(-7 % 3)
+print(7.5 % 2)
+let n = 17
+print(n % 5)
+print(tonumber("42") + 1)
+print(tonumber("  3.5  "))
+print(tonumber("1e2"))
+print(tonumber("ff", 16))
+print(tonumber("abc"))
+print(tonumber(8))

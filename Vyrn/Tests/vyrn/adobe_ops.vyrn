@@ -1,0 +1,95 @@
+-- 1.6.145: Adobe PDF Services extra operations against the loopback mock.
+-- Shared job helper: create, export, images, OCR, compress, linearize,
+-- protect, remove protection, HTML, extract, properties, split.
+-- No paid API.
+
+let api = require("cloud.adobe_pdf")
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+let tmp = os.getenv("TEMP") or os.getenv("TMP") or os.getenv("TMPDIR") or path.cwd()
+
+print("typed", type(api.adobe_run_job) == "function", type(api.adobe_create_pdf) == "function")
+
+let fx_hex = "68656c6c6f0001fffe80776f726c64"
+let fx = path.join("tests", "vyrn", "fixtures", "crypto_nul.bin")
+if not path.isfile(fx) then
+  fx = path.join(tmp, "vyrn_adobe_ops_fx.bin")
+  let m, e = crypto.fromhex_file(fx, fx_hex)
+  assert(m, e)
+end
+
+let token, terr = api.adobe_get_token({
+  client_id = "test-id",
+  client_secret = "test-secret",
+  base = base,
+  timeout = 10
+})
+assert(token, terr)
+
+let asset_id, uerr = api.adobe_upload_asset({
+  token = token,
+  client_id = "test-id",
+  base = base,
+  path = fx,
+  media_type = "application/pdf",
+  timeout = 10
+})
+assert(asset_id, uerr)
+
+def make_opts()
+  return {
+    token = token,
+    client_id = "test-id",
+    base = base,
+    asset_id = asset_id,
+    timeout = 10,
+    poll_interval = 0.05,
+    poll_timeout = 10
+  }
+end
+
+def run_asset(name, fn, extra)
+  let opts = make_opts()
+  if type(extra) == "table" then
+    for k, v in pairs(extra) do
+      opts[k] = v
+    end
+  end
+  let uri, err = fn(opts)
+  assert(uri, err)
+  print(name, type(uri) == "string" and uri ~= "")
+end
+
+run_asset("create", api.adobe_create_pdf, nil)
+run_asset("export", api.adobe_export_pdf, { target_format = "docx" })
+run_asset("images", api.adobe_pdf_to_images, { target_format = "jpeg" })
+run_asset("ocr", api.adobe_ocr, { ocr_lang = "en-US" })
+run_asset("compress", api.adobe_compress_pdf, { compression_level = "MEDIUM" })
+run_asset("linearize", api.adobe_linearize_pdf, nil)
+run_asset("protect", api.adobe_protect_pdf, { password = "secret" })
+run_asset("unprotect", api.adobe_remove_protection, { password = "secret" })
+run_asset("html", api.adobe_html_to_pdf, { input_url = "http://127.0.0.1/doc.html" })
+run_asset("extract", api.adobe_extract_pdf, { elements_to_extract = { "text", "tables" } })
+
+let props, perr = api.adobe_pdf_properties(make_opts())
+assert(props, perr)
+print("props", type(props.pageCount) == "number" and props.pageCount == 2)
+
+let split, serr = api.adobe_split_pdf({
+  token = token,
+  client_id = "test-id",
+  base = base,
+  asset_id = asset_id,
+  page_count = 1,
+  timeout = 10,
+  poll_interval = 0.05,
+  poll_timeout = 10
+})
+assert(split, serr)
+let n = 0
+if type(split.assets) == "table" then
+  n = #split.assets
+end
+print("split", n)
+print("done")

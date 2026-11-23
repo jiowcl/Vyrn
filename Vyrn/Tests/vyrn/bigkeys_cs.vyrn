@@ -1,0 +1,52 @@
+-- @compile-safe
+-- 1.6.69: integer keys above 2^24 are dense indices in the PB VM (every
+-- integral key >= 1 is), so next() yields them in ascending order right after
+-- the small dense keys and before string/negative keys, # ignores them unless
+-- the border reaches them, and assigning nil removes them from the walk.
+-- Keys stay <= 2^25 here (the PB dense cap); larger integral keys go to hash
+-- slots since 1.6.71 (see bigkeys_huge_cs).
+
+def showkv(tb, key, acc)
+    let nk, nv = next(tb, key)
+    if nk == nil then
+        return acc
+    end
+    let piece = acc .. " " .. tostring(nk) .. "=" .. tostring(nv)
+    return showkv(tb, nk, piece)
+end
+let t = {}
+t[1] = "one"
+t["a"] = "A"
+t[33554432] = "big"
+t["b"] = "B"
+t[16777217] = "mid"
+t[2] = "two"
+t[-4] = "neg"
+t[16777300] = "x"
+print(#t, t[33554432], t[16777217], t[16777300], t[16777218])
+print(showkv(t, nil, ""))
+t[16777300] = nil
+t[33554432] = "BIG"
+print(showkv(t, nil, ""))
+t[16777217] = nil
+t[33554432] = nil
+print(#t, t[16777217], showkv(t, nil, ""))
+let u = {}
+u[16777300] = 1
+u["x"] = 2
+u[16777299] = 3
+print(#u, showkv(u, nil, ""))
+let k, v = next(u)
+print(k, v)
+let s = 0
+def sumk(tb, key, acc)
+    let nk, nv = next(tb, key)
+    if nk == nil then
+        return acc
+    end
+    if type(nk) == "number" then
+        return sumk(tb, nk, acc + nk)
+    end
+    return sumk(tb, nk, acc)
+end
+print(sumk(u, nil, 0))

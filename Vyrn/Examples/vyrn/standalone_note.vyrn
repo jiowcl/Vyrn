@@ -1,5 +1,7 @@
 -- vyrn: 12
 -- Tiny pointer sample for Vyrn.Standalone (full VM via Vyrn.dll).
+-- Packaging: docs/VyrnShip.md / docs/StandaloneVsCompile.md
+--   .\scripts\ship_standalone.ps1 examples\vyrn\standalone_note.vyrn -OutDir artifacts\ship\note
 
 print("=== standalone_note ===")
 print("Use Vyrn.Standalone when you need full stdlib (require, path, ws, ...).")

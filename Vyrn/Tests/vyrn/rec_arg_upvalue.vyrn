@@ -1,0 +1,14 @@
+-- vyrn: 7
+-- Recursive call whose first arg expression captures an upvalue: must load
+-- callee under args (not after). Regression for FarnBench32 CALL_KNOWN defer.
+
+let step: number = 2
+
+def countdown(n: number) -> number
+    if n <= 0 then
+        return 0
+    end
+    return 1 + countdown(n - step)
+end
+
+print(countdown(6))

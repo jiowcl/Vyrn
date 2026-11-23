@@ -1,0 +1,56 @@
+-- 1.6.92: more than 16 enclosing functions is a compile error with file:line
+def lvl0()
+  let x0 = 7
+  return function()
+    let x1 = 1
+    return function()
+      let x2 = 2
+      return function()
+        let x3 = 3
+        return function()
+          let x4 = 4
+          return function()
+            let x5 = 5
+            return function()
+              let x6 = 6
+              return function()
+                let x7 = 7
+                return function()
+                  let x8 = 8
+                  return function()
+                    let x9 = 9
+                    return function()
+                      let x10 = 10
+                      return function()
+                        let x11 = 11
+                        return function()
+                          let x12 = 12
+                          return function()
+                            let x13 = 13
+                            return function()
+                              let x14 = 14
+                              return function()
+                                let x15 = 15
+                                return function()
+                                  let x16 = 16
+                                  return x0 * 100 + x1 + x16
+                                end
+                              end
+                            end
+                          end
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+let g = lvl0()
+for i = 1, 15 do g = g() end
+print(g())

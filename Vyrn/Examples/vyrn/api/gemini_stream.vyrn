@@ -1,11 +1,24 @@
 -- vyrn: 12
--- Gemini streamGenerateContent SSE example (1.6.128).
+-- Gemini streamGenerateContent SSE example (1.6.128; Doc / const / types in 1.6.147).
 -- Uses opts.on_chunk + http.sse_events. Reads GEMINI_API_KEY (required) and
 -- optional GEMINI_BASE_URL / GEMINI_MODEL / GEMINI_PROMPT.
 -- Never hardcodes secrets. Needs --allow-net. Not run against the real API in CI;
 -- see tests/vyrn/http_sse.vyrn.
 
-let api = require("clients")
+const DEFAULT_BASE: string = "https://generativelanguage.googleapis.com"
+const DEFAULT_MODEL: string = "gemini-2.5-flash"
+const DEFAULT_PROMPT: string = "Say hello in one short sentence."
+
+@doc("Return the env value, or fallback when unset or empty")
+def env_or(name: string, fallback: string) -> string
+  let v = os.getenv(name) or ""
+  if v == "" then
+    return fallback
+  end
+  return v
+end
+
+let api = require("ai.gemini")
 
 let key = os.getenv("GEMINI_API_KEY") or ""
 if key == "" then
@@ -13,12 +26,12 @@ if key == "" then
   os.exit(0)
 end
 
-let model = os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
+let model = env_or("GEMINI_MODEL", DEFAULT_MODEL)
 let text, err = api.gemini_stream({
   key = key,
-  base = os.getenv("GEMINI_BASE_URL") or "https://generativelanguage.googleapis.com",
+  base = env_or("GEMINI_BASE_URL", DEFAULT_BASE),
   model = model,
-  prompt = os.getenv("GEMINI_PROMPT") or "Say hello in one short sentence."
+  prompt = env_or("GEMINI_PROMPT", DEFAULT_PROMPT)
 })
 if not text then
   print("gemini_stream: " .. tostring(err))

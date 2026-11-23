@@ -1,0 +1,32 @@
+-- vyrn: 12
+-- require() paths: script-local lib.*, repo lib/, and optional VYRN_PATH.
+-- No network. Run from the repository root so lib/ai and lib/net resolve.
+
+print("=== require_lib ===")
+
+let greet = require("lib.greet")
+print("local", greet("World"))
+
+let net = require("net.util")
+if type(net.decode_json_ok) ~= "function" or type(net.is_disabled_net) ~= "function" then
+  print("require_lib: net.util missing exports")
+  os.exit(1)
+end
+print("repo_lib", "net.util")
+
+let prev_path = os.getenv("VYRN_PATH") or ""
+os.setenv("VYRN_PATH", path.join("tests", "vyrn", "vyrn_path_lib"))
+let probe = require("hello_probe")
+if type(probe) ~= "table" or type(probe.hello) ~= "function" then
+  print("require_lib: hello_probe failed")
+  os.exit(1)
+end
+print("vyrn_path", probe.hello())
+if prev_path == "" then
+  os.setenv("VYRN_PATH", nil)
+else
+  os.setenv("VYRN_PATH", prev_path)
+end
+
+print("package.path", string.find(package.path, "lib/", 1, true) ~= nil)
+print("=== done ===")

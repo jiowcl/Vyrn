@@ -1,0 +1,11 @@
+-- vyrn: 10
+-- 1.6.77: select('#') with no varargs is 0; empty varargs spread to nothing.
+def va(...) return select('#', ...) end
+def vb(...) let t = {...}; return #t end
+def vc(...) let t = table.pack(...); return t.n end
+print(va(), vb(), vc())
+print(select('#'))
+let f = va
+print(f())
+def fwd(...) return va(...) end
+print(fwd(), fwd(1, nil))

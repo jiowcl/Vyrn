@@ -1,0 +1,10 @@
+-- vyrn: 12 strict
+def worker() -> number, string
+  yield 1, "ok"
+end
+
+let co = coroutine.create(worker)
+let ok: bool, n: number, s: string = coroutine.resume(co)
+print(ok)
+print(n)
+print(s)

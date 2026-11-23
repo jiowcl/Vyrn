@@ -1,0 +1,5 @@
+false L4: attempt to index a nil value (local 'n')
+false L5: attempt to perform arithmetic on a nil value (local 'n')
+false L6: attempt to perform arithmetic on a table value (local 's')
+false L7: attempt to index a nil value
+false L8: attempt to call a nil value (local 'q')

@@ -1,0 +1,48 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.176: enum member SET_TABLE must POP so later top-level let binds correctly.
+enum Status: number
+    CIdle
+    Running
+    Done
+end
+
+let st = Status.Running
+print(st, type(st))
+
+struct Point
+    x: number
+    y: number
+end
+
+struct Task
+    title: string
+    status: number
+    point: Point
+end
+
+def make_task(title: string, x: number, y: number) -> Task
+    return Task {
+        title = title,
+        status = Status.Running,
+        point = Point { x = x, y = y }
+    }
+end
+
+let t = make_task("Compile showcase", 10, 20)
+print(t.title, t.status, t.point.x, t.point.y)
+
+def describe_status(s: number) -> string
+    if s == Status.CIdle then
+        return "waiting"
+    elif s == Status.Running then
+        return "in progress"
+    elif s == Status.Done then
+        return "finished"
+    else
+        return "unknown"
+    end
+end
+
+print(describe_status(t.status))
+print(describe_status(Status.CIdle))

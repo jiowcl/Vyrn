@@ -1,0 +1,11 @@
+rs 4
+rs0 bad arguments to 'get2d' (table, row, col, cols expected)
+rsneg bad arguments to 'get2d' (table, row, col, cols expected)
+rsstr 4
+ws 4
+ws0 bad arguments to 'get2d' (table, row, col, cols expected)
+mm 48
+mmstr 60
+mmnil attempt to perform arithmetic on a nil value
+mmtab attempt to perform arithmetic on a table value
+mm0 ok

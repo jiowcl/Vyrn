@@ -1,0 +1,54 @@
+-- vyrn: 12
+-- Offline tool-calling walkthrough (1.6.160): parse canned responses, validate, dispatch.
+-- No network and no API keys.
+
+assert(type(package) == "table")
+assert(type(math) == "table")
+let tools = require("ai.tools")
+
+const WeatherParams: table = {
+  type = "object",
+  properties = {
+    city = { type = "string", minLength = 1 }
+  },
+  required = { "city" },
+  additionalProperties = false
+}
+
+let odef = tools.openai_tool_def("get_weather", "Look up weather", WeatherParams)
+print("openai_tool", odef["function"].name)
+
+let ofn = {
+  name = "get_weather",
+  arguments = json.encode({ city = "Taipei" })
+}
+let otc = { id = "call_demo", type = "function" }
+otc["function"] = ofn
+let omsg = {
+  role = "assistant",
+  tool_calls = { otc }
+}
+let calls, err = tools.openai_parse_tool_calls(omsg)
+assert(calls, err)
+
+let handlers = {}
+handlers.get_weather = function(args)
+  return { city = args.city, celsius = 28 }
+end
+let schemas = {}
+schemas.get_weather = WeatherParams
+
+let result, rerr = tools.run_tool(calls[1], handlers, schemas)
+assert(result, rerr)
+print("result", result.city, result.celsius)
+
+let follow = tools.openai_tool_message(calls[1].id, result)
+print("tool_role", follow.role, follow.tool_call_id)
+
+let gcalls, gerr = tools.gemini_parse_function_calls({
+  parts = {
+    { functionCall = { name = "get_weather", args = { city = "Taipei" } } }
+  }
+})
+assert(gcalls, gerr)
+print("gemini", gcalls[1].name, gcalls[1].arguments.city)

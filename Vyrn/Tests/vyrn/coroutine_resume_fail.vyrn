@@ -1,0 +1,11 @@
+-- vyrn: 12
+def boom()
+  error("co blew up", 0)
+end
+let w = coroutine.wrap(boom)
+let ok, err = pcall(w)
+print(ok, err)
+let co = coroutine.create(boom)
+let ok2, err2 = coroutine.resume(co)
+print(ok2, err2)
+print(coroutine.status(co))

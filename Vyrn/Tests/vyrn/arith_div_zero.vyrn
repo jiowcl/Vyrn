@@ -1,0 +1,21 @@
+-- 1.6.78: IEEE '/' by zero (inf/-inf/nan), integer '%' by zero raises like Lua,
+-- float '%' by zero is nan, and += / -= on non-numbers raise type errors.
+def pos(ok, e)
+  if ok then return "ok " .. tostring(e) end
+  let ln, m = string.match(e, "(%d+): (.*)$")
+  return "L" .. ln .. ": " .. m
+end
+let z = 0
+print("div", 1 / z, -1 / z, 0 / z, 1.5 / z)
+print("lit", 1 / 0, -1 / 0)
+print("cat", "x" .. (1 / z), tostring(-1 / z))
+let nan = 0 / z
+print("nan", nan ~= nan, nan == nan)
+print("mod0", pos(pcall(function() return 7 % z end)))
+print("fmod0", 7.5 % z ~= 7.5 % z)
+print("mod", -7 % 3, 7 % 3, 5.5 % 2)
+print("inc", pos(pcall(function() let q = "x"; q += 1; return q end)))
+print("dec", pos(pcall(function() let q = nil; q -= 1; return q end)))
+print("dect", pos(pcall(function() let q = {}; q -= 1; return q end)))
+print("incs", pos(pcall(function() let q = "5"; q += 1; return q end)))
+print("divs", pos(pcall(function() let q = 6; q = q / z; return q end)))

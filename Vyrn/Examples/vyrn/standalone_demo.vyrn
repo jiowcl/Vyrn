@@ -1,5 +1,9 @@
 -- vyrn: 12
 -- Vyrn.Standalone product sample (full stdlib via bundled Vyrn.dll).
+-- Package:
+--   .\scripts\ship_standalone.ps1 examples\vyrn\standalone_demo.vyrn -OutDir artifacts\ship\demo
+-- Then build launcher.pb with pbcompiler and run the produced exe with the .bundle.vyrn.
+-- See docs/StandaloneVsCompile.md / docs/VyrnShip.md / docs/Testing.md (-ShipSmoke).
 
 print("=== standalone_demo ===")
 print("path.exists('.') =>", path.exists("."))

@@ -1,0 +1,25 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.176: struct ctor compile must restore outer locals (top-level const).
+const PI: number = 3.14159
+const APP_NAME: string = "Vyrn"
+print(PI, APP_NAME)
+
+enum Status: number
+    CIdle
+    Running
+end
+
+struct Point
+    x: number
+    y: number
+end
+
+struct Task
+    title: string
+    status: number
+    point: Point
+end
+
+print(PI, APP_NAME)
+print(math.floor(PI), string.upper(APP_NAME))

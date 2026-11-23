@@ -1,0 +1,12 @@
+-- Runtime errors in a call statement report the call's line, not the next statement's.
+def f()
+  return nil
+end
+def run()
+  let g = f()
+  g()
+  print("unreached")
+end
+let ok, msg = pcall(run)
+print(ok)
+print(string.find(msg, "call_line_pcall.vyrn:7:", 1, true) ~= nil)

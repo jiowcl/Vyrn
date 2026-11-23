@@ -1,0 +1,19 @@
+-- vyrn: 12
+-- Tiny argparse demo (1.9.0). Pass args on the CLI or edit the argv table below.
+let ap = require("argparse")
+let p = ap.new("argparse_demo")
+p:add_flag("-v", "--verbose")
+p:add_option("-o", "--output")
+p:add_argument("input")
+
+-- Example argv; replace with {...} from your entrypoint when wired to main.
+let argv = { "-v", "--output", "out.txt", "input.dat" }
+let args, err = p:parse(argv)
+if args == nil then
+  print("error", err)
+  print(ap.help(p))
+else
+  print("verbose", args.verbose)
+  print("output", args.output or "")
+  print("input", args.input)
+end

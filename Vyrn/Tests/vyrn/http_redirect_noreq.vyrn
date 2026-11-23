@@ -1,0 +1,21 @@
+-- 1.6.123: disallowed redirect target must receive no request.
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+let ok, err = pcall(function()
+  http.get(base .. "/redirect/other")
+end)
+assert(ok == false, "expected raise on disallowed redirect hop")
+let msg = string.gsub(tostring(err), "^.-%d+: ", "")
+assert(string.find(msg, "network access to host 127.0.0.2 is not allowed", 1, true), msg)
+-- Small pause so a wrongly sent hop would have arrived before we ask for the count.
+let t0 = os.clock()
+while os.clock() - t0 < 0.15 do end
+let hits, e2 = http.get(base .. "/other-hits")
+assert(hits, e2)
+let n = tonumber(hits.body)
+assert(n ~= nil, "other-hits body not a number: " .. tostring(hits.body))
+assert(n >= 0, "127.0.0.2 listener was not bound")
+assert(n == 0, "disallowed redirect target received " .. tostring(n) .. " request(s)")
+print("redir_noreq_ok")
+print("done")

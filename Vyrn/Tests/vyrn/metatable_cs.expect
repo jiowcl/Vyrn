@@ -1,0 +1,31 @@
+no-mt true
+set-ret true
+get-same true
+cleared true
+nt-num true
+str-mt true
+str-mt-same true
+prot-get locked
+prot-set false true
+bad1 false true
+bad2 false true
+idx-hit 1
+idx-miss 2
+raw-miss true
+raw-set 9 9
+idx-fn I:hello
+chain A
+ni-exist 2 true
+ni-fn true z=3
+ni-tab true 7
+ts TS:vec
+ts-print TS:vec
+ts-concat X1
+add 4 6
+add-ts (4, 6)
+vec-print (1, 2)
+arith add sub mul div mod pow idiv
+plain-ts {1, 2}
+plain-miss true
+ts-num true true
+bad-ts false true

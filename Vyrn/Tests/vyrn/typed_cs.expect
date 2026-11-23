@@ -1,0 +1,6 @@
+3 0
+1 2
+5 3 n=4
+bad-arg false type mismatch
+bad-struct false expected Point
+good-struct true 3

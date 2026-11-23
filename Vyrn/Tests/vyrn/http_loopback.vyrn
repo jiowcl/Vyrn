@@ -1,0 +1,48 @@
+-- 1.6.120: loopback http tests (requires --allow-net and VYRN_HTTP_TEST_PORT).
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+
+-- GET /json
+let r1, e1 = http.get(base .. "/json")
+assert(r1, e1)
+print("get_json", r1.status, r1.body)
+print("ctype", r1.headers["Content-Type"] or r1.headers["content-type"] or "?")
+
+-- POST /echo with custom header
+let hdr = {}
+hdr["X-Token"] = "abc"
+hdr["Content-Type"] = "text/plain"
+let r2, e2 = http.post(base .. "/echo", "hello", {headers = hdr})
+assert(r2, e2)
+print("post_echo_status", r2.status)
+print("post_echo_has_method", string.find(r2.body, "method=POST") ~= nil)
+print("post_echo_has_body", string.find(r2.body, "body=hello") ~= nil)
+print("post_echo_has_token", string.find(r2.body, "X%-Token=abc") ~= nil or string.find(r2.body, "x%-token=abc") ~= nil)
+
+-- request{} PUT status
+let r3, e3 = http.request{method = "PUT", url = base .. "/status/201", body = "z"}
+assert(r3, e3)
+print("put_status", r3.status, r3.body)
+
+-- binary body via base64
+let r4, e4 = http.get(base .. "/bin", {encoding = "base64"})
+assert(r4, e4)
+print("bin_b64", r4.status, r4.body)
+
+-- binary body via hex
+let r5, e5 = http.get(base .. "/bin", {encoding = "hex"})
+assert(r5, e5)
+print("bin_hex", r5.status, r5.body)
+
+-- text body with NUL must raise
+print(msg(pcall(function()
+  http.get(base .. "/bin")
+end)))
+
+print("done")

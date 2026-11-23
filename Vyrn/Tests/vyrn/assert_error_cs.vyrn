@@ -1,0 +1,26 @@
+-- @compile-safe
+-- assert / error via pcall (libvyrnrt)
+
+def boom()
+    error("kaboom", 0)
+end
+
+def fail_assert()
+    assert(false, "nope")
+end
+
+def pass_assert()
+    return assert(1, 2)
+end
+
+let ok, err = pcall(boom)
+print("err", ok, err)
+
+let ok2, v = pcall(assert, true, "unused")
+print("assert-ok", ok2, v)
+
+let ok3, err3 = pcall(fail_assert)
+print("assert-fail", ok3, err3)
+
+let ok4, a, b = pcall(pass_assert)
+print("assert-pass", ok4, a, b)

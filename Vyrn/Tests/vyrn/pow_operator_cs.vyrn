@@ -1,0 +1,31 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.113: the '^' operator: right-associative, binds tighter than unary minus,
+-- always a float (C pow) and coerces numeric strings like the other arithmetic ops.
+-- Numbers go through %.14g so Lua's float results print alike.
+-- Expected output checked against Lua 5.4.
+
+def show(...)
+    let parts = {}
+    for i = 1, select("#", ...) do
+        let v = select(i, ...)
+        if type(v) == "number" then
+            parts[i] = string.format("%.14g", v)
+        else
+            parts[i] = tostring(v)
+        end
+    end
+    print(table.concat(parts, " "))
+end
+
+show(2 ^ 3 ^ 2, (2 ^ 3) ^ 2, -2 ^ 2, (-2) ^ 2, 2 ^ -1, -2 ^ -2)
+show(2 ^ 0.5, 10 ^ 15, 2 ^ 53, 4 ^ 0.5 * 3, 1 + 2 ^ 2 * 3)
+show(2 ^ 10 == 1024, 0 ^ 0, 1 ^ (1 / 0), 2 ^ 1024, -(2 ^ 1024), (-8) ^ (1 / 3) ~= (-8) ^ (1 / 3))
+show("2" ^ 3, 3 ^ "2", " 0x2 " ^ 2, 2 ^ #"abc")
+let x = 3
+def sq(v)
+    return v ^ 2
+end
+show(sq(x), sq(-x), x ^ x ^ 0, -x ^ 2, 2 ^ x * 2)
+print((pcall(function() return 2 ^ {} end)))
+print((pcall(function() return "a" ^ 2 end)))

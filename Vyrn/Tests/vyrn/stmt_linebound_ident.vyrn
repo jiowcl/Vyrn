@@ -1,0 +1,13 @@
+-- vyrn: 12
+-- IDENT-led call must not glue a next-line paren call onto its result.
+def show(a, b)
+  print("show", a, b)
+end
+
+def id(x)
+  return x
+end
+
+show(10, 20)
+(id(3))
+print("done")

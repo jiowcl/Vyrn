@@ -1,0 +1,63 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- 1.6.108: table.get2d / table.set2d bad arguments raise (builtin calls and the
+-- compiler-fused GET2D/SET2D opcodes), catchable with pcall.
+let msg = def(ok, e)
+    if ok then
+        return "ok"
+    end
+    return string.match(e, "bad argument.*") or string.match(e, "bad arguments.*") or e
+end
+let g = table.create2d(2, 3, 0)
+table.set2d(g, 2, 3, 3, 7)
+print(table.get2d(g, 1, 2, 3), table.get2d(g, 2, 3, 3))
+print(msg(pcall(def() return table.get2d(g, 0, 1, 3) end)))
+print(msg(pcall(def() return table.get2d(nil, 1, 1, 3) end)))
+print(msg(pcall(def() table.set2d(g, 1, 0, 3, 5) end)))
+print(msg(pcall(def() table.set2d("x", 1, 1, 3, 5) end)))
+print(msg(pcall(def() return table.get2d(g, "a", 1, 3) end)))
+print(msg(pcall(def() return table.get2d(g, 1, 1, 0) end)))
+let r = 0
+let c = 1
+print(msg(pcall(def() return table.get2d(g, r, c, 3) end)))
+print(msg(pcall(def() table.set2d(g, r, c, 3, 9) end)))
+let cell = def(t, rr, cc)
+    return table.get2d(t, rr, cc, 3)
+end
+print(msg(pcall(cell, g, 0, 0)))
+print(msg(pcall(cell, 5, 1, 1)))
+print(msg(pcall(cell, g, 2, 3)))
+-- loop forms (row-base hoist / fused local opcodes)
+let rowsum = def(t, rows, cols, c0)
+    let s = 0
+    for i = 1, rows do
+        for j = c0, cols do
+            s = s + table.get2d(t, i, j, cols)
+        end
+    end
+    return s
+end
+print(msg(pcall(rowsum, g, 2, 3, 1)), rowsum(g, 2, 3, 1))
+print(msg(pcall(rowsum, g, 2, 3, 0)))
+let fill = def(t, rows, cols, c0)
+    for i = 1, rows do
+        for j = c0, cols do
+            table.set2d(t, i, j, cols, i * 10 + j)
+        end
+    end
+end
+print(msg(pcall(fill, g, 2, 3, 0)))
+fill(g, 2, 3, 1)
+print(table.get2d(g, 1, 1, 3), table.get2d(g, 2, 3, 3))
+let dot = def(a, b, n, k0)
+    let s = 0
+    for k = k0, n do
+        s = s + table.get2d(a, 1, k, n) * table.get2d(b, k, 1, 1)
+    end
+    return s
+end
+let va = table.create2d(1, 3, 2)
+let vb = table.create2d(3, 1, 3)
+print(dot(va, vb, 3, 1))
+print(msg(pcall(dot, va, vb, 3, 0)))
+print(msg(pcall(dot, nil, vb, 3, 1)))

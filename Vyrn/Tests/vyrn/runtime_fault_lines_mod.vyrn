@@ -1,0 +1,8 @@
+-- 1.6.82: a runtime error inside a required module reports the module's line
+-- (line 4 of lib/err_lines_mod.vyrn), not the caller's.
+def msg(ok, e)
+  if ok then return 'ok' end
+  return (string.gsub(tostring(e), '^.-(%d+): ', 'L%1: '))
+end
+let m = require("lib.err_lines_mod")
+print("module_fn", msg(pcall(function() m.bad(nil) end)))

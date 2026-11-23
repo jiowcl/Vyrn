@@ -1,0 +1,65 @@
+-- 1.6.125 / 1.6.126: same API client helpers against the loopback mock (not the real APIs).
+-- Requires --allow-net and VYRN_HTTP_TEST_PORT (see Invoke-HttpLoopbackTest).
+
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+
+let api = require("examples/vyrn/api/clients")
+
+let o, oe = api.openai_chat({
+  key = "sk-test",
+  base = base,
+  model = "gpt-4o-mini",
+  prompt = "Say hello in one word.",
+  timeout = 10
+})
+assert(o, oe)
+print("openai", o)
+
+let g, ge = api.gemini_generate({
+  key = "test-gemini",
+  base = base,
+  model = "gemini-2.5-flash",
+  prompt = "Say hello in one word.",
+  timeout = 10
+})
+assert(g, ge)
+print("gemini", g)
+
+let no, ne = api.openai_chat({
+  key = "",
+  base = base
+})
+print("missing_key", no == nil, ne)
+
+let img = path.join("examples", "vyrn", "api", "sample.png")
+assert(path.isfile(img), "missing sample image " .. img)
+let b64, berr = crypto.tobase64_file(img)
+assert(b64, berr)
+
+let oi, oie = api.openai_chat({
+  key = "sk-test",
+  base = base,
+  model = "gpt-4o-mini",
+  prompt = "Describe this image in one sentence.",
+  image_path = img,
+  image_mime = "image/png",
+  timeout = 10
+})
+assert(oi, oie)
+print("openai_img", string.find(oi, b64, 1, true) ~= nil)
+
+let gi, gie = api.gemini_generate({
+  key = "test-gemini",
+  base = base,
+  model = "gemini-2.5-flash",
+  prompt = "Describe this image in one sentence.",
+  image_path = img,
+  image_mime = "image/png",
+  timeout = 10
+})
+assert(gi, gie)
+print("gemini_img", string.find(gi, b64, 1, true) ~= nil)
+
+print("done")

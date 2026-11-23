@@ -1,0 +1,140 @@
+-- @compile-safe
+-- 1.6.139: __eq / __lt / __le / __len / __call / __concat / __unm and the
+-- string type metatable. Cases follow Lua 5.4 (rawequal first for __eq;
+-- __eq only when both operands are tables; __le falls back to not (b < a);
+-- #t / t() / concat / unm after the primitive path fails; getmetatable("").__index
+-- is the string library). --strict does not type-check metamethod dispatch.
+
+-- __eq: identity first, no call
+let eq_hits = 0
+def eq_fn(a, b)
+    eq_hits = eq_hits + 1
+    return a.n == b.n
+end
+let Eq = {}
+Eq.__eq = eq_fn
+let e1 = setmetatable({n = 1}, Eq)
+print("eq-same", rawequal(e1, e1), e1 == e1, eq_hits == 0)
+let e2 = setmetatable({n = 1}, Eq)
+let e3 = setmetatable({n = 2}, Eq)
+print("eq-val", e1 == e2, eq_hits == 1)
+print("eq-ne", e1 == e3, eq_hits == 2)
+print("eq-raw", rawequal(e1, e2) == false)
+print("eq-num", e1 == 1, eq_hits == 2)
+
+-- __eq from the second operand only (Lua 5.4 luaV_equalobj)
+let eq2_hits = 0
+def eq2_fn(a, b)
+    eq2_hits = eq2_hits + 1
+    return true
+end
+let only2mt = {}
+only2mt.__eq = eq2_fn
+let only2 = setmetatable({}, only2mt)
+print("eq-second", ({}) == only2, eq2_hits == 1)
+
+-- truthy result (0 is truthy in Lua)
+def eq_zero(a, b)
+    return 0
+end
+let Z = {}
+Z.__eq = eq_zero
+print("eq-truthy", setmetatable({}, Z) == setmetatable({}, Z))
+
+-- no mt: identity only
+print("eq-plain", {} == {}, ({x=1}) == ({x=1}))
+
+-- __lt / __le
+def lt_fn(a, b)
+    return a.n < b.n
+end
+let Ord = {}
+Ord.__lt = lt_fn
+let o1 = setmetatable({n = 1}, Ord)
+let o2 = setmetatable({n = 2}, Ord)
+print("lt", o1 < o2, o2 < o1)
+print("le-fb", o1 <= o2, o2 <= o1, o1 <= o1)
+
+def le_fn(a, b)
+    return a.n <= b.n
+end
+let Ord2 = {}
+Ord2.__le = le_fn
+let p1 = setmetatable({n = 1}, Ord2)
+let p2 = setmetatable({n = 2}, Ord2)
+print("le", p1 <= p2, p2 <= p1, p1 <= p1)
+
+def try_cmp()
+    return {} < {}
+end
+let cok, cerr = pcall(try_cmp)
+print("lt-err", cok, not (string.find(cerr, "attempt to compare") == nil))
+
+print("lt-num", 1 < 2, 2 <= 2)
+print("lt-str", "a" < "b")
+
+-- __len
+def len_fn(t)
+    return t.n
+end
+let L = {}
+L.__len = len_fn
+let lt = setmetatable({n = 7, 1, 2}, L)
+print("len", #lt)
+print("len-plain", #{10, 20, 30})
+print("len-str", #"hi")
+
+def len_s(t)
+    return "LEN"
+end
+let Ls = {}
+Ls.__len = len_s
+print("len-any", #(setmetatable({}, Ls)))
+
+-- __call
+def call_fn(self, a, b)
+    return self.tag .. a .. b, 99
+end
+let C = {}
+C.__call = call_fn
+let ct = setmetatable({tag = "T"}, C)
+let cr, cr2 = ct("x", "y")
+print("call", cr, cr2)
+print("call-one", ct("A", "B"))
+
+def try_call()
+    let bare = {}
+    return bare()
+end
+let kk, ke = pcall(try_call)
+print("call-err", kk, not (string.find(ke, "attempt to call a table") == nil))
+
+-- __concat
+def cat_fn(a, b)
+    return "C:" .. tostring(a.n) .. tostring(b)
+end
+let Cat = {}
+Cat.__concat = cat_fn
+let cat = setmetatable({n = 3}, Cat)
+print("concat", cat .. "z")
+print("concat-s", "a" .. "b")
+
+-- __unm
+let Unm = {}
+def unm_fn(v)
+    return setmetatable({n = 0 - v.n}, Unm)
+end
+Unm.__unm = unm_fn
+Unm.__index = Unm
+let u = setmetatable({n = 5}, Unm)
+let nu = -u
+print("unm", nu.n)
+print("unm-num", -5)
+
+-- string metatable / methods
+print("smt-idx", rawequal(getmetatable("").__index, string))
+print("smt-up", ("Hello"):upper())
+print("smt-sub", ("Hello"):sub(2, 4))
+print("smt-fmt", ("n=%s"):format(3))
+print("nt-num", getmetatable(1) == nil)
+print("nt-bool", getmetatable(true) == nil)

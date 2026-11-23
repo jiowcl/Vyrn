@@ -1,12 +1,23 @@
 -- vyrn: 12
--- Gemini File API-shaped upload example (1.6.127).
+-- Gemini File API-shaped upload example (1.6.127; Doc / const / types in 1.6.147).
 -- Uses a one-shot multipart POST (the official resumable protocol is not implemented).
 -- Reads GEMINI_API_KEY (required) and optional GEMINI_BASE_URL / GEMINI_FILE.
 -- Never hardcodes secrets. Needs --allow-net. Not run against the real API in CI;
 -- see tests/vyrn/http_multipart.vyrn.
 
-let api = require("clients")
+const DEFAULT_BASE: string = "https://generativelanguage.googleapis.com"
+const DEFAULT_CONTENT_TYPE: string = "image/png"
 
+@doc("Return the env value, or fallback when unset or empty")
+def env_or(name: string, fallback: string) -> string
+  let v = os.getenv(name) or ""
+  if v == "" then
+    return fallback
+  end
+  return v
+end
+
+@doc("Resolve the upload path from GEMINI_FILE or local sample.png")
 def find_file()
   let envp = os.getenv("GEMINI_FILE") or ""
   if envp ~= "" then return envp end
@@ -22,6 +33,8 @@ def find_file()
   return nil
 end
 
+let api = require("ai.gemini")
+
 let key = os.getenv("GEMINI_API_KEY") or ""
 if key == "" then
   print("gemini_files: GEMINI_API_KEY is not set. Export a key (never commit it) and rerun with --allow-net.")
@@ -36,9 +49,9 @@ end
 
 let data, err = api.gemini_files_upload({
   key = key,
-  base = os.getenv("GEMINI_BASE_URL") or "https://generativelanguage.googleapis.com",
+  base = env_or("GEMINI_BASE_URL", DEFAULT_BASE),
   path = f,
-  content_type = "image/png",
+  content_type = DEFAULT_CONTENT_TYPE,
   timeout = 30
 })
 if not data then

@@ -1,0 +1,34 @@
+-- vyrn: 12
+-- Tiny offline RAG-shaped demo (1.6.162): canned doc vectors + vector.cosine retrieval.
+-- No network and no paid API. Real embeddings belong in openai_embeddings / gemini_embeddings.
+
+assert(type(package) == "table")
+assert(type(math) == "table")
+
+let vec = require("vector")
+
+-- Pretend these came from an embeddings API (same shapes as the loopback mocks).
+let docs = {
+  { id = "doc_cat", text = "A cat is a small furry pet.", embedding = { 1, 0, 0 } },
+  { id = "doc_dog", text = "A dog is a loyal companion.", embedding = { 0.9, 0.1, 0 } },
+  { id = "doc_car", text = "A car is a vehicle with wheels.", embedding = { 0, 0, 1 } }
+}
+
+let query = { 1, 0, 0 } -- "cat"-like query embedding
+let best_id = ""
+let best_sim = -2
+let i = 1
+while i <= #docs do
+  let sim, err = vec.cosine(query, docs[i].embedding)
+  assert(sim, err)
+  if sim > best_sim then
+    best_sim = sim
+    best_id = docs[i].id
+  end
+  i = i + 1
+end
+
+assert(best_id == "doc_cat")
+assert(best_sim > 0.99)
+print("best", best_id)
+print("rag_demo_ok")

@@ -1,0 +1,9 @@
+-- vyrn: 12
+-- select / unpack multi-return (explicit-arg select; no ... varargs)
+let t = {10, 20, 30}
+print("unpack", table.unpack(t))
+print("unpack-i", unpack(t, 2))
+print("unpack-ij", table.unpack(t, 1, 2))
+print("sel", select(2, "a", "b", "c"))
+print("sel-hash", select("#", "a", "b", "c"))
+print("sel1", select(1, 9, 8, 7))

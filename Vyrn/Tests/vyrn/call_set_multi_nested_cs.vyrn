@@ -1,0 +1,27 @@
+-- @compile-safe
+-- 1.6.135: let a, b = user(x, json.encode(t)) must not emit CALL_SET_MULTI with a short argc.
+def write_text(file_path: string, text: string)
+  if file_path == "" then
+    return nil, "cannot write"
+  end
+  if text == "" then
+    return nil, "empty"
+  end
+  return true, text
+end
+
+let report = {}
+report.name = "Ada"
+report.n = 1
+let ok1, e1 = write_text("out.txt", json.encode(report))
+assert(ok1 == true)
+assert(type(e1) == "string")
+assert(string.find(e1, "Ada", 1, true) ~= nil)
+
+let body = json.encode(report)
+let ok2, e2 = write_text("out.txt", body)
+assert(ok2 == true)
+assert(e2 == e1)
+
+print("call_set_multi_nested_ok")
+print("done")

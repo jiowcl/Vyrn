@@ -1,0 +1,30 @@
+-- 1.6.144: process.run with --allow-process and VYRN_PROCESS_HELPER (not compile-safe).
+let helper = os.getenv("VYRN_PROCESS_HELPER")
+assert(helper and helper ~= "", "VYRN_PROCESS_HELPER unset")
+
+let r, e = process.run({helper, "--print-args", "hello world", "say \"hi\""})
+assert(r, e)
+let has_space = string.find(r.stdout, "hello world", 1, true) ~= nil
+let has_quote = string.find(r.stdout, "say \"hi\"", 1, true) ~= nil
+print("args_ok", r.code == 0, r.timed_out == false, has_space, has_quote)
+
+r, e = process.run({helper, "--echo-stdin"}, {stdin = "ping"})
+assert(r, e)
+print("echo_ok", r.code == 0, r.stdout == "ping")
+
+r, e = process.run({helper, "--exit", "7", "--stdout", "bye"})
+assert(r, e)
+let bye = string.gsub(r.stdout, "[\r\n]+$", "")
+print("exit", r.code, bye)
+
+r, e = process.run({helper, "--sleep-ms", "5000"}, {timeout_ms = 200})
+assert(r, e)
+print("timeout", r.timed_out == true)
+
+r, e = process.run({helper, "--print-env", "VYRN_PROC_TEST"}, {env = {VYRN_PROC_TEST = "xyz"}})
+assert(r, e)
+let env_ok = string.find(r.stdout, "VYRN_PROC_TEST=xyz", 1, true) ~= nil
+print("env_ok", env_ok)
+
+r, e = process.run({"this-exe-does-not-exist-vyrn-144"})
+print("fail", r == nil, type(e) == "string")

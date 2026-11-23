@@ -1,0 +1,6 @@
+unpack 10 20 30
+unpack-i 20 30
+unpack-ij 10 20
+sel b c
+sel-hash 3
+sel1 9 8 7

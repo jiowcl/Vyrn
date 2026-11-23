@@ -1,0 +1,21 @@
+b64 aGVsbG8AAf/+gHdvcmxk
+hex 68656c6c6f0001fffe80776f726c64
+md5 23b1491b541952dadbb3ccb2fc8e396a
+sha1 3d36bea094c5a167873b1b6e07a9ebf2b80ef906
+sha256 43846a3dc928830caa446c890e30ef34a1048996917973f4bbcd3da9affdb615
+crc 3484674738
+rt_b64 true true
+rt_hex true
+empty true true d41d8cd98f00b204e9800998ecf8427e 0
+oversize err crypto: file too large
+missing err crypto: file not found
+bad_b64 err crypto: invalid base64 true
+bad_hex err crypto: invalid hex
+write_oversize err crypto: file too large true
+err bad argument #1 to 'tobase64_file' (string expected)
+err bad argument #2 to 'tobase64_file' (table expected)
+err bad argument #2 to 'frombase64_file' (string expected)
+err bad argument #1 to 'md5_file' (string expected)
+err bad argument #2 to 'tobase64_file' (max out of range)
+err bad argument #2 to 'tobase64_file' (max out of range)
+done

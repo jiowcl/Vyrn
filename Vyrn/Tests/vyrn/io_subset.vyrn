@@ -1,0 +1,21 @@
+-- @compile-safe
+-- io open/read/write/type + file methods (under cwd)
+
+let fpath = path.join(path.cwd(), "_compile_io_subset.txt")
+let f = io.open(fpath, "w")
+if f == nil then
+  print("open-fail")
+else
+  f:write("line-one")
+  f:close()
+end
+
+let r = io.open(fpath, "r")
+if r == nil then
+  print("reopen-fail")
+else
+  print(io.type(r))
+  print(r:read("*l"))
+  r:close()
+  print(io.type(r))
+end

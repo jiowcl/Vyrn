@@ -1,0 +1,7 @@
+# Rename to on_ship_finish.ps1 - runs after Ship menu jobs complete.
+# Env: VYRN_IDE_SHIP_OK (1 ok, 0 failed), VYRN_IDE_FILE, VYRN_IDE_ROOT
+if ($env:VYRN_IDE_SHIP_OK -eq "1") {
+    Write-Output "[ship hook] OK for $($env:VYRN_IDE_FILE)"
+} else {
+    Write-Output "[ship hook] failed ship for $($env:VYRN_IDE_FILE)"
+}

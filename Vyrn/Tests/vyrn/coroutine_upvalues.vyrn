@@ -1,0 +1,214 @@
+-- @compile-safe
+-- 1.6.89: open upvalues belong to the stack of the thread that created them
+-- (main thread or a coroutine); they survive yields, resumes, nesting and errors.
+-- 1. closure created in a coroutine, used inside it and from main after it suspends
+let get = nil
+let co = coroutine.create(function()
+  let n = 1
+  let f = function() return n end
+  get = f
+  coroutine.yield(f())
+  n = n + 10
+  coroutine.yield(f())
+  return f()
+end)
+print("1a", coroutine.resume(co))
+print("1b", get())
+print("1c", coroutine.resume(co))
+print("1d", get())
+print("1e", coroutine.resume(co))
+print("1f", get(), coroutine.status(co))
+-- 2. main closure used inside a coroutine; changes visible both ways
+let m = 5
+let bump = function() m = m + 1 return m end
+let co2 = coroutine.create(function(bf)
+  print("2a", bf())
+  coroutine.yield()
+  print("2b", bf(), m)
+  m = m * 2
+end)
+coroutine.resume(co2, bump)
+m = m + 100
+print("2c", m)
+coroutine.resume(co2)
+print("2d", m, bump())
+-- 3. captured coroutine local changed through a closure while suspended
+let setter = nil
+let reader = nil
+let co3 = coroutine.create(function()
+  let v = "init"
+  setter = function(x) v = x end
+  reader = function() return v end
+  coroutine.yield(v)
+  print("3a", v)
+  v = v .. "+co"
+  coroutine.yield(v)
+  return v
+end)
+print("3b", coroutine.resume(co3))
+setter("main")
+print("3c", reader())
+print("3d", coroutine.resume(co3))
+print("3e", reader())
+setter("again")
+print("3f", coroutine.resume(co3))
+print("3g", reader(), coroutine.status(co3))
+-- 4. two coroutines with the same frame layout do not share open upvalues
+let ga = nil
+let gb = nil
+def mk(tag)
+  return coroutine.create(function()
+    let x = tag
+    let f = function() return x end
+    coroutine.yield(f)
+    x = x .. "!"
+    coroutine.yield(f())
+    return f()
+  end)
+end
+let ca = mk("A")
+let cb = mk("B")
+let okA, fa = coroutine.resume(ca)
+let okB, fb = coroutine.resume(cb)
+print("4a", fa(), fb())
+print("4b", coroutine.resume(cb))
+print("4c", fa(), fb())
+print("4d", coroutine.resume(ca))
+print("4e", fa(), fb())
+-- 5. closure shared by two coroutines (captures a main local)
+let shared = 0
+let inc = function(k) shared = shared + k return shared end
+let s1 = coroutine.wrap(function(f) while true do coroutine.yield(f(1)) end end)
+let s2 = coroutine.wrap(function(f) while true do coroutine.yield(f(10)) end end)
+let r1 = s1(inc)
+let r2 = s2(inc)
+let r3 = s1()
+let r4 = s2()
+print("5a", r1, r2, r3, r4, shared)
+-- 6. per-iteration loop closures inside a coroutine across yields
+let fs = {}
+let co6 = coroutine.create(function()
+  for i = 1, 3 do
+    let j = i * 10
+    fs[i] = function() j = j + 1 return j end
+    coroutine.yield(i)
+  end
+  return "loop"
+end)
+print("6a", coroutine.resume(co6))
+print("6b", fs[1]())
+print("6c", coroutine.resume(co6))
+print("6d", fs[1](), fs[2]())
+print("6e", coroutine.resume(co6))
+print("6f", coroutine.resume(co6))
+print("6g", fs[1](), fs[2](), fs[3]())
+-- 7. coroutine.wrap generator returning closures
+let gen = coroutine.wrap(function()
+  let total = 0
+  for k = 1, 3 do
+    let mine = k
+    coroutine.yield(function(d) total = total + d mine = mine + d return mine, total end)
+  end
+  return nil
+end)
+let g1 = gen()
+let g2 = gen()
+print("7a", g1(1))
+print("7b", g2(5))
+let g3 = gen()
+print("7c", g1(1), g3(100))
+print("7d", gen())
+print("7e", g1(0), g2(0), g3(0))
+-- 8. nested coroutines; an outer-coroutine closure is called from the inner one
+-- (globals hold the closures so the calls carry no upvalue-call metadata warning)
+peek = nil
+inner = nil
+let outer = coroutine.create(function()
+  let depth = "outer"
+  dget = function() return depth end
+  inner = coroutine.create(function()
+    let own = "inner"
+    peek = function() return dget() .. "/" .. own end
+    coroutine.yield(peek())
+    own = "inner2"
+    coroutine.yield(peek())
+  end)
+  print("8a", coroutine.resume(inner))
+  depth = "outer2"
+  coroutine.yield(peek())
+  print("8b", coroutine.resume(inner))
+  depth = "outer3"
+  return peek()
+end)
+print("8c", coroutine.resume(outer))
+print("8d", peek())
+print("8e", coroutine.resume(outer))
+print("8f", peek(), coroutine.status(outer), coroutine.status(inner))
+print("8g", coroutine.resume(inner))
+print("8h", peek(), coroutine.status(inner))
+-- 9. coroutine that errors: upvalues closed, closure still readable from main
+after = nil
+let co9 = coroutine.create(function()
+  let z = 41
+  after = function() z = z + 1 return z end
+  coroutine.yield(after())
+  z = 100
+  error("boom")
+end)
+print("9a", coroutine.resume(co9))
+print("9b", after())
+let ok9, e9 = coroutine.resume(co9)
+print("9c", ok9, e9 ~= nil, coroutine.status(co9))
+print("9d", after(), after())
+-- 10. closure used after its coroutine finished, and after coroutine.close
+let fin = coroutine.wrap(function()
+  let acc = {}
+  return function(x) acc[#acc + 1] = x return #acc end
+end)()
+print("10a", fin("a"), fin("b"))
+kept = nil
+let co10 = coroutine.create(function()
+  let w = "w"
+  kept = function() w = w .. "w" return w end
+  coroutine.yield()
+  w = "never"
+end)
+coroutine.resume(co10)
+print("10b", kept())
+print("10c", coroutine.close(co10), coroutine.status(co10))
+print("10d", kept(), kept())
+-- 11. deep stack inside a coroutine (stack growth), closures captured at depth
+def dive(d)
+  if d == 0 then
+    let leaf = "leaf"
+    let f = function() return leaf end
+    deepLeaf = f
+    coroutine.yield(f)
+    leaf = "leaf2"
+    coroutine.yield(f())
+    return f
+  end
+  let mine = d
+  let r = dive(d - 1)
+  if mine == 150 then
+    return function() return deepLeaf() .. "@" .. mine end
+  end
+  return r
+end
+let co11 = coroutine.create(function() return dive(150) end)
+let ok11, f11 = coroutine.resume(co11)
+print("11a", ok11, f11())
+print("11b", coroutine.resume(co11))
+let ok11c, top = coroutine.resume(co11)
+print("11c", ok11c, top(), f11(), coroutine.status(co11))
+-- 12. main-thread closure created inside a coroutine resume chain keeps main slot
+let mainLocal = "M"
+let readMain = function() return mainLocal end
+let co12 = coroutine.wrap(function(r)
+  let pad1, pad2, pad3 = 1, 2, 3
+  coroutine.yield(r())
+  return r(), pad1 + pad2 + pad3
+end)
+print("12a", co12(readMain))
+mainLocal = "M2"
+print("12b", co12())

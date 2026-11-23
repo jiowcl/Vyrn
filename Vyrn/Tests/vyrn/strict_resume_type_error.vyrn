@@ -1,0 +1,8 @@
+-- vyrn: 12 strict
+def worker() -> number, string
+  yield 1, "a"
+end
+
+let co = coroutine.create(worker)
+-- Second resume value is string; number binding is wrong.
+let ok: bool, n: number, bad: number = coroutine.resume(co)

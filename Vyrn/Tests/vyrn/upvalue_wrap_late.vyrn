@@ -1,0 +1,18 @@
+-- vyrn: 12
+def wrapped()
+  yield 5, 6
+end
+
+def make()
+  let w = 0
+  def bind()
+    w = coroutine.wrap(wrapped)
+  end
+  def run()
+    print("late", w())
+  end
+  bind()
+  run()
+end
+
+make()

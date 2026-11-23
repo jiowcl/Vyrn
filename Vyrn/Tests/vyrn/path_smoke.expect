@@ -1,0 +1,8 @@
+path exists ok
+isfile ok
+basename ok
+ext ok
+dirname ok
+isdir ok
+mkdir ok
+mkdir isdir ok

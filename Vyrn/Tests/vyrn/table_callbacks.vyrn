@@ -1,0 +1,50 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- table_callbacks (1.6.108): table.foreach / reduce / find on both VMs (PB parity),
+-- callbacks that allocate (GC may run while the native holds the pair snapshot),
+-- and pcall-catchable argument / callback errors.
+let t = {10, 20, 30, 40}
+let s = 0
+print(table.foreach(t, def(k, v) s = s + v end), s)
+print(table.foreach(t, def(k, v) if v > 15 then return k * 100 end end))
+print(table.reduce(t, 0, def(acc, k, v) return acc + k * v end))
+print(table.reduce({}, "init", def(acc, k, v) return acc end))
+print(table.reduce({1, 2, 3}, nil, def(acc, k, v) if acc == nil then return v end return acc * 10 + v end))
+print(table.find(t, def(k, v) return v > 25 end))
+print(table.find(t, def(k, v) return v > 99 end))
+let k2, v2 = table.find({a = 1}, def(k, v) return v == 1 end)
+print(k2, v2)
+-- build garbage inside callbacks so the table GC may run while natives hold pairs
+let objs = {}
+for i = 1, 300 do objs[i] = {id = i, tag = "o" .. i} end
+let total = table.reduce(objs, 0, def(acc, k, v)
+  let junk = {}
+  for j = 1, 20 do junk[j] = {j} end
+  return acc + v.id
+end)
+print(total)
+let hit_k, hit_v = table.find(objs, def(k, v)
+  let junk = {v.tag, {v.id}}
+  return v.id == 250
+end)
+print(hit_k, hit_v.tag)
+let first = table.foreach(objs, def(k, v)
+  let junk = {{k}, {v}}
+  if v.id == 123 then return v.tag end
+end)
+print(first)
+-- errors are pcall-catchable
+let ok, e = pcall(def() return table.foreach(nil, print) end)
+print(ok, string.match(e, "bad argument.*"))
+ok, e = pcall(def() return table.foreach(t, 5) end)
+print(ok, string.match(e, "bad argument.*"))
+ok, e = pcall(def() return table.reduce("x", 0, print) end)
+print(ok, string.match(e, "bad argument.*"))
+ok, e = pcall(def() return table.reduce(t, 0, nil) end)
+print(ok, string.match(e, "bad argument.*"))
+ok, e = pcall(def() return table.find(1, print) end)
+print(ok, string.match(e, "bad argument.*"))
+ok, e = pcall(def() return table.find(t, {}) end)
+print(ok, string.match(e, "bad argument.*"))
+ok, e = pcall(def() return table.reduce(t, 0, def(a, k, v) error("boom" .. k) end) end)
+print(ok, string.match(e, "boom%d"))

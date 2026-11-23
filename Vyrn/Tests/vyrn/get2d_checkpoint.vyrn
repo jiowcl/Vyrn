@@ -1,0 +1,20 @@
+-- vyrn: 12
+-- Regression: get2d after set2d with loop-header hoist (literal + ident args).
+
+def Checkpoint3x3()
+    let size = 3
+    let matrixC = table.create2d(size, size, 0.0)
+    let r = 1
+    while r <= size do
+        let c = 1
+        while c <= size do
+            table.set2d(matrixC, r, c, size, (r + c) * 1.0)
+            c = c + 1
+        end
+        r = r + 1
+    end
+    print(table.get2d(matrixC, 1, 1, size))
+    print(table.get2d(matrixC, 2, 3, size))
+end
+
+Checkpoint3x3()

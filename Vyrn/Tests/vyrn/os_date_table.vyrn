@@ -1,0 +1,40 @@
+-- vyrn: 12
+-- 1.6.171: os.date("*t"/"!*t") and os.time(table)
+let now = os.time()
+let t = os.date("*t", now)
+assert(type(t) == "table")
+assert(type(t.year) == "number")
+assert(type(t.month) == "number")
+assert(type(t.day) == "number")
+assert(type(t.hour) == "number")
+assert(type(t.min) == "number")
+assert(type(t.sec) == "number")
+assert(type(t.wday) == "number")
+assert(type(t.yday) == "number")
+assert(type(t.isdst) == "boolean")
+assert(t.wday >= 1 and t.wday <= 7)
+assert(t.yday >= 1 and t.yday <= 366)
+assert(t.month >= 1 and t.month <= 12)
+
+let back = os.time(t)
+assert(type(back) == "number")
+assert(math.abs(back - now) <= 1)
+
+let u = os.date("!*t", now)
+assert(type(u) == "table")
+assert(type(u.year) == "number")
+-- When local TZ is not UTC, hour or day should differ; when bias is 0 they may match.
+let same = (t.year == u.year and t.month == u.month and t.day == u.day and t.hour == u.hour and t.min == u.min)
+if not same then
+  assert(t.hour ~= u.hour or t.day ~= u.day)
+end
+
+let ok, err = pcall(def() return os.date(1) end)
+assert(ok == false)
+assert(type(err) == "string")
+
+let ok2, err2 = pcall(def() return os.time({ month = 1 }) end)
+assert(ok2 == false)
+assert(type(err2) == "string")
+
+print("os_date_table_ok")

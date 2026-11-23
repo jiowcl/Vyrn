@@ -1,0 +1,14 @@
+-- @compile-safe
+-- vyrn: 13
+-- 1.6.130: Lua 5.4 string.rep n<=0 is ""; integer math.fmod by zero error text.
+
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+
+print("rep0", string.rep("x", 0) == "", string.rep("x", -3, ",") == "")
+print("rep", string.rep("x", 3, "-"))
+print("fmod_ok", math.fmod(7, 3), math.type(math.fmod(7, 3)))
+print("fmod_zero", msg(pcall(math.fmod, 7, 0)))
+print("done")

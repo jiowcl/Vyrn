@@ -1,0 +1,6 @@
+-- vyrn: 12
+-- Default mode: typed params are not checked at runtime.
+def accept(n: number)
+  print("ok", n)
+end
+accept("x")

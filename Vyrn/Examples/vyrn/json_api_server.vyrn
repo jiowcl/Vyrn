@@ -1,0 +1,57 @@
+-- vyrn: 12
+-- Tiny JSON API on http.serve + lib/jsonschema (1.6.158 / 1.6.159).
+-- Needs --allow-listen. Optional port: VYRN_JSON_API_PORT (default 18780).
+-- duration_ms = 0 -> long-lived until Ctrl+C / process exit (not the 30s safety cap).
+-- Example:
+--   Vyrn.exe examples/vyrn/json_api_server.vyrn --allow-listen --batch
+
+assert(type(package) == "table")
+assert(type(math) == "table")
+let js = require("jsonschema")
+
+let UserSchema = {
+  type = "object",
+  properties = {
+    name = { type = "string", minLength = 1 },
+    age = { type = "integer", minimum = 0 }
+  },
+  required = { "name" },
+  additionalProperties = false
+}
+
+let port_s = os.getenv("VYRN_JSON_API_PORT")
+let port = 18780
+if port_s and port_s ~= "" then
+  port = tonumber(port_s) or port
+end
+
+let ok, err = pcall(http.serve, {
+  host = "127.0.0.1",
+  port = port,
+  duration_ms = 0,
+  handler = function(req)
+    if req.method == "GET" and req.path == "/health" then
+      return { status = 200, body = json.encode({ ok = true }), content_type = "application/json" }
+    end
+    if req.method == "POST" and req.path == "/users" then
+      let data, jerr = json.decode(req.body)
+      if not data then
+        return { status = 400, body = json.encode({ error = tostring(jerr) }), content_type = "application/json" }
+      end
+      let okv, e2 = js.validate(data, UserSchema)
+      if not okv then
+        return { status = 400, body = json.encode({ error = tostring(e2) }), content_type = "application/json" }
+      end
+      return { status = 201, body = json.encode(data), content_type = "application/json" }
+    end
+    return { status = 404, body = json.encode({ error = "not found" }), content_type = "application/json" }
+  end
+})
+
+if not ok then
+  print("json_api_server: " .. tostring(err))
+  print("hint: pass --allow-listen (and optionally set VYRN_JSON_API_PORT)")
+  return
+end
+
+print("served", err.served)

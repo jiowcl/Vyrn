@@ -1,0 +1,10 @@
+-- vyrn: 12
+-- Dump: `online = online + 1` then `t[k]=…` must compile (TokPos restore) and use upvalues.
+let online = 0
+let nicks = {}
+def connect(id)
+    online = online + 1
+    nicks[id] = "guest-" .. id
+end
+connect("1")
+print(online, nicks["1"])

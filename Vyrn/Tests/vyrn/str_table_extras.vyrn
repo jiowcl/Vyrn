@@ -1,0 +1,13 @@
+-- @compile-safe
+-- string.char + table.slice on libvyrnrt
+
+print(string.char(65, 66, 67))
+print(string.char(97))
+
+let t = {10, 20, 30, 40, 50}
+let s = table.slice(t, 2, 4)
+print(table.concat(s, ","))
+let s2 = table.slice(t, 3)
+print(table.concat(s2, "-"))
+let s3 = table.slice(t, 5, 2)
+print(#s3)

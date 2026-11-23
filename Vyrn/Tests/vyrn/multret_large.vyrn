@@ -1,0 +1,44 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- multret_large (1.6.106): multiple values are no longer capped at 16. Returns, varargs,
+-- select, table.unpack, pcall results and coroutine resume/yield carry up to 4096 values;
+-- table.unpack of more than 4096 raises "too many results to unpack".
+def r17() return 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 end
+print("r17", select("#", r17()), #{r17()}, ({r17()})[17])
+let t = {}
+for i = 1, 1000 do t[i] = i end
+let u = {table.unpack(t)}
+print("unpack1000", #u, u[1], u[1000], select("#", table.unpack(t)))
+def many(n)
+  let r = {}
+  for i = 1, n do r[i] = i * 2 end
+  return table.unpack(r)
+end
+print("ret100", select("#", many(100)), (select(100, many(100))))
+def va(...) return select("#", ...), ... end
+let c, x1 = va(table.unpack(t, 1, 300))
+print("vararg300", c, x1)
+def cnt(...) let p = {...} return #p end
+print("pack500", cnt(table.unpack(t, 1, 500)))
+def last(...) return (select(select("#", ...), ...)) end
+print("last", last(many(250)))
+let ok, a1, a2 = pcall(many, 50)
+print("pcall", ok, a1, a2, select("#", pcall(many, 200)))
+let co = coroutine.create(def(...)
+  let n = select("#", ...)
+  let got = {coroutine.yield(table.unpack(t, 1, 64))}
+  return n, #got, table.unpack(got)
+end)
+let res = {coroutine.resume(co, table.unpack(t, 1, 40))}
+print("yield64", #res, res[1], res[2], res[65])
+res = {coroutine.resume(co, table.unpack(t, 1, 70))}
+print("resume70", #res, res[1], res[2], res[3], res[73])
+-- a wrap call returns only the yielded values (Lua 5.4), so 30 values stay 30
+let w = coroutine.wrap(def() coroutine.yield(many(30)) end)
+print("wrap30", select("#", w()))
+let big = {}
+for i = 1, 4096 do big[i] = i end
+print("cap", select("#", table.unpack(big)))
+let ok2, e2 = pcall(table.unpack, t, 1, 5000)
+print("over", ok2, e2)
+print("byte", select("#", string.byte(string.rep("a", 40), 1, -1)), string.byte("abc", -1))

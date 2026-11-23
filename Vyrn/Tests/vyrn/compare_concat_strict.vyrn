@@ -1,0 +1,164 @@
+-- @compile-safe
+-- 1.6.83: Lua-strict ordering and concatenation. < <= > >= only order two numbers or two
+-- strings; anything else raises "attempt to compare ...". `..` only joins strings and numbers;
+-- anything else raises "attempt to concatenate a T value". == / ~= with nil stay legal.
+-- Covers plain ops, fused compare-and-jump opcodes, ..=, concat chains and table.sort.
+def id(v) return v end
+def msg(ok, e, r)
+  if ok then return 'ok ' .. tostring(e) end
+  return (string.gsub(tostring(e), '^.-(%d+): ', 'L%1: '))
+end
+def t(name, f) print(name, msg(pcall(f))) end
+
+-- legal orderings
+t("num_lt", function() return 1 < 2 end)
+t("str_lt", function() return "a" < "b" end)
+t("str_case", function() return "a" < "B" end)
+t("str_le", function() return "abc" <= "abc" end)
+t("str_gt", function() return "b" > "abc" end)
+t("str_prefix", function() return "ab" < "abc" end)
+t("eq_nil", function() return nil == 1 end)
+t("ne_nil", function() return nil ~= 1 end)
+t("eq_nil_nil", function() return nil == nil end)
+
+-- plain value ops (LT / LE, with > / >= operand swap)
+t("nil_lt_num", function() return id(nil) < 1 end)
+t("num_lt_nil", function() return 1 < id(nil) end)
+t("num_gt_nil", function() return 1 > id(nil) end)
+t("nil_ge_num", function() return id(nil) >= 1 end)
+t("num_lt_str", function() return 1 < id("x") end)
+t("str_le_num", function() return id("x") <= 1 end)
+t("tbl_lt_tbl", function() return {} < {} end)
+t("tbl_lt_num", function() return {} < 1 end)
+t("bool_le", function() return id(true) <= false end)
+t("nil_nil", function() return id(nil) < id(nil) end)
+t("fn_lt", function() return id < id end)
+
+-- fused compare-and-jump forms
+t("if_local_lt_k", function()
+  let x = id(nil)
+  if x < 10 then return 1 end
+  return 0
+end)
+t("if_local_le_k", function()
+  let x = id("s")
+  if x <= 10 then return 1 end
+  return 0
+end)
+t("if_local_gt_k", function()
+  let x = id(nil)
+  if x > 10 then return 1 end
+  return 0
+end)
+t("if_local_ge_k", function()
+  let x = id({})
+  if x >= 3 then return 1 end
+  return 0
+end)
+t("if_local_le_local", function()
+  let x = id(nil)
+  let y = 5
+  if x <= y then return 1 end
+  return 0
+end)
+t("if_local_ge_local", function()
+  let x = id(nil)
+  let y = 5
+  if x >= y then return 1 end
+  return 0
+end)
+t("if_expr_lt", function()
+  if id(1) < id(nil) then return 1 end
+  return 0
+end)
+t("if_expr_gt", function()
+  if id(1) > id("z") then return 1 end
+  return 0
+end)
+t("while_nil", function()
+  let n = id(nil)
+  while n < 3 do n = n + 1 end
+end)
+t("for_body_cmp", function()
+  let lim = id(nil)
+  for i = 1, 3 do
+    if i <= lim then end
+  end
+end)
+t("if_str_k", function()
+  let s = id("m")
+  if s > "a" then return "after a" end
+  return "before a"
+end)
+
+-- concatenation
+t("cat_ok", function() return 1 .. 2 .. "x" .. 3.5 end)
+t("cat_nil_r", function() return "a" .. id(nil) end)
+t("cat_nil_l", function() return id(nil) .. "a" end)
+t("cat_bool", function() return "a" .. id(true) end)
+t("cat_tbl", function() return {} .. "a" end)
+t("cat_fn", function() return "a" .. id end)
+t("cat_chain", function() return "a" .. 1 .. id(nil) .. "b" end)
+t("cat_first_bad", function() return id(false) .. id(nil) end)
+t("cat_assign", function()
+  let s = "x"
+  s ..= id(nil)
+  return s
+end)
+t("cat_assign_ok", function()
+  let s = "x"
+  s ..= 1
+  s ..= "y"
+  return s
+end)
+t("cat_loop", function()
+  let s = ""
+  for i = 1, 3 do
+    let v = nil
+    if i < 3 then v = i end
+    s = s .. v
+  end
+  return s
+end)
+
+-- explicit conversions still work
+t("tostring", function() return tostring(nil) .. "|" .. tostring(true) .. "|" .. tostring(1) end)
+
+-- table.sort default comparator
+t("sort_num", function()
+  let a = {3, 1, 2}
+  table.sort(a)
+  return a[1] .. a[2] .. a[3]
+end)
+t("sort_str", function()
+  let a = {"b", "a", "c"}
+  table.sort(a)
+  return a[1] .. a[2] .. a[3]
+end)
+t("sort_mixed", function()
+  let a = {3, "a", 1}
+  table.sort(a)
+end)
+t("sort_bool", function()
+  let a = {true, false}
+  table.sort(a)
+end)
+t("sort_tbl", function()
+  let a = {{}, {}}
+  table.sort(a)
+end)
+t("sort_cmp", function()
+  let a = {3, "a", 1}
+  table.sort(a, function(x, y) return tostring(x) < tostring(y) end)
+  return a[1] .. a[2] .. a[3]
+end)
+
+-- appended: LE_LOCAL_K_JMP (non-immediate constant) and the numeric-for limit check
+t("if_local_le_bigk", function()
+  let x = id(nil)
+  if x <= 300.5 then return 1 end
+  return 0
+end)
+t("for_nil_limit", function()
+  for i = 1, id(nil) do end
+end)

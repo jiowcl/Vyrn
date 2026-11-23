@@ -1,0 +1,23 @@
+-- Trailing-call expansion (return lists, table ctors) and {...} with nil holes (1.6.75).
+def two() return 7, 8 end
+def r() return 1, two() end
+print(r())
+print(select('#', r()))
+let t = {1, two()}
+print(#t, t[1], t[2], t[3])
+let u = {two(), 5}
+print(#u, u[1], u[2])
+let w = {k = two(), two()}
+print(w.k, #w, w[1], w[2])
+def va(...) let t = {...} return #t, select('#', ...), t[1], t[2], t[3] end
+print(va(1, nil, 3))
+print(va(nil, nil))
+def pc() return 0, pcall(two) end
+print(pc())
+def sel(...) return "x", select(2, ...) end
+print(sel(1, 2, 3))
+let z = {select(2, "a", "b", "c")}
+print(#z, z[1], z[2])
+def g() return two() end
+print(g())
+

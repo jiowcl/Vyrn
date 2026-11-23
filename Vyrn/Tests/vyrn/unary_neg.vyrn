@@ -1,0 +1,8 @@
+-- @compile-safe
+-- Unary minus (#OP_NEG) on libvyrnrt Release path.
+
+print(-5)
+print(-(-3))
+print(math.abs(-7))
+print(-math.sqrt(16))
+print(0 - -2)

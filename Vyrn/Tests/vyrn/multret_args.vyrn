@@ -1,0 +1,20 @@
+-- vyrn: 10
+-- 1.6.77: multi-value spreading into known/unknown callees, (f()) truncation, return va(...).
+def k(a, b) return b end
+def f() return 7 end
+let x = k(pcall(f))
+print(x)
+print(k(string.find("a,b", ",")))
+print(k(1, pcall(f)))
+print(k(pcall(f)))
+let t = {}
+t.f = def() return 3, 4 end
+print((string.gsub("aa", "a", "b")))
+print((t.f()))
+def r() return (t.f()) end
+print(r())
+def va(...) return select('#', ...) end
+def fwd(...) return va(...) end
+print(fwd(1, nil), fwd())
+def rt() return t.f() end
+print(rt())

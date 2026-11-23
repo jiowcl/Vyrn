@@ -1,0 +1,14 @@
+1a true A1
+1b true B1
+1c true A!2
+1d true A!/2 dead
+2a 101 103 106 -1
+3a true 10
+3b 11 12
+3c true 13
+3d true 13
+3e 14 dead
+4a 600
+4b 3 5 61 4
+4c 964
+5a true normal suspended suspended

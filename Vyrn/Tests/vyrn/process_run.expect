@@ -1,0 +1,6 @@
+args_ok true true true true
+echo_ok true true
+exit 7 bye
+timeout true
+env_ok true
+fail true true

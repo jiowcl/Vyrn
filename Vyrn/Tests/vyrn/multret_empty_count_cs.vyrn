@@ -1,0 +1,26 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.112: an empty multiple-return list adds no values (count 0) on both runtimes:
+-- table.unpack of an empty range, string.byte of an empty range, bare return.
+-- Expected output checked against Lua 5.4.
+
+print(select('#', table.unpack({})))
+print(select('#', table.unpack({1, 2})))
+print(select('#', table.unpack({1, 2}, 3)))
+def none()
+    return
+end
+print(select('#', none()))
+print(select('#', 1, table.unpack({})))
+print(select('#', table.unpack({}), 1))
+def f(...)
+    return select('#', ...)
+end
+print(f(table.unpack({})))
+print(f(none()))
+let t = {table.unpack({})}
+print(#t)
+print(math.max(1, table.unpack({})))
+print(select('#', string.byte("")))
+print(select('#', string.byte("abc", 3, 2)))
+print(select('#', string.byte("abc", 1, 3)))

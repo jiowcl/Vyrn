@@ -1,0 +1,34 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.142: coroutine.wrap matches Lua 5.4 (payload only; errors re-raised).
+
+def add(a, b)
+  return a + b
+end
+let wsum = coroutine.wrap(add)
+print("sum", wsum(10, 20))
+let wcnt = coroutine.wrap(add)
+print("count", select("#", wcnt(1, 2)))
+
+def gen()
+  yield 1, "a"
+  return 2, "b"
+end
+let g = coroutine.wrap(gen)
+print("y1", g())
+print("y2", g())
+let okd, ed = pcall(g)
+print("dead", okd, ed)
+
+def boom()
+  error("co blew up", 0)
+end
+let b = coroutine.wrap(boom)
+let okb, eb = pcall(b)
+print("err", okb, eb)
+
+def silent()
+end
+let z = coroutine.wrap(silent)
+print("zero", select("#", z()))
+print("ok")

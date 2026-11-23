@@ -1,0 +1,17 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- table_index_of (1.6.106): table.index_of(t, v) / table.find_index(t, v) return the first
+-- index in 1..#t whose element equals v (numbers, strings, booleans by value; tables by
+-- identity), else nil. Available on the PB VM and libvyrnrt.
+let t = {"a", "b", "c", "b", 10, 2.5, true}
+print("str", table.index_of(t, "b"), table.find_index(t, "c"), table.index_of(t, "z"))
+print("num", table.index_of(t, 10), table.index_of(t, 2.5), table.index_of(t, true), table.index_of(t, false))
+let o1, o2 = {}, {}
+let objs = {o1, o2}
+print("ident", table.index_of(objs, o2), table.index_of(objs, {}))
+print("miss", table.index_of({}, 1), table.index_of({1, 2, 3}, "1"))
+let ok, err = pcall(table.index_of, 5, 1)
+print("bad", ok, err)
+let big = {}
+for i = 1, 5000 do big[i] = i * 3 end
+print("big", table.index_of(big, 15000), table.index_of(big, 15001))

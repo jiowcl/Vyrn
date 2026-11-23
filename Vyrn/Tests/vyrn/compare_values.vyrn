@@ -1,0 +1,21 @@
+-- @compile-safe
+-- Raw OP_EQ / OP_LT / OP_LE (value results) + LE_LOCAL_K_JMP (const > 255 keeps K form)
+
+let a: number = 3
+let b: number = 5
+print("le=", a <= b)
+print("lt=", a < b)
+print("eq=", a == b)
+print("ge=", b >= a)
+print("gt=", b > a)
+print("seq=", "hi" == "hi")
+print("sne=", "hi" == "ho")
+
+-- LE_LOCAL_K_JMP: while local <= 1000 (1000 not u8 imm → K form, not LE_LOCAL_I_JMP)
+let n: number = 998
+while n <= 1000 do
+    print("k n=", n)
+    n = n + 1
+end
+
+print("done")

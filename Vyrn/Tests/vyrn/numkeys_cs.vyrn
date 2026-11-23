@@ -1,0 +1,71 @@
+-- @compile-safe
+-- 1.6.67: number keys that are not dense indices (1.5, 0, -1, -3.25) live in
+-- hash slots like the PB VM: get/set/overwrite, # stays dense-only, next()
+-- walks them. 1.6.112: a key assigned nil is skipped by next() (Lua; before it
+-- yielded "0 nil").
+-- 1.6.68: walks now print the exact next() key order (must match the PB VM
+-- slot order: dense part first, then hash slots in slot-index order).
+
+let t = {}
+t[1.5] = "a"
+t[0] = "z"
+t[-1] = "m"
+t[1] = "one"
+t[2] = "two"
+t["s"] = "str"
+print(t[1.5], t[0], t[-1], t[1], t[2], t["s"], t[2.5], t[-2])
+print(#t)
+t[1.5] = "A"
+print(t[1.5])
+let w = {}
+w[0.5] = 1
+w[1] = 2
+w[2] = 3
+print(#w, w[0.5])
+def walk(tb, key)
+    let nk, nv = next(tb, key)
+    if nk == nil then
+        return 0
+    end
+    return 1 + walk(tb, nk)
+end
+print(walk(t, nil), walk(w, nil))
+def order(tb, key, acc)
+    let nk, nv = next(tb, key)
+    if nk == nil then
+        return acc
+    end
+    let piece = acc .. " " .. tostring(nk)
+    return order(tb, nk, piece)
+end
+print("t:" .. order(t, nil, ""))
+print("w:" .. order(w, nil, ""))
+let total = 0
+def sumvals(tb, key, acc)
+    let nk, nv = next(tb, key)
+    if nk == nil then
+        return acc
+    end
+    if type(nk) == "number" then
+        return sumvals(tb, nk, acc + nk)
+    end
+    return sumvals(tb, nk, acc)
+end
+print(sumvals(t, nil, 0))
+let z = {}
+z[0] = "z"
+z[0] = nil
+print(next(z))
+print(z[0])
+let q = {}
+q[-3.25] = "neg"
+print(next(q))
+let h = {}
+let i = 1
+while i <= 40 do
+    h[i + 0.5] = i
+    h[-i] = -i
+    i = i + 1
+end
+print(h[20.5], h[-40], h[40.5], #h, walk(h, nil))
+print("h:" .. order(h, nil, ""))

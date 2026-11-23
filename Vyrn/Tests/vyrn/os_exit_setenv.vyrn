@@ -1,0 +1,21 @@
+-- @compile-safe
+-- os.setenv / os.getenv / os.remove / os.rename / os.exit (1.6.62)
+
+print(os.setenv("VYRN_CS_ENV", "abc"))
+print(os.getenv("VYRN_CS_ENV"))
+print(os.setenv("VYRN_CS_ENV", nil))
+print(os.getenv("VYRN_CS_ENV"))
+
+let a = path.join(path.cwd(), "_cs_os_a.txt")
+let b = path.join(path.cwd(), "_cs_os_b.txt")
+let f = io.open(a, "w")
+f:write("x")
+f:close()
+print(os.rename(a, b))
+print(path.exists(b))
+print(os.remove(b))
+print(path.exists(b))
+
+print("before-exit")
+os.exit(0)
+print("after-exit")

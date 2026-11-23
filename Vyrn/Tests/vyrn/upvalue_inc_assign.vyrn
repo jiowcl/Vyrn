@@ -1,0 +1,44 @@
+-- vyrn: 12
+-- Regression: upvalue numeric mutate must update the shared cell (not a shadow global),
+-- and `n = n + 1` must not eat the next statement (chat-like table assign).
+-- Note: postfix `--` is not used here (`--` starts a comment unless the lexer
+-- recognizes adjacent postfix); prefer `n = n - 1` / `n++`.
+
+let x = 0
+def bump()
+    x = x + 1
+    x += 1
+    x = x - 1
+end
+bump()
+print("bump", x)
+
+let y = 10
+def bump2()
+    y++
+    y = y - 1
+end
+bump2()
+print("bump2", y)
+
+-- Pure ++ on upvalue (no compensating assign). Bug used INC_GLOBAL → stayed 0.
+let z = 0
+def bump3()
+    z++
+    z++
+end
+bump3()
+print("plusplus", z)
+
+-- Chat-like: increment then bracket-assign on the next line.
+let online = 0
+let nicks = {}
+def connect(id)
+    online = online + 1
+    nicks[id] = "guest-" .. id
+end
+def who()
+    print("who", online, nicks["1"])
+end
+connect("1")
+who()

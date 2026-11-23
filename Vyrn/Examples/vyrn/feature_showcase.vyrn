@@ -1,0 +1,173 @@
+-- vyrn: 12
+-- Vyrn Feature Showcase
+-- Demonstration: Option types, structs/enums, string interpolation, match, closures, coroutines, and multiple return values.
+
+------------------------------------------------------------
+-- 1. Constants and Optional Types
+------------------------------------------------------------
+const PI: number = 3.14159
+const APP_NAME: string = "Vyrn"
+
+@doc("Return the area of ​​the circle")
+def area(r: number) -> number
+    return PI * r * r
+end
+
+@doc("Greeting (Optional Type + String Interpolation)")
+def greet(name: string, times: number) -> string
+    if times <= 0 then
+        return "..."
+    elif times == 1 then
+        return "Hello, {name}!"
+    else
+        return "Hello, {name}! (x{times})"
+    end
+end
+
+print(greet("World", 1))
+print(greet("Vyrn", 3))
+print("area(2) =", area(2))
+
+------------------------------------------------------------
+-- 2. struct / enum
+------------------------------------------------------------
+enum Status: number
+    CIdle
+    Running
+    Done
+end
+
+struct Point
+    x: number
+    y: number
+end
+
+struct Task
+    title: string
+    status: number
+    point: Point
+end
+
+def make_task(title: string, x: number, y: number) -> Task
+    return Task {
+        title = title,
+        status = Status.Running,
+        point = Point { x = x, y = y }
+    }
+end
+
+let t = make_task("Compile showcase", 10, 20)
+print("Task:", t.title, "at (", t.point.x, ",", t.point.y, ") status =", t.status)
+
+------------------------------------------------------------
+-- 3. `match` (pattern matching; desugars into `if`/`elif`)
+------------------------------------------------------------
+def describe_status(s: number) -> string
+    -- match arms are statements and only accept literals; use if + enum members here
+    if s == Status.CIdle then
+        return "waiting"
+    elif s == Status.Running then
+        return "in progress"
+    elif s == Status.Done then
+        return "finished"
+    else
+        return "unknown"
+    end
+end
+
+print("status text:", describe_status(t.status))
+
+------------------------------------------------------------
+-- 4. Multiple Return Values ​​and Tables
+------------------------------------------------------------
+def minmax(a: number, b: number) -> number, number
+    if a < b then
+        return a, b
+    else
+        return b, a
+    end
+end
+
+let lo, hi = minmax(42, 7)
+print("minmax ->", lo, hi)
+
+let nums = { 3, 1, 4, 1, 5, 9 }
+let sum = 0
+for i = 1, #nums do
+    sum = sum + nums[i]
+end
+print("sum of table =", sum)
+
+------------------------------------------------------------
+-- 5. Closures and Upvalues
+------------------------------------------------------------
+def make_counter(start: number)
+    let n = start
+    return def()
+        n = n + 1
+        return n
+    end
+end
+
+let next = make_counter(100)
+print("counter:", next(), next(), next())
+
+------------------------------------------------------------
+-- 6. Coroutines (Simplified Illustration)
+------------------------------------------------------------
+def fib_gen(limit: number)
+    return coroutine.create(def()
+        let a, b = 0, 1
+        while a <= limit do
+            coroutine.yield(a)
+            let c = a + b
+            a = b
+            b = c
+        end
+    end)
+end
+
+let co = fib_gen(20)
+print("fib sequence:")
+while true do
+    let ok, val = coroutine.resume(co)
+    if not ok or val == nil then
+        break
+    end
+    print(" ", val)
+end
+
+------------------------------------------------------------
+-- 7. Protected Call (pcall)
+------------------------------------------------------------
+def may_fail(x: number) -> number
+    if x < 0 then
+        error("x must be non-negative")
+    end
+    return math.sqrt(x)
+end
+
+let ok, result = pcall(may_fail, 16)
+print("pcall ok:", ok, "result:", result)
+
+ok, result = pcall(may_fail, -1)
+print("pcall fail:", ok, "err:", result)
+
+------------------------------------------------------------
+-- 8. A Brief Showcase of the Standard Library (math / string / crypto; no internet required)
+------------------------------------------------------------
+print("math.floor(PI) =", math.floor(PI))
+print("string.upper =", string.upper(APP_NAME))
+
+let payload = "user=alice&role=admin"
+let secret  = "s3cret"
+let sig     = crypto.hmac("sha256", secret, payload)
+print("hmac token =", payload .. "." .. sig)
+print("sha256(hello) =", crypto.sha256("hello Vyrn"))
+
+------------------------------------------------------------
+-- End
+------------------------------------------------------------
+print("")
+print("=== Vyrn showcase complete ===")
+print("Language: concise · typed · embeddable · packable")

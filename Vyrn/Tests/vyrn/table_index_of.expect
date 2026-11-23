@@ -1,0 +1,6 @@
+str 2 3 nil
+num 5 6 7 nil
+ident 2 nil
+miss nil nil
+bad false bad argument #1 to 'index_of' (table expected)
+big 5000 nil

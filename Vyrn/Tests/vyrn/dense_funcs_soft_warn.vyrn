@@ -1,0 +1,213 @@
+-- Soft-limit warn when unit has >64 functions (main + defs). Output must stay clean for expect (warns stripped in run_tests).
+-- vyrn: 12
+def d0() -> number
+  return 0
+end
+def d1() -> number
+  return 1
+end
+def d2() -> number
+  return 2
+end
+def d3() -> number
+  return 3
+end
+def d4() -> number
+  return 4
+end
+def d5() -> number
+  return 5
+end
+def d6() -> number
+  return 6
+end
+def d7() -> number
+  return 7
+end
+def d8() -> number
+  return 8
+end
+def d9() -> number
+  return 9
+end
+def d10() -> number
+  return 10
+end
+def d11() -> number
+  return 11
+end
+def d12() -> number
+  return 12
+end
+def d13() -> number
+  return 13
+end
+def d14() -> number
+  return 14
+end
+def d15() -> number
+  return 15
+end
+def d16() -> number
+  return 16
+end
+def d17() -> number
+  return 17
+end
+def d18() -> number
+  return 18
+end
+def d19() -> number
+  return 19
+end
+def d20() -> number
+  return 20
+end
+def d21() -> number
+  return 21
+end
+def d22() -> number
+  return 22
+end
+def d23() -> number
+  return 23
+end
+def d24() -> number
+  return 24
+end
+def d25() -> number
+  return 25
+end
+def d26() -> number
+  return 26
+end
+def d27() -> number
+  return 27
+end
+def d28() -> number
+  return 28
+end
+def d29() -> number
+  return 29
+end
+def d30() -> number
+  return 30
+end
+def d31() -> number
+  return 31
+end
+def d32() -> number
+  return 32
+end
+def d33() -> number
+  return 33
+end
+def d34() -> number
+  return 34
+end
+def d35() -> number
+  return 35
+end
+def d36() -> number
+  return 36
+end
+def d37() -> number
+  return 37
+end
+def d38() -> number
+  return 38
+end
+def d39() -> number
+  return 39
+end
+def d40() -> number
+  return 40
+end
+def d41() -> number
+  return 41
+end
+def d42() -> number
+  return 42
+end
+def d43() -> number
+  return 43
+end
+def d44() -> number
+  return 44
+end
+def d45() -> number
+  return 45
+end
+def d46() -> number
+  return 46
+end
+def d47() -> number
+  return 47
+end
+def d48() -> number
+  return 48
+end
+def d49() -> number
+  return 49
+end
+def d50() -> number
+  return 50
+end
+def d51() -> number
+  return 51
+end
+def d52() -> number
+  return 52
+end
+def d53() -> number
+  return 53
+end
+def d54() -> number
+  return 54
+end
+def d55() -> number
+  return 55
+end
+def d56() -> number
+  return 56
+end
+def d57() -> number
+  return 57
+end
+def d58() -> number
+  return 58
+end
+def d59() -> number
+  return 59
+end
+def d60() -> number
+  return 60
+end
+def d61() -> number
+  return 61
+end
+def d62() -> number
+  return 62
+end
+def d63() -> number
+  return 63
+end
+def d64() -> number
+  return 64
+end
+def d65() -> number
+  return 65
+end
+def d66() -> number
+  return 66
+end
+def d67() -> number
+  return 67
+end
+def d68() -> number
+  return 68
+end
+def d69() -> number
+  return 69
+end
+print(d0() + d69())

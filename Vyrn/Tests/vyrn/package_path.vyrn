@@ -1,0 +1,9 @@
+-- vyrn: 12
+package.path = "tests/vyrn/custom_mod/?.vyrn;" .. package.path
+
+let m = require("pkg.mod")
+print(m.tag)
+
+if type(package.path) == "string" and type(package.preload) == "table" then
+    print("package fields ok")
+end

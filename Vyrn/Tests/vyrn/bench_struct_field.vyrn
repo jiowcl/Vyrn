@@ -1,0 +1,15 @@
+-- vyrn: 12 unlimited
+-- Hot .field path should stay on GET_STRUCT_FIELD (StructMeta bridge is cold-path only).
+struct Point
+    x: number
+    y: number
+end
+
+let total = 0
+let i = 0
+while i < 200000 do
+    let p = Point { x = 1, y = 2 }
+    total = total + p.x + p.y
+    i = i + 1
+end
+print(total)

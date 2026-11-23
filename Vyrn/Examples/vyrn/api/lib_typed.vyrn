@@ -1,0 +1,29 @@
+-- vyrn: 12
+-- 1.6.145 / 1.6.147: typed usage of lib/ modules (Doc comments, type hints, a local struct).
+-- Does not call paid APIs. Missing keys / no network needed; exits 0.
+
+struct LibPing
+  [doc: "display name"]
+  name: string
+  [doc: "optional count"]
+  n: number = 1
+end
+
+@doc("Format a LibPing as a short label")
+def format_ping(p: LibPing) -> string
+  return p.name .. " x" .. tostring(p.n)
+end
+
+let ping = LibPing { name = "lib" }
+print("ping", format_ping(ping))
+print("fielddoc", ping._fielddocs.name == "display name")
+
+let oa = require("ai.openai")
+let gm = require("ai.gemini")
+let pdf = require("cloud.adobe_pdf")
+let nu = require("net.util")
+print("openai", type(oa.openai_chat) == "function")
+print("gemini", type(gm.gemini_generate) == "function")
+print("adobe", type(pdf.adobe_export_pdf) == "function", type(pdf.adobe_run_job) == "function")
+print("net", type(nu.is_disabled_net) == "function")
+print("ok")

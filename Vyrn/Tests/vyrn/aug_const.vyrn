@@ -1,0 +1,5 @@
+-- vyrn: 12
+let i = 0
+i += 5
+i = i + 10
+print(i)

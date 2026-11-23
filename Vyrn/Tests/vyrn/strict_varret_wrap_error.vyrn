@@ -1,0 +1,8 @@
+-- vyrn: 12 strict
+def wrapped()
+  yield 1, "x"
+end
+
+let w = coroutine.wrap(wrapped)
+; wrap_call forwards payload types (Lua 5.4); first binding is not a status bool.
+let ok: bool, a, b = w()

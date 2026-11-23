@@ -1,0 +1,7 @@
+2 big mid x nil
+ 1=one 2=two 16777217=mid 16777300=x 33554432=big a=A b=B -4=neg
+ 1=one 2=two 16777217=mid 33554432=BIG a=A b=B -4=neg
+2 nil  1=one 2=two a=A b=B -4=neg
+0  16777299=3 16777300=1 x=2
+16777299 3
+33554599

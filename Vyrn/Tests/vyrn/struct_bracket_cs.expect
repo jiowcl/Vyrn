@@ -1,0 +1,8 @@
+get 1 2
+dyn 2
+dyn-set 7 7 7
+pairs1 x 7
+pairs2 y 2
+ipairs-empty nil
+ipairs-extra 3 99
+fields x y nil

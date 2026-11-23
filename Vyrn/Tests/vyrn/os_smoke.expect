@@ -1,5 +1,5 @@
 clock ok
 time ok
-difftime 10
+difftime 10.0
 date ok
 getenv ok

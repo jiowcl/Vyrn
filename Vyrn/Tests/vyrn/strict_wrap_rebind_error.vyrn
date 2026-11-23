@@ -1,0 +1,13 @@
+-- vyrn: 12 strict
+def f() -> number
+  yield 1
+end
+
+def g() -> string
+  yield "x"
+end
+
+let w = coroutine.wrap(f)
+w = coroutine.wrap(g)
+-- After rebind, the payload is string; a number binding is wrong.
+let n: number = w()

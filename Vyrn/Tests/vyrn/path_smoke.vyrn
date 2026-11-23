@@ -1,0 +1,41 @@
+-- vyrn: 12
+let p = path.join("tests", "vyrn", "hello.vyrn")
+
+if path.exists(p) then
+    print("path exists ok")
+end
+
+if path.isfile(p) then
+    print("isfile ok")
+end
+
+let base = path.basename(p)
+
+if base == "hello.vyrn" then
+    print("basename ok")
+end
+
+let ext = path.ext(p)
+
+if ext == "vyrn" then
+    print("ext ok")
+end
+
+let dir = path.normalize(path.dirname(p))
+
+if #dir > 0 then
+    print("dirname ok")
+end
+
+if path.isdir(".") then
+    print("isdir ok")
+end
+
+let tmp = path.join("logs", "vyrn_mkdir_smoke")
+path.mkdir("logs")
+if path.mkdir(tmp) then
+    print("mkdir ok")
+end
+if path.isdir(tmp) then
+    print("mkdir isdir ok")
+end

@@ -1,0 +1,178 @@
+-- vyrn: 12
+-- JSON-line WebSocket chat + binary ping/pong for `vyrn serve`.
+-- Text frames: one JSON object per message. Binary: client sends "ping", server replies JSON pong (binary frame).
+--
+-- Run: Vyrn.exe serve examples\vyrn\ws_chat_json\chat.vyrn --port 8766
+-- Open http://127.0.0.1:8766/
+
+let nicks = {}
+let order = {}
+let online = 0
+let tickAccum = 0
+let uptimeSec = 0
+
+def json_q() -> string
+    return string.char(34)
+end
+
+def json_bs() -> string
+    return string.char(92)
+end
+
+def json_open() -> string
+    return string.char(123)
+end
+
+def json_close() -> string
+    return string.char(125)
+end
+
+def json_escape(s) -> string
+    let q = json_q()
+    let b = json_bs()
+    s = string.gsub(s, b, b .. b)
+    s = string.gsub(s, q, b .. q)
+    s = string.gsub(s, string.char(13), "")
+    s = string.gsub(s, string.char(10), b .. "n")
+    return s
+end
+
+def json_sys(msg) -> string
+    let q = json_q()
+    return json_open() .. q .. "t" .. q .. ":" .. q .. "sys" .. q .. "," .. q .. "msg" .. q .. ":" .. q .. json_escape(msg) .. q .. json_close()
+end
+
+def json_chat(nick, msg) -> string
+    let q = json_q()
+    return json_open() .. q .. "t" .. q .. ":" .. q .. "chat" .. q .. "," .. q .. "from" .. q .. ":" .. q .. json_escape(nick) .. q .. "," .. q .. "msg" .. q .. ":" .. q .. json_escape(msg) .. q .. json_close()
+end
+
+def json_tick() -> string
+    let q = json_q()
+    return json_open() .. q .. "t" .. q .. ":" .. q .. "tick" .. q .. "," .. q .. "uptime" .. q .. ":" .. uptimeSec .. "," .. q .. "online" .. q .. ":" .. online .. json_close()
+end
+
+def display_name(client_id) -> string
+    let n = nicks[client_id]
+    if n then
+        return n
+    end
+    return "guest-" .. client_id
+end
+
+def json_who() -> string
+    let q = json_q()
+    let arr = "["
+    let i = 1
+    while i <= #order do
+        if i > 1 then
+            arr = arr .. ","
+        end
+        arr = arr .. q .. json_escape(display_name(order[i])) .. q
+        i = i + 1
+    end
+    arr = arr .. "]"
+    return json_open() .. q .. "t" .. q .. ":" .. q .. "who" .. q .. "," .. q .. "online" .. q .. ":" .. online .. "," .. q .. "names" .. q .. ":" .. arr .. json_close()
+end
+
+def json_field(msg, key) -> string
+    let q = json_q()
+    let needle = q .. key .. q .. ":" .. q
+    let i = string.find(msg, needle, 1, true)
+    if i == nil then
+        return ""
+    end
+    let start = i + string.len(needle)
+    let j = string.find(msg, q, start, true)
+    if j == nil then
+        return ""
+    end
+    return string.sub(msg, start, j - 1)
+end
+
+def roster_add(client_id)
+    order[#order + 1] = client_id
+end
+
+def roster_remove(client_id)
+    let i = 1
+    while i <= #order do
+        if order[i] == client_id then
+            table.remove(order, i)
+            return
+        end
+        i = i + 1
+    end
+end
+
+def on_ws_connect(client_id) -> boolean
+    online = online + 1
+    nicks[client_id] = "guest-" .. client_id
+    roster_add(client_id)
+    ws.broadcast(json_sys(display_name(client_id) .. " joined"))
+    ws.broadcast(json_who())
+    return true
+end
+
+def on_ws_close(client_id)
+    let name = display_name(client_id)
+    nicks[client_id] = nil
+    roster_remove(client_id)
+    online = online - 1
+    if online < 0 then
+        online = 0
+    end
+    ws.broadcast(json_sys(name .. " left"))
+    ws.broadcast(json_who())
+end
+
+def on_ws_message(client_id, message) -> string
+    message = string.trim(message)
+    if message == "" then
+        return ""
+    end
+    let kind = json_field(message, "t")
+    if kind == "hello" or kind == "help" then
+        return json_sys("hi " .. display_name(client_id) .. " | nick, who, help | tick ~1s | binary ping")
+    end
+    if kind == "nick" then
+        let name = string.trim(json_field(message, "name"))
+        if name == "" then
+            return json_sys("usage: t=nick with name field")
+        end
+        let old = display_name(client_id)
+        nicks[client_id] = name
+        ws.broadcast(json_sys(old .. " is now " .. name))
+        ws.broadcast(json_who())
+        return json_sys("nickname set to " .. name)
+    end
+    if kind == "who" then
+        return json_who()
+    end
+    if kind == "chat" then
+        let text = json_field(message, "msg")
+        if text == "" then
+            return json_sys("empty chat")
+        end
+        ws.broadcast(json_chat(display_name(client_id), text))
+        return ""
+    end
+    return json_sys("unknown message; try t=hello")
+end
+
+def on_ws_binary(client_id, payload) -> string
+    let q = json_q()
+    if payload == "ping" then
+        return json_open() .. q .. "t" .. q .. ":" .. q .. "pong" .. q .. "," .. q .. "uptime" .. q .. ":" .. uptimeSec .. json_close()
+    end
+    return json_open() .. q .. "t" .. q .. ":" .. q .. "bin" .. q .. "," .. q .. "echo" .. q .. ":" .. q .. json_escape(payload) .. q .. json_close()
+end
+
+def on_tick(dt)
+    tickAccum = tickAccum + dt
+    if tickAccum >= 1 then
+        tickAccum = tickAccum - 1
+        uptimeSec = uptimeSec + 1
+        ws.broadcast(json_tick())
+    end
+end

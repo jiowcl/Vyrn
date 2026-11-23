@@ -1,0 +1,29 @@
+-- vyrn: 12
+-- 1.6.171: require("time") ISO-8601 format/parse offline
+let tm = require("time")
+assert(type(tm.format) == "function")
+assert(type(tm.parse) == "function")
+
+let fixed = os.time({ year = 2024, month = 6, day = 15, hour = 12, min = 30, sec = 45 })
+let local_s = tm.format(fixed)
+assert(string.find(local_s, "2024-06-15T", 1, true) ~= nil)
+assert(string.sub(local_s, -1) ~= "Z")
+
+let utc_s = tm.format(fixed, { utc = true })
+assert(string.sub(utc_s, -1) == "Z")
+assert(#utc_s == 20)
+
+let p, perr = tm.parse("2024-06-15T12:30:45")
+assert(p, perr)
+assert(math.abs(p - fixed) <= 1)
+
+let pz, zerr = tm.parse("2024-01-01T00:00:00Z")
+assert(pz, zerr)
+let round = tm.format(pz, { utc = true })
+assert(round == "2024-01-01T00:00:00Z")
+
+let bad, berr = tm.parse("not-a-date")
+assert(bad == nil)
+assert(type(berr) == "string")
+
+print("time_iso_basic_ok")

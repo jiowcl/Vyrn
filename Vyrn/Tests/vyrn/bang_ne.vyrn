@@ -1,0 +1,12 @@
+#!/usr/bin/env vyrn
+-- vyrn: 8
+-- 1.6.75: '!=' is an alias of '~='; a lone '!' is a clean syntax error; a '#!' first line is skipped.
+let a = 1
+print(a != 2, a != 1, a ~= 2)
+if a != 3 then
+  print("ne ok")
+end
+let ok, msg = pcall(require, "lib.bang_syntax")
+print(ok)
+print(string.find(msg, "bang_syntax.vyrn:2:", 1, true) ~= nil)
+print(string.find(msg, "unexpected '!' (use 'not'", 1, true) ~= nil)

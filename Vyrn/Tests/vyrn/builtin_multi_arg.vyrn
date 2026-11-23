@@ -1,0 +1,18 @@
+-- vyrn: 12
+def worker()
+  yield 10
+  yield 20
+  return 30
+end
+let co = coroutine.create(worker)
+print(coroutine.resume(co))
+print(coroutine.resume(co))
+print(coroutine.resume(co))
+
+def pair()
+  return 1, 2
+end
+print("pcall", pcall(pair))
+print("pcall-mid", pcall(pair), 9)
+let ok, a, b = pcall(pair)
+print("pcall-let", ok, a, b)

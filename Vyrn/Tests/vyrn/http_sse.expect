@@ -1,0 +1,9 @@
+sse 200  3 ping hello 636166c3a9 done
+early 200 hello
+err chunk boom
+err http: cannot start a request from on_chunk
+after 200
+openai 200 Hello
+gemini 200 Hello
+stream 200 true
+done

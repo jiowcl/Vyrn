@@ -1,0 +1,23 @@
+-- @compile-safe
+-- vyrn: 12
+-- coroutine.wrap under Compile (Lua 5.4: payload only, no leading true)
+
+def add(a, b)
+  return a + b
+end
+let w = coroutine.wrap(add)
+let sum = w(10, 20)
+print(sum)
+
+def gen()
+  yield 1
+  yield 2
+  return 3
+end
+let g = coroutine.wrap(gen)
+let v1 = g()
+print(v1)
+let v2 = g()
+print(v2)
+let v3 = g()
+print(v3)

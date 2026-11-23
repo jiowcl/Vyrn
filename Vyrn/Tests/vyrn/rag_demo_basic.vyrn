@@ -1,0 +1,35 @@
+-- vyrn: 12
+-- 1.6.162: offline RAG-shaped retrieval with vector.cosine (canned embeddings).
+
+assert(type(package) == "table")
+assert(type(math) == "table")
+
+let vec = require("vector")
+
+let docs = {
+  { id = "doc_cat", embedding = { 1, 0, 0 } },
+  { id = "doc_dog", embedding = { 0.9, 0.1, 0 } },
+  { id = "doc_car", embedding = { 0, 0, 1 } }
+}
+let query = { 0.85, 0.2, 0 }
+
+let best_id = ""
+let best_sim = -2
+let i = 1
+while i <= #docs do
+  let sim, err = vec.cosine(query, docs[i].embedding)
+  assert(sim, err)
+  if sim > best_sim then
+    best_sim = sim
+    best_id = docs[i].id
+  end
+  i = i + 1
+end
+
+assert(best_id == "doc_dog")
+assert(best_sim > 0.9)
+let sim_car, cerr = vec.cosine(query, docs[3].embedding)
+assert(sim_car, cerr)
+assert(best_sim > sim_car)
+print("best", best_id)
+print("rag_demo_basic_ok")

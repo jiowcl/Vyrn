@@ -1,0 +1,30 @@
+-- @compile-safe
+-- Fused EQ_JMP_FALSE with non-number (string) operands
+
+let msg = "go"
+if msg == "go" then
+    print("eq-ok")
+end
+if msg == "stop" then
+    print("should-not")
+else
+    print("neq-ok")
+end
+
+let n = 0
+repeat
+    n = n + 1
+    if n == 1 then
+        msg = "x"
+    else
+        msg = "done"
+    end
+until msg == "done"
+print("until-n=", n)
+
+-- Non-number LT/LE fused: strings order lexicographically (1.6.83; was nil => false branch)
+if "a" < "b" then
+    print("lt-str-true")
+else
+    print("lt-str-false")
+end

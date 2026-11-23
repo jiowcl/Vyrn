@@ -1,6 +1,8 @@
 -- @compile-safe
--- vyrn: 13
+-- vyrn: 12
 -- Showcase: crypto digests, HMAC token verify, base64 roundtrip (1.6.119).
+-- Public examples use dialect 12; some tests still say vyrn: 13 as a compile-suite
+-- marker after 1.6.119 — same syntax surface, not a separate language.
 -- Run: bin\LuaLiteVM_build.exe examples\vyrn\showcase\crypto.vyrn
 
 let msg = "hello Vyrn"

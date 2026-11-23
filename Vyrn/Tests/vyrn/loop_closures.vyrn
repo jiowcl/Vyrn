@@ -1,0 +1,83 @@
+-- Closures created in loop bodies capture a fresh per-iteration variable (Lua semantics).
+let fs = {}
+for i = 1, 3 do
+  fs[#fs + 1] = function() return i end
+end
+print("numeric", fs[1](), fs[2](), fs[3]())
+
+let gs = {}
+for k, v in ipairs({"a", "b", "c"}) do
+  gs[#gs + 1] = function() return k .. v end
+end
+print("ipairs", gs[1](), gs[2](), gs[3]())
+
+let hs = {}
+for w in string.gmatch("x y z", "%a+") do
+  hs[#hs + 1] = function() return w end
+end
+print("gmatch", hs[1](), hs[2](), hs[3]())
+
+let ws = {}
+let n = 0
+while n < 3 do
+  n = n + 1
+  let m = n * 10
+  ws[#ws + 1] = function() return m end
+end
+print("while", ws[1](), ws[2](), ws[3]())
+
+-- A captured body local can still be mutated within its own iteration.
+let cs = {}
+for i = 1, 3 do
+  let c = 0
+  cs[i] = function() c = c + i; return c end
+end
+print("counters", cs[1](), cs[1](), cs[2](), cs[3](), cs[3]())
+
+-- continue and break keep per-iteration capture.
+let ks = {}
+for i = 1, 6 do
+  if i % 2 == 0 then continue end
+  if i > 5 then break end
+  ks[#ks + 1] = function() return i end
+end
+print("continue", #ks, ks[1](), ks[2](), ks[3]())
+
+-- Callbacks registered in a loop, invoked later.
+let handlers = {}
+let names = {"open", "save", "quit"}
+for idx = 1, #names do
+  let name = names[idx]
+  handlers[name] = function(x) return name .. ":" .. tostring(x + idx) end
+end
+print(handlers.open(1), handlers.save(1), handlers.quit(1))
+
+-- Shared outer variable is still shared.
+let total = 0
+let adders = {}
+for i = 1, 3 do
+  adders[i] = function() total = total + i end
+end
+for i = 1, 3 do adders[i]() end
+print("total", total)
+
+-- Bracket-call statements: t[k]() / t[k]:m() actually call.
+let calls = {}
+
+let tbl = { function() table.insert(calls, "idx") end, obj = { m = function(self, v) table.insert(calls, "m" .. v) end } }
+tbl[1]()
+tbl["obj"]:m(7)
+tbl["obj"].m(nil, 8)
+print("bracket calls", table.concat(calls, ","))
+-- Nested loops inside a function.
+def make()
+  let r = {}
+  for i = 1, 2 do
+    for j = 1, 2 do
+      r[#r + 1] = function() return i * 10 + j end
+    end
+  end
+  return r
+end
+let mk = make()
+print("nested", mk[1](), mk[2](), mk[3](), mk[4]())

@@ -1,0 +1,24 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.115: Lua 5.4 string escapes: \a \b \f \n \r \t \v \\ \" \', \xXX, \ddd (up to 255),
+-- \u{XXX} (UTF-8), \z (skip following whitespace) and backslash-newline.
+-- Escapes build bytes; a run of them is decoded as UTF-8, so "\xE4\xB8\xAD" is one character.
+-- A NUL byte (\0, \x00, \u{0}) is a compile error: Vyrn strings cannot hold NUL.
+-- Expected output checked against Lua 5.4 (the last line uses Vyrn interpolation).
+
+print("\x41\66\u{48}\z
+      end")
+print("a\rb" == "a\13b", #"\u{4E2D}", "\u{4E2D}" == "\xE4\xB8\xAD", "\u{4E2D}\u{6587}")
+print(string.byte("\u{4E2D}", 1, -1))
+print("tab\tx", "\65\066\0671", "\x7e\x7E", "q\"q", 'q\'q', "back\\slash", 'mix"\'')
+print(#"\u{7F}", #"\u{80}", #"\u{7FF}", #"\u{800}", #"\u{FFFF}", #"\u{10000}", #"\u{10FFFF}")
+print("\u{E9}" == "\xC3\xA9", "\u{1F600}" == "\xF0\x9F\x98\x80", "caf\u{E9}", "\u{263A}")
+print(string.byte("\a\b\f\v\r\t\n", 1, -1))
+print("line1\
+line2")
+print(#"\z   ", "x\z
+   \z  y", "a\z b")
+print(("\x48\x69"):rep(2, "\x2C"), ("%d\x25\x25"):format(50), string.upper("\x61\u{62}\99"))
+print("\x5B\x5d", "\u{5B}\u{5D}" == "[]", "\0651" == "A1", "\1\12\127" == string.char(1, 12, 127))
+let n = 7
+print("\x41{n}\u{42} \{lit\} {n * 2}\t|")

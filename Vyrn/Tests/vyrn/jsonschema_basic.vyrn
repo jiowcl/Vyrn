@@ -1,0 +1,68 @@
+-- vyrn: 12
+-- 1.6.158: lib/jsonschema Draft-07 subset (require; not @compile-safe)
+assert(type(package) == "table")
+assert(type(math) == "table")
+let js = require("jsonschema")
+assert(type(js.validate) == "function")
+
+let schema = {
+  type = "object",
+  properties = {
+    name = { type = "string", minLength = 1 },
+    age = { type = "integer", minimum = 0, maximum = 150 },
+    tags = { type = "array", items = { type = "string" }, minItems = 0 }
+  },
+  required = { "name" },
+  additionalProperties = false
+}
+
+assert(js.validate({ name = "Ada", age = 42, tags = { "lang" } }, schema))
+assert(js.validate({ name = "Bob" }, schema))
+
+let ok1, e1 = js.validate({ age = 1 }, schema)
+assert(ok1 == nil)
+assert(type(e1) == "string")
+assert(string.find(e1, "required", 1, true) ~= nil)
+
+let ok2, e2 = js.validate({ name = "Ada", age = -1 }, schema)
+assert(ok2 == nil)
+assert(string.find(e2, "minimum", 1, true) ~= nil)
+
+let ok3, e3 = js.validate({ name = "Ada", extra = true }, schema)
+assert(ok3 == nil)
+assert(string.find(e3, "additional", 1, true) ~= nil)
+
+assert(js.validate("hi", { type = "string", pattern = "%a+" }))
+let ok4, e4 = js.validate("12", { type = "string", pattern = "%a+" })
+assert(ok4 == nil)
+
+let enum_schema = {}
+enum_schema["enum"] = { 1, 2, 3 }
+assert(js.validate(3, enum_schema))
+let ok5, _ = js.validate(9, enum_schema)
+assert(ok5 == nil)
+
+let const_schema = {}
+const_schema["const"] = "x"
+assert(js.validate("x", const_schema))
+assert(js.validate(json.null, { type = "null" }))
+assert(js.validate(1.5, { type = "number", exclusiveMinimum = 1, exclusiveMaximum = 2 }))
+
+assert(js.validate("a", { anyOf = { { type = "number" }, { type = "string" } } }))
+assert(js.validate(1, { oneOf = { { type = "integer" }, { type = "string" } } }))
+let ok6, _ = js.validate(1, { oneOf = { { type = "number" }, { type = "integer" } } })
+assert(ok6 == nil)
+
+assert(js.validate({ name = "Ada" }, {
+  allOf = {
+    { type = "object" },
+    { required = { "name" } }
+  }
+}))
+
+-- JSON round-trip: decode then validate
+let body, jerr = json.decode(json.encode({ name = "Ada", age = 36, tags = { "math" } }))
+assert(body, jerr)
+assert(js.validate(body, schema))
+
+print("jsonschema_basic_ok")

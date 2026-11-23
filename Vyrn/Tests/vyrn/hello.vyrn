@@ -1,4 +1,5 @@
--- Vyrn 0.1 hello
+-- @compile-safe
+-- Vyrn 0.1 hello — libvyrnrt golden (see tests/vyrn/hello.expect)
 
 let name = "Vyrn"
 print("Hello, " .. name .. "!")

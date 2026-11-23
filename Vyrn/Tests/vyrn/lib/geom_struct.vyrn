@@ -1,0 +1,16 @@
+-- vyrn: 12
+-- Module with its own dialect header (struct annotations); loaded from a dialect-9 script.
+struct Vec2
+    x: number
+    y: number
+end
+
+def make(a: number) -> Vec2
+    return Vec2 { x = a, y = a * 2 }
+end
+
+def len2(v: Vec2) -> number
+    return v.x + v.y
+end
+
+return { make = make, len2 = len2 }

@@ -1,0 +1,26 @@
+-- vyrn: 12
+-- Small stack tool (1.6.149): __call pushes a value, __len is the count.
+-- Complements the brief Box.__call / Vec.__len demo in
+-- examples/vyrn/showcase/metatable.vyrn.
+
+const FIRST: number = 10
+const SECOND: number = 20
+
+@doc("A stack: s(x) pushes x and returns the new length; #s is the length")
+def new_stack() -> table
+  let items = {}
+  let mt = {}
+  mt.__call = function(self, x)
+    items[#items + 1] = x
+    return #items
+  end
+  mt.__len = function(self)
+    return #items
+  end
+  return setmetatable({}, mt)
+end
+
+let s = new_stack()
+print("empty", #s == 0)
+print("push", s(FIRST), s(SECOND))
+print("len", #s)

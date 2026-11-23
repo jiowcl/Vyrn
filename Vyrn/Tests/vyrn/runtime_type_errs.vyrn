@@ -1,0 +1,8 @@
+-- vyrn: 10
+-- 1.6.77: runtime type errors carry chunk:line in both runtimes.
+def strip(ok, m) return ok, (tostring(m):gsub("^.-(%d+): ", "L%1: ")) end
+print(strip(pcall(def() let n = nil; return n.x end)))
+print(strip(pcall(def() let n = nil; return n + 1 end)))
+print(strip(pcall(def() let s = {}; return s * 2 end)))
+print(strip(pcall(def() let s = {}; s.a.b = 1 end)))
+print(strip(pcall(def() let q = nil; q() end)))

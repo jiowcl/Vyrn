@@ -1,0 +1,24 @@
+-- vyrn: 12
+-- Method syntax on string expressions (parenthesized literals and variables).
+
+const SAMPLE: string = "  trim me  "
+
+print("upper", ("abc"):upper())
+print("len", ("xy"):len())
+print("contains", SAMPLE:find("trim", 1, true) ~= nil)
+
+let a, b = ("a,b,c"):find(",", 1, true)
+print("find", a, b)
+
+print("format", ("%d + %s"):format(2, "x"))
+print("gsub", ("/a/b"):gsub("/", "-"))
+
+let words = {}
+for w in string.gmatch("one two three", "%a+") do
+  table.insert(words, w)
+end
+print("words", table.concat(words, "|"))
+
+let s = SAMPLE
+let trimmed = s:gsub("^%s+", ""):gsub("%s+$", "")
+print("chain", trimmed)

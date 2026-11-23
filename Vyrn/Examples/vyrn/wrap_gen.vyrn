@@ -1,0 +1,41 @@
+-- vyrn: 12
+-- coroutine.wrap generator (1.6.149), payload-only Lua 5.4 semantics (1.6.142).
+-- Errors re-raise; a dead wrapper also raises. Use pcall(w) to catch both.
+-- Showcase range/filter lives in examples/vyrn/showcase/coroutines.vyrn;
+-- this file focuses on pcall(w) after exhaustion and on a re-raised error.
+
+const LO: number = 1
+const HI: number = 3
+
+@doc("Yield each integer from lo to hi inclusive")
+def range(lo: number, hi: number)
+  return coroutine.wrap(def()
+    let i = lo
+    while i <= hi do
+      coroutine.yield(i)
+      i = i + 1
+    end
+  end)
+end
+
+let w = range(LO, HI)
+let parts = {}
+let v = w()
+while v ~= nil do
+  table.insert(parts, v)
+  v = w()
+end
+print("range", table.concat(parts, " "))
+
+let ok, err = pcall(w)
+print("dead", ok == false, type(err) == "string")
+
+@doc("A wrapper that raises on the first resume")
+def boom()
+  return coroutine.wrap(def()
+    error("broken", 0)
+  end)
+end
+
+let ok2, err2 = pcall(boom())
+print("raised", ok2 == false, err2 == "broken")

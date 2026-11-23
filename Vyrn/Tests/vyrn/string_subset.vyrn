@@ -1,0 +1,8 @@
+-- @compile-safe
+-- Phase 7+ string subset for libvyrnrt
+
+print(string.len("abc"), string.upper("ab"), string.lower("XY"))
+print(string.sub("hello", 2, 4), string.rep("a", 3), string.reverse("ab"))
+print(string.trim("  x  "), string.startswith("hello", "he"), string.endswith("hello", "lo"))
+print(string.contains("hello", "ell"))
+print(string.find("hello", "ll"))

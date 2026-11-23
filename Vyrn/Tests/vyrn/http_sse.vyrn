@@ -1,0 +1,159 @@
+-- 1.6.128: loopback SSE / streaming read (requires --allow-net and VYRN_HTTP_TEST_PORT).
+
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+
+-- /sse: delayed events, including a UTF-8 byte split across chunks.
+let got = {}
+let acc = ""
+let r, err = http.request{
+  url = base .. "/sse",
+  timeout = 10,
+  on_chunk = function(chunk)
+    acc = acc .. chunk
+    let evs, rest = http.sse_events(acc)
+    acc = rest
+    let i = 1
+    while i <= #evs do
+      got[#got + 1] = evs[i]
+      i = i + 1
+    end
+  end
+}
+assert(r, err)
+print("sse", r.status, r.body, #got, got[1].event, got[1].data, crypto.tohex(got[2].data), got[3].data)
+
+-- Early stop: only the first event, then return false.
+let acc2 = ""
+let first = nil
+let r2, e2 = http.request{
+  url = base .. "/sse",
+  timeout = 10,
+  on_chunk = function(chunk)
+    acc2 = acc2 .. chunk
+    let evs, rest = http.sse_events(acc2)
+    acc2 = rest
+    if #evs > 0 then
+      first = evs[1].data
+      return false
+    end
+  end
+}
+assert(r2, e2)
+print("early", r2.status, first)
+
+-- Callback error: raise is propagated; a later request still works.
+print(msg(pcall(function()
+  http.request{
+    url = base .. "/sse",
+    timeout = 10,
+    on_chunk = function(chunk)
+      error("chunk boom")
+    end
+  }
+end)))
+
+-- Re-entrant http.* from on_chunk raises.
+print(msg(pcall(function()
+  http.request{
+    url = base .. "/sse",
+    timeout = 10,
+    on_chunk = function(chunk)
+      http.get(base .. "/json")
+    end
+  }
+end)))
+
+-- Subsequent request still works after the errors (handles were cleaned up).
+let r3, e3 = http.get(base .. "/json")
+assert(r3, e3)
+print("after", r3.status)
+
+-- Mocked OpenAI streaming chat.
+let acc3 = ""
+let pieces = ""
+let hdr = {}
+hdr["Authorization"] = "Bearer testdata"
+let body = {}
+body.model = "gpt-4o-mini"
+body.stream = true
+body.messages = { {role = "user", content = "hi"} }
+let r4, e4 = http.request{
+  method = "POST",
+  url = base .. "/v1/chat/completions",
+  headers = hdr,
+  body = json.encode(body),
+  timeout = 10,
+  on_chunk = function(chunk)
+    acc3 = acc3 .. chunk
+    let evs, rest = http.sse_events(acc3)
+    acc3 = rest
+    let i = 1
+    while i <= #evs do
+      let d = evs[i].data
+      if d == "[DONE]" then
+        return false
+      end
+      let obj, je = json.decode(d)
+      if obj and obj.choices and obj.choices[1] and obj.choices[1].delta then
+        pieces = pieces .. (obj.choices[1].delta.content or "")
+      end
+      i = i + 1
+    end
+  end
+}
+assert(r4, e4)
+print("openai", r4.status, pieces)
+
+-- Mocked Gemini streamGenerateContent?alt=sse
+let acc4 = ""
+let gtxt = ""
+let ghdr = {}
+ghdr["x-goog-api-key"] = "testdata"
+let gbody = {}
+gbody.contents = { { role = "user", parts = { { text = "hi" } } } }
+let r5, e5 = http.request{
+  method = "POST",
+  url = base .. "/v1beta/models/gemini-flash:streamGenerateContent?alt=sse",
+  headers = ghdr,
+  body = json.encode(gbody),
+  timeout = 10,
+  on_chunk = function(chunk)
+    acc4 = acc4 .. chunk
+    let evs, rest = http.sse_events(acc4)
+    acc4 = rest
+    let i = 1
+    while i <= #evs do
+      let obj, je = json.decode(evs[i].data)
+      if obj and obj.candidates and obj.candidates[1] and obj.candidates[1].content then
+        let parts = obj.candidates[1].content.parts
+        if parts and parts[1] and parts[1].text then
+          gtxt = gtxt .. parts[1].text
+        end
+      end
+      i = i + 1
+    end
+  end
+}
+assert(r5, e5)
+print("gemini", r5.status, gtxt)
+
+-- http.stream is the same as request but requires on_chunk.
+let nch = 0
+let r6, e6 = http.stream{
+  url = base .. "/sse",
+  timeout = 10,
+  on_chunk = function(chunk)
+    nch = nch + 1
+    return false
+  end
+}
+assert(r6, e6)
+print("stream", r6.status, nch > 0)
+print("done")

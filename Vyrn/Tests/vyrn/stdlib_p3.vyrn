@@ -1,0 +1,18 @@
+-- vyrn: 12
+let t = {10, 20, 30}
+table.insert(t, 2, 99)
+print(t[1])
+print(t[2])
+print(t[3])
+print(t[4])
+print(#t)
+table.insert(t, 40)
+print(t[5])
+print(math.asin(0) == 0)
+print(math.acos(1) == 0)
+print(math.clamp(5, 0, 3))
+print(math.clamp(-1, 0, 3))
+print(type(path.cwd()) == "string")
+math.randomseed(1)
+let a = math.random(5, 5)
+print(a)

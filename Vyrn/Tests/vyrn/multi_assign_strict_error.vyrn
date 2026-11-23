@@ -1,0 +1,9 @@
+-- vyrn: 12 strict
+-- 1.6.86: strict struct field types are checked per target.
+struct Point
+  x: number
+  y: number
+end
+let p = Point { x = 1, y = 2 }
+p.x, p.y = 3, "no"
+print(p.x, p.y)

@@ -1,0 +1,31 @@
+eq-same true true true
+eq-val true true
+eq-ne false true
+eq-raw true
+eq-num false true
+eq-second true true
+eq-truthy true
+eq-plain false false
+lt true false
+le-fb true false true
+le true false true
+lt-err false true
+lt-num true true
+lt-str true
+len 7
+len-plain 3
+len-str 2
+len-any LEN
+call Txy 99
+call-one TAB 99
+call-err false true
+concat C:3z
+concat-s ab
+unm -5
+unm-num -5
+smt-idx true
+smt-up HELLO
+smt-sub ell
+smt-fmt n=3
+nt-num true
+nt-bool true

@@ -1,0 +1,13 @@
+r17 17 17 17
+unpack1000 1000 1 1000 1000
+ret100 100 200
+vararg300 300 1
+pack500 500
+last 500
+pcall true 2 4 201
+yield64 65 true 1 64
+resume70 73 true 40 70 70
+wrap30 30
+cap 4096
+over false too many results to unpack
+byte 40 99

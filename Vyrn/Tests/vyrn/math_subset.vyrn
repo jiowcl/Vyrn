@@ -1,0 +1,11 @@
+-- @compile-safe
+-- Phase 7 math subset for libvyrnrt (abs/floor/ceil/sqrt/sin/cos/min/max + pi)
+-- Expanded APIs: see math_expand.vyrn / CompileSafeMatrix.md
+-- Unary minus (#OP_NEG) is supported (handled outside MSVC run-loop switch).
+
+print(math.abs(-3.5))
+print(math.floor(3.7), math.ceil(3.2))
+print(math.sqrt(9))
+print(math.min(2, 9, -1), math.max(2, 9, -1))
+print(math.sin(0), math.cos(0))
+print(math.floor(math.pi * 1000))

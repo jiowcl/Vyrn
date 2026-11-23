@@ -1,0 +1,23 @@
+-- vyrn: 12
+print(tonumber("42"))
+print(tonumber(7))
+print(type(tonumber("nope")))
+print(tonumber("ff", 16))
+print(math.max(1, 9, 3))
+print(math.min(1, 9, 3))
+let e = math.exp(1)
+print(math.log(e) > 0.9)
+print(math.huge > math.pow(10, 100))
+print(math.pi > 3)
+
+let t = { a = 1, b = 2 }
+t[1] = 10
+let ks = table.keys(t)
+let vs = table.values(t)
+print(#ks)
+print(#vs)
+let u = table.copy(t)
+u.a = 9
+print(t.a)
+print(u.a)
+print(u[1])

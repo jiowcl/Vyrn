@@ -1,0 +1,6 @@
+-- vyrn: 12
+-- 1.6.86: a const target is rejected as in single assignment.
+const c = 1
+let d = 2
+d, c = 3, 4
+print(c, d)

@@ -1,0 +1,268 @@
+-- vyrn: 12
+-- Adobe PDF Services multi-op CLI (1.6.146; Doc / const / types in 1.6.147). Covers the 1.6.145 wrappers:
+--   create, html, export, images, ocr, compress, linearize,
+--   protect, unprotect, split, extract, properties
+-- Env (required): PDF_SERVICES_CLIENT_ID, PDF_SERVICES_CLIENT_SECRET
+-- Env (optional): PDF_SERVICES_BASE_URL, PDF_OP, PDF1 / INPUT, OUT_PDF,
+--   INPUT_URL, PDF_TARGET_FORMAT, PDF_COMPRESSION, PDF_PASSWORD,
+--   PDF_PAGE_COUNT, PDF_MEDIA_TYPE, OCR_LANG
+-- The official CLI treats extra positional tokens as more scripts, so
+-- input/output are taken from environment variables with defaults.
+-- Never hardcodes secrets. Needs --allow-net (prefer a host allowlist).
+-- Missing keys: print a short message and exit 0. Not run against the
+-- paid API in CI.
+
+const DEFAULT_BASE: string = "https://pdf-services.adobe.io"
+const DEFAULT_OP: string = "export"
+
+let api = require("cloud.adobe_pdf")
+
+@doc("Resolve a path from env var names or fallback paths")
+def find_file(env_names: table, fallbacks: table)
+  let i = 1
+  while i <= #env_names do
+    let envp = os.getenv(env_names[i]) or ""
+    if envp ~= "" then return envp end
+    i = i + 1
+  end
+  i = 1
+  while i <= #fallbacks do
+    if path.isfile(fallbacks[i]) then return fallbacks[i] end
+    i = i + 1
+  end
+  return nil
+end
+
+@doc("Guess a media type from a file path, or use an explicit fallback")
+def guess_media(p, fallback) -> string
+  if type(fallback) == "string" and fallback ~= "" then
+    return fallback
+  end
+  let s = string.lower(tostring(p or ""))
+  if string.find(s, ".docx", 1, true) then
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  end
+  if string.find(s, ".pptx", 1, true) then
+    return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  end
+  if string.find(s, ".xlsx", 1, true) then
+    return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  end
+  if string.find(s, ".doc", 1, true) then
+    return "application/msword"
+  end
+  if string.find(s, ".html", 1, true) or string.find(s, ".htm", 1, true) then
+    return "text/html"
+  end
+  if string.find(s, ".txt", 1, true) then
+    return "text/plain"
+  end
+  return "application/pdf"
+end
+
+@doc("Print a failed-op message and exit 1")
+def fail(op: string, err)
+  print("adobe_ops: " .. op .. " failed: " .. tostring(err))
+  os.exit(1)
+end
+
+@doc("Download a result asset to out_path")
+def download_uri(op: string, uri: string, out_path: string)
+  let saved, derr = api.adobe_download({ url = uri, out_path = out_path, timeout = 60 })
+  if not saved then
+    fail(op, derr)
+  end
+  print("adobe_ops: wrote " .. saved)
+end
+
+let client_id = os.getenv("PDF_SERVICES_CLIENT_ID") or ""
+let client_secret = os.getenv("PDF_SERVICES_CLIENT_SECRET") or ""
+if client_id == "" or client_secret == "" then
+  print("adobe_ops: set PDF_SERVICES_CLIENT_ID and PDF_SERVICES_CLIENT_SECRET (never commit them) and rerun with --allow-net.")
+  os.exit(0)
+end
+
+let op = string.lower(os.getenv("PDF_OP") or DEFAULT_OP)
+if op == "help" or op == "-h" or op == "--help" then
+  print("adobe_ops: PDF_OP=create|html|export|images|ocr|compress|linearize|protect|unprotect|split|extract|properties")
+  print("adobe_ops: optional PDF1/INPUT, OUT_PDF, INPUT_URL, PDF_TARGET_FORMAT, PDF_COMPRESSION, PDF_PASSWORD, PDF_PAGE_COUNT")
+  os.exit(0)
+end
+
+let base = os.getenv("PDF_SERVICES_BASE_URL") or DEFAULT_BASE
+let input_url = os.getenv("INPUT_URL") or os.getenv("HTML_URL") or ""
+let out_path = os.getenv("OUT_PDF") or ""
+let src = find_file(
+  { "INPUT", "PDF1" },
+  { "sample1.pdf", path.join("examples", "vyrn", "api", "sample1.pdf") }
+)
+
+-- html can use a URL only; other ops need a local file (create needs Office/HTML/text).
+let needs_file = not (op == "html" or op == "htmltopdf") or input_url == ""
+if needs_file and not src then
+  if op == "create" or op == "createpdf" then
+    print("adobe_ops: create needs an Office/HTML/text file (set INPUT or PDF1).")
+  else
+    print("adobe_ops: need an input file (set INPUT/PDF1 or place sample1.pdf).")
+  end
+  os.exit(1)
+end
+
+let token, err = api.adobe_get_token({
+  client_id = client_id,
+  client_secret = client_secret,
+  base = base,
+  timeout = 30
+})
+if not token then
+  if api.is_disabled_net(err) then
+    print("adobe_ops: network access is disabled. Rerun with --allow-net (prefer host allowlist).")
+    os.exit(0)
+  end
+  fail("token", err)
+end
+
+let asset_id = nil
+if needs_file then
+  let media = guess_media(src, os.getenv("PDF_MEDIA_TYPE"))
+  if (op == "create" or op == "createpdf") and media == "application/pdf" then
+    print("adobe_ops: create expects Office, HTML, or text input (set INPUT/PDF1 and optional PDF_MEDIA_TYPE).")
+    os.exit(1)
+  end
+  let id, uerr = api.adobe_upload_asset({
+    token = token,
+    client_id = client_id,
+    base = base,
+    path = src,
+    media_type = media,
+    timeout = 60
+  })
+  if not id then
+    fail("upload", uerr)
+  end
+  asset_id = id
+end
+
+let common = {
+  token = token,
+  client_id = client_id,
+  base = base,
+  timeout = 30,
+  poll_interval = 2,
+  poll_timeout = 120
+}
+if asset_id then
+  common.asset_id = asset_id
+end
+
+if op == "properties" or op == "pdfproperties" then
+  let props, perr = api.adobe_pdf_properties(common)
+  if not props then
+    fail("properties", perr)
+  end
+  print("adobe_ops: properties " .. json.encode(props))
+  os.exit(0)
+end
+
+if op == "split" or op == "splitpdf" then
+  if os.getenv("PDF_PAGE_COUNT") then
+    common.page_count = tonumber(os.getenv("PDF_PAGE_COUNT"))
+  else
+    common.page_count = 1
+  end
+  let st, serr = api.adobe_split_pdf(common)
+  if not st then
+    fail("split", serr)
+  end
+  let n = 0
+  if type(st.assets) == "table" then
+    n = #st.assets
+  end
+  print("adobe_ops: split assets " .. tostring(n))
+  if n > 0 and type(st.assets[1]) == "table" and type(st.assets[1].downloadUri) == "string" then
+    if out_path == "" then
+      out_path = "split_output.pdf"
+    end
+    download_uri("split", st.assets[1].downloadUri, out_path)
+  else
+    print("adobe_ops: split " .. json.encode(st))
+  end
+  os.exit(0)
+end
+
+let uri = nil
+let jerr = nil
+if op == "create" or op == "createpdf" then
+  if os.getenv("PDF_DOCUMENT_LANGUAGE") then
+    common.document_language = os.getenv("PDF_DOCUMENT_LANGUAGE")
+  end
+  if out_path == "" then
+    out_path = "create_output.pdf"
+  end
+  uri, jerr = api.adobe_create_pdf(common)
+elseif op == "html" or op == "htmltopdf" then
+  if input_url ~= "" then
+    common.input_url = input_url
+  end
+  if out_path == "" then
+    out_path = "html_output.pdf"
+  end
+  uri, jerr = api.adobe_html_to_pdf(common)
+elseif op == "export" or op == "exportpdf" then
+  common.target_format = os.getenv("PDF_TARGET_FORMAT") or "docx"
+  if out_path == "" then
+    out_path = "export_output." .. common.target_format
+  end
+  uri, jerr = api.adobe_export_pdf(common)
+elseif op == "images" or op == "pdftoimages" then
+  common.target_format = os.getenv("PDF_TARGET_FORMAT") or "jpeg"
+  if out_path == "" then
+    out_path = "images_output.zip"
+  end
+  uri, jerr = api.adobe_pdf_to_images(common)
+elseif op == "ocr" then
+  if os.getenv("OCR_LANG") then
+    common.ocr_lang = os.getenv("OCR_LANG")
+  end
+  if out_path == "" then
+    out_path = "ocr_output.pdf"
+  end
+  uri, jerr = api.adobe_ocr(common)
+elseif op == "compress" or op == "compresspdf" then
+  common.compression_level = os.getenv("PDF_COMPRESSION") or "MEDIUM"
+  if out_path == "" then
+    out_path = "compress_output.pdf"
+  end
+  uri, jerr = api.adobe_compress_pdf(common)
+elseif op == "linearize" or op == "linearizepdf" then
+  if out_path == "" then
+    out_path = "linearize_output.pdf"
+  end
+  uri, jerr = api.adobe_linearize_pdf(common)
+elseif op == "protect" or op == "protectpdf" then
+  common.password = os.getenv("PDF_PASSWORD") or "demo"
+  if out_path == "" then
+    out_path = "protect_output.pdf"
+  end
+  uri, jerr = api.adobe_protect_pdf(common)
+elseif op == "unprotect" or op == "removeprotection" then
+  common.password = os.getenv("PDF_PASSWORD") or "demo"
+  if out_path == "" then
+    out_path = "unprotect_output.pdf"
+  end
+  uri, jerr = api.adobe_remove_protection(common)
+elseif op == "extract" or op == "extractpdf" then
+  common.elements_to_extract = { "text", "tables" }
+  if out_path == "" then
+    out_path = "extract_output.zip"
+  end
+  uri, jerr = api.adobe_extract_pdf(common)
+else
+  print("adobe_ops: unknown PDF_OP '" .. op .. "'. Use create|html|export|images|ocr|compress|linearize|protect|unprotect|split|extract|properties.")
+  os.exit(1)
+end
+
+if not uri then
+  fail(op, jerr)
+end
+download_uri(op, uri, out_path)

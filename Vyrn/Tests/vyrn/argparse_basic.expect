@@ -1,0 +1,14 @@
+verbose true
+output out.txt
+input data.in
+extra_n 0
+eq_out alt.txt
+dash_input -x
+dash_extra 0
+missing argparse.parse: missing required argument: input
+unknown argparse.parse: unknown flag: --nope
+help_ok
+trace true
+q 0
+leftover f
+argparse_basic_ok

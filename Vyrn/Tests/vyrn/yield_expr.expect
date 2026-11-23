@@ -1,0 +1,43 @@
+true
+a 2
+true
+b 2
+true
+c 11
+true
+true 7 8
+dead
+true t
+t 2 A B
+true or
+or dflt
+true m
+m o 3 1 2 3
+true in
+nest 9 2
+true z
+zero 0
+true f
+first 2
+true stmt
+after stmt
+pcall false attempt to yield across a C-call boundary
+true done
+false cannot resume dead coroutine
+false cannot resume dead coroutine
+2
+15
+15 0
+true
+true 1
+ab nil nil
+true
+c 5
+true
+ret 0
+true
+true
+false cannot resume dead coroutine
+true r1 r2
+w2 5
+pcall2 true 2

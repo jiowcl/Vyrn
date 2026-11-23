@@ -1,0 +1,77 @@
+-- @compile-safe
+-- vyrn: 12
+-- Flat 2D tables: table.create2d / get2d / set2d and the fused opcodes PB
+-- codegen emits for them (GET2D, SET2D, SET2D_RB, GET2D_RB_LLL, SET2D_RB_LLLL,
+-- ACCUM_MUL_GET2D_LLL, STORE_MUL_LOCAL_SUB_I).
+
+def MatMul3()
+    let size = 3
+    let matrixA = table.create2d(size, size, 0.0)
+    let matrixB = table.create2d(size, size, 0.0)
+    let matrixC = table.create2d(size, size, 0.0)
+    let i = 1
+    while i <= size do
+        let j = 1
+        while j <= size do
+            table.set2d(matrixA, i, j, size, (i + j) * 0.5)
+            table.set2d(matrixB, i, j, size, (i - j) * 2)
+            j = j + 1
+        end
+        i = i + 1
+    end
+    let r = 1
+    while r <= size do
+        let c = 1
+        while c <= size do
+            let k = 1
+            let sum = 0
+            while k <= size do
+                sum = sum + (table.get2d(matrixA, r, k, size) * table.get2d(matrixB, k, c, size))
+                k = k + 1
+            end
+            table.set2d(matrixC, r, c, size, sum)
+            c = c + 1
+        end
+        r = r + 1
+    end
+    print("c11", table.get2d(matrixC, 1, 1, size))
+    print("c23", table.get2d(matrixC, 2, 3, size))
+    print("c33", table.get2d(matrixC, 3, 3, size))
+end
+
+def Checkpoint3x3()
+    let size = 3
+    let m = table.create2d(size, size, 0)
+    let r = 1
+    while r <= size do
+        let c = 1
+        while c <= size do
+            table.set2d(m, r, c, size, r * 10 + c)
+            c = c + 1
+        end
+        r = r + 1
+    end
+    print("cp", table.get2d(m, 1, 1, size), table.get2d(m, 2, 3, size), table.get2d(m, 3, 2, size))
+    let total = 0
+    r = 1
+    while r <= size do
+        let c = 1
+        while c <= size do
+            total = total + table.get2d(m, r, c, size)
+            c = c + 1
+        end
+        r = r + 1
+    end
+    print("total", total)
+end
+
+MatMul3()
+Checkpoint3x3()
+
+-- Literal / expression arguments (generic GET2D / SET2D)
+let size = 3
+let grid = table.create2d(size, size, 0)
+table.set2d(grid, 1, 1, size, 2)
+table.set2d(grid, 2, 1 + 2, size, "x")
+print("lit", table.get2d(grid, 1, 1, size), table.get2d(grid, 2, 3, size), table.get2d(grid, 3, 3, size))
+print("len", #grid)

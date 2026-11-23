@@ -1,0 +1,38 @@
+-- @compile-safe
+-- vyrn: 12
+-- Implicit globals: INC_GLOBAL / DEC_GLOBAL (`g += 1`, `g++`, `g -= 1`) at
+-- top level and inside functions; PB truthiness ("" and 0 are falsy).
+
+counter = 0
+counter += 1
+counter++
+counter -= 1
+print("top", counter)
+
+def Bump()
+    counter += 1
+end
+
+def Drop()
+    counter -= 1
+end
+
+Bump()
+Bump()
+Drop()
+print("fn", counter)
+while counter <= 5 do
+    Bump()
+end
+print("loop", counter)
+label = "x"
+label += 1
+print("non-number", label)
+
+def Truth(v)
+    if v then
+        return "T"
+    end
+    return "F"
+end
+print("truth", Truth(""), Truth("a"), Truth(0), Truth(1), Truth(nil), Truth(false), Truth({}))

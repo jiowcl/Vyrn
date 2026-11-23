@@ -1,0 +1,3 @@
+# upvalue += / = n + k → STORE_UPVALUE, never INC_GLOBAL
+STORE_UPVALUE
+!INC_GLOBAL

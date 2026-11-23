@@ -1,0 +1,16 @@
+12.0 1 abc
+14 1
+2 -4 3.0 x1y
+0.5
+12
+30
+err attempt to perform 'n//0'
+err attempt to perform 'n%0'
+err attempt to perform arithmetic on a nil value
+err attempt to concatenate a table value
+50 3 true true
+err attempt to concatenate a table value
+err attempt to perform arithmetic on a string value (local 'z')
+err attempt to perform arithmetic on a string value (local 'z')
+4.0 3
+123

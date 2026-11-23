@@ -1,0 +1,4 @@
+-- vyrn: 12
+let s = "step1"
+print(Str(s))
+print("x" .. Str(s))

@@ -1,0 +1,10 @@
+-- vyrn: 12
+let cols = 3
+let m = table.create2d(2, cols, 0.0)
+table.set2d(m, 1, 2, cols, 7.5)
+table.set2d(m, 2, 1, cols, 4.0)
+print(table.get2d(m, 1, 2, cols))
+print(table.get2d(m, 2, 1, cols))
+-- literal cols still works
+let m2 = table.create2d(2, 3, 1.0)
+print(table.get2d(m2, 2, 3, 3))

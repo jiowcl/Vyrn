@@ -1,0 +1,55 @@
+-- vyrn: 12
+-- Showcase: tiny JSON API shape — jsonschema + http.serve capability gate (1.6.158)
+-- Always validates in-process. Without --allow-listen, serve raises (examples-check / ship_smoke).
+-- Live listen: Vyrn.exe examples/vyrn/json_api_server.vyrn --allow-listen --batch
+-- Reference package/math so libvyrnrt bootstrap installs them for require() modules.
+
+assert(type(package) == "table")
+assert(type(math) == "table")
+let js = require("jsonschema")
+let UserSchema = {
+  type = "object",
+  properties = {
+    name = { type = "string", minLength = 1 },
+    age = { type = "integer", minimum = 0 }
+  },
+  required = { "name" },
+  additionalProperties = false
+}
+
+let good_body = json.encode({ name = "Ada", age = 42 })
+let good, gerr = json.decode(good_body)
+assert(good, gerr)
+assert(js.validate(good, UserSchema))
+print("valid", good.name, good.age)
+
+let bad_body = json.encode({ age = -1 })
+let bad, berr = json.decode(bad_body)
+assert(bad, berr)
+let vok, verr = js.validate(bad, UserSchema)
+assert(vok == nil)
+print("invalid", type(verr) == "string")
+
+-- Capability gate (same contract as showcase/http_serve.vyrn)
+let ok, err = pcall(http.serve, {
+  host = "127.0.0.1",
+  port = 18767,
+  max_requests = 1,
+  handler = function(req)
+    if req.method == "POST" and req.path == "/users" then
+      let data, jerr = json.decode(req.body)
+      if not data then
+        return { status = 400, body = json.encode({ error = tostring(jerr) }), content_type = "application/json" }
+      end
+      let okv, e2 = js.validate(data, UserSchema)
+      if not okv then
+        return { status = 400, body = json.encode({ error = tostring(e2) }), content_type = "application/json" }
+      end
+      return { status = 201, body = json.encode(data), content_type = "application/json" }
+    end
+    return { status = 404, body = json.encode({ error = "not found" }), content_type = "application/json" }
+  end
+})
+assert(ok == false)
+assert(type(err) == "string")
+print("disabled", string.find(err, "allow%-listen", 1, false) ~= nil or string.find(err, "listen is disabled", 1, false) ~= nil)

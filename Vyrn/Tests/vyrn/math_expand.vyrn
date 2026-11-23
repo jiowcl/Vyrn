@@ -1,0 +1,13 @@
+-- @compile-safe
+-- Phase 7 math expand: trig/pow/log/rad/deg/fmod/round/modf/random + huge
+
+print(math.tan(0), math.asin(0), math.acos(1), math.atan(0))
+print(math.floor(math.atan2(0, 1)))
+print(math.pow(2, 10), math.floor(math.exp(0)), math.log10(1000))
+print(math.floor(math.log(math.exp(1)) * 1000 + 0.5))
+print(math.floor(math.deg(math.pi) + 0.5), math.floor(math.rad(180) * 1000))
+print(math.fmod(5.5, 2), math.round(3.6), math.round(-3.6))
+print(math.modf(3.75))
+print(math.floor(math.huge / math.pow(10, 307)))
+math.randomseed(42)
+print(math.floor(math.random()), math.random(7, 7))

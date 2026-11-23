@@ -1,0 +1,59 @@
+-- Logical 'not', '~=' and single-value truncation of multi-value calls in conditions/operands.
+def two()
+  return 7, 8
+end
+def nf()
+  return nil, 1
+end
+print(not nil, not 1, not false)
+print(1 ~= 2, 1 ~= 1, "a" ~= "b")
+print(string.find("abc", "b") == nil, string.find("abc", "b") ~= nil)
+def cond_if()
+  let y = 1
+  if two() then
+    return y
+  end
+  return 0
+end
+def cond_while()
+  while two() do
+    return "while-ok"
+  end
+end
+def cond_until()
+  let i = 0
+  repeat
+    i = i + 1
+  until two()
+  return i
+end
+def cond_and()
+  if true and two() then
+    return "and-ok"
+  end
+  return "bad"
+end
+def cond_elif()
+  if nf() then
+    return "bad"
+  elif two() then
+    return "elif-ok"
+  end
+end
+def cond_not()
+  if not nf() then
+    return "not-ok"
+  end
+  return "bad"
+end
+print(cond_if(), cond_while(), cond_until(), cond_and(), cond_elif(), cond_not())
+def ret_ne()
+  return string.find("abc", "b") ~= nil
+end
+def ret_add()
+  return two() + 1
+end
+print(ret_ne())
+print(ret_add())
+print(true and two())
+print(two())

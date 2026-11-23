@@ -1,0 +1,16 @@
+# Custom IDE tools - copy beside VyrnIDE.exe as tools.ini (Tools -> Automation -> custom slots)
+# Tokens: {file}  active script path (empty when untitled)
+#         {dir}   directory of {file}
+# See docs/Ide.md
+
+[tool:OpenFolder]
+label=Open script folder
+command=explorer.exe "{dir}"
+
+[tool:RevealScript]
+label=Reveal script in Explorer
+command=explorer.exe /select,"{file}"
+
+[tool:OpenIdeRoot]
+label=Open repo root (VYRN_IDE_ROOT)
+command=cmd.exe /c if defined VYRN_IDE_ROOT explorer "%VYRN_IDE_ROOT%"

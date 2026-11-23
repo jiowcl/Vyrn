@@ -1,0 +1,15 @@
+-- @compile-safe
+-- 1.6.141: __len is the first metamethod used in the program. libvyrnrt
+-- used to leave #t as the table when ensure_stack reallocated during the
+-- TM call and OP_LEN wrote the result through a stale stack pointer.
+
+def len99(t)
+    return 99
+end
+let L = {}
+L.__len = len99
+let lt = setmetatable({10, 20, 30}, L)
+print("len-first", #lt)
+print("len-again", #lt)
+print("rl", rawlen(lt), #lt)
+print("ok")

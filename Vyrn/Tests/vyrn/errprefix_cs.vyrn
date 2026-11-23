@@ -1,0 +1,42 @@
+-- @compile-safe
+-- vyrn: 12 strict
+-- 1.6.67: VM-level runtime errors carry the PB "file:line: " prefix
+-- (Compile: vyrnrt_set_chunk_name + .vyrnc srcLine). Builtin errors stay bare.
+
+def tail(e)
+    let s, f = string.find(e, "errprefix_cs.vyrn:", 1, true)
+    if s == nil then
+        return "noprefix " .. e
+    end
+    return string.sub(e, f + 1)
+end
+
+def callnum()
+    let x = 5
+    return x()
+end
+
+def callnil()
+    let g = nil
+    return g(1)
+end
+
+def lenbad()
+    let b = true
+    return #b
+end
+
+def Add(a: number, b: number) -> number
+    return a + b
+end
+
+let ok1, e1 = pcall(callnum)
+print(ok1, tail(e1))
+let ok2, e2 = pcall(callnil)
+print(ok2, tail(e2))
+let ok3, e3 = pcall(lenbad)
+print(ok3, tail(e3))
+let ok4, e4 = pcall(Add, "a", 1)
+print(ok4, tail(e4))
+let ok5, e5 = pcall(error, "boom")
+print(ok5, e5)

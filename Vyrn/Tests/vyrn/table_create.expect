@@ -1,0 +1,10 @@
+empty 0 table
+fill8 8 a h nil
+zero 0
+zero_set 1
+hash 2 x y 10 20
+big 1000 1 1000
+noarg false true
+neg false
+badtype false
+neghash false

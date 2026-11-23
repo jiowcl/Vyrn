@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vyrn JSON Chat</title>
+  <style>
+    :root { --bg:#1a2332; --ink:#e8eef6; --muted:#9aabbf; --line:rgba(232,238,246,.12); --accent:#5a9fd4; --sys:#c4a35a; }
+    * { box-sizing: border-box; }
+    body { margin:0; min-height:100vh; font-family:system-ui,sans-serif; color:var(--ink); background:var(--bg); }
+    main { max-width:720px; margin:0 auto; padding:1.5rem 1rem; display:flex; flex-direction:column; gap:.75rem; min-height:100vh; }
+    h1 { margin:0; font-size:1.5rem; }
+    p { margin:.25rem 0 0; color:var(--muted); font-size:.9rem; }
+    .panel { flex:1; display:flex; flex-direction:column; border:1px solid var(--line); background:rgba(0,0,0,.2); min-height:0; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:.5rem; padding:.6rem; border-bottom:1px solid var(--line); align-items:center; }
+    .toolbar input { flex:1; min-width:180px; padding:.4rem .5rem; background:#121820; border:1px solid var(--line); color:var(--ink); }
+    button { padding:.4rem .75rem; border:0; background:var(--accent); color:#041018; font-weight:600; cursor:pointer; }
+    button.ghost { background:transparent; color:var(--muted); border:1px solid var(--line); }
+    #status { margin-left:auto; font-size:.8rem; color:var(--muted); }
+    #status.ok { color:var(--accent); }
+    .meta { display:flex; gap:1rem; padding:.5rem .75rem; font-family:ui-monospace,monospace; font-size:.75rem; color:var(--muted); border-bottom:1px solid var(--line); }
+    #log { flex:1; overflow:auto; padding:.5rem .75rem; font-family:ui-monospace,monospace; font-size:.8rem; }
+    .line { padding:.15rem 0; white-space:pre-wrap; word-break:break-word; }
+    .line.sys { color:var(--sys); }
+    .line.local { color:var(--muted); }
+    .composer { display:flex; gap:.5rem; padding:.6rem; border-top:1px solid var(--line); }
+    .composer input { flex:1; padding:.45rem .5rem; background:#121820; border:1px solid var(--line); color:var(--ink); }
+    footer { font-size:.75rem; color:var(--muted); }
+    footer code { color:var(--ink); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Vyrn JSON Chat</h1>
+      <p>Text = JSON lines · Binary ping → <code>{"t":"pong"}</code></p>
+    </header>
+    <section class="panel">
+      <div class="toolbar">
+        <input id="url" spellcheck="false" />
+        <input id="nick" placeholder="nick (optional)" spellcheck="false" />
+        <button type="button" id="setNick" disabled>Set nick</button>
+        <button type="button" id="connect">Connect</button>
+        <button type="button" class="ghost" id="ping">Binary ping</button>
+        <span id="status">disconnected</span>
+      </div>
+      <div class="meta">
+        <span id="tick">tick: —</span>
+        <span id="who">who: —</span>
+        <span id="pong">pong: —</span>
+      </div>
+      <div id="log"></div>
+      <form class="composer" id="form">
+        <input id="msg" placeholder='{"t":"chat","msg":"hello"}' disabled />
+        <button type="submit" id="send" disabled>Send</button>
+      </form>
+    </section>
+    <footer><code>serve examples\vyrn\ws_chat_json\chat.vyrn --port 8766</code></footer>
+  </main>
+  <script>
+    const logEl = document.getElementById("log");
+    const tickEl = document.getElementById("tick");
+    const whoEl = document.getElementById("who");
+    const pongEl = document.getElementById("pong");
+    const statusEl = document.getElementById("status");
+    const urlEl = document.getElementById("url");
+    const nickEl = document.getElementById("nick");
+    const setNickBtn = document.getElementById("setNick");
+    const msgEl = document.getElementById("msg");
+    const sendBtn = document.getElementById("send");
+    const served = location.protocol === "http:" || location.protocol === "https:";
+    let socket = null;
+
+    function wsUrl() {
+      if (served) {
+        const p = location.protocol === "https:" ? "wss:" : "ws:";
+        return p + "//" + location.host;
+      }
+      return "ws://127.0.0.1:8766";
+    }
+    urlEl.value = wsUrl();
+    msgEl.value = '{"t":"chat","msg":"hello"}';
+
+    function log(text, cls) {
+      const row = document.createElement("div");
+      row.className = "line " + (cls || "");
+      row.textContent = text;
+      logEl.appendChild(row);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setConnected(on) {
+      msgEl.disabled = !on;
+      sendBtn.disabled = !on;
+      setNickBtn.disabled = !on;
+      statusEl.textContent = on ? "connected" : "disconnected";
+      statusEl.className = on ? "ok" : "";
+    }
+
+    function sendNick(name) {
+      const trimmed = name.trim();
+      if (!trimmed || !socket || socket.readyState !== WebSocket.OPEN) return;
+      const payload = JSON.stringify({ t: "nick", name: trimmed });
+      socket.send(payload);
+      log("→ " + payload, "local");
+    }
+
+    function sendChatOrCommand(text) {
+      const m = text.match(/^\/nick\s+(.+)$/i);
+      if (m) {
+        nickEl.value = m[1].trim();
+        sendNick(nickEl.value);
+        return;
+      }
+      socket.send(text);
+      log("→ " + text, "local");
+    }
+
+    function handleJson(obj) {
+      if (!obj || !obj.t) return;
+      if (obj.t === "tick") {
+        tickEl.textContent = "tick: " + obj.uptime + "s · " + obj.online + " online";
+        return;
+      }
+      if (obj.t === "who") {
+        whoEl.textContent = "who: " + (obj.names || []).join(", ") + " (" + obj.online + ")";
+        return;
+      }
+      if (obj.t === "pong") {
+        pongEl.textContent = "pong: uptime " + obj.uptime + "s";
+        return;
+      }
+      if (obj.t === "sys") {
+        log("sys: " + obj.msg, "sys");
+        return;
+      }
+      if (obj.t === "chat") {
+        log("chat " + obj.from + ": " + obj.msg);
+        return;
+      }
+      log(JSON.stringify(obj));
+    }
+
+    function handleText(text) {
+      try {
+        handleJson(JSON.parse(text));
+      } catch {
+        log(text);
+      }
+    }
+
+    function connect() {
+      if (socket) { socket.close(); socket = null; }
+      const url = urlEl.value.trim() || wsUrl();
+      urlEl.value = url;
+      log("→ connecting " + url, "local");
+      socket = new WebSocket(url);
+      socket.binaryType = "arraybuffer";
+      socket.addEventListener("open", () => {
+        setConnected(true);
+        log("→ connected", "local");
+        socket.send('{"t":"hello"}');
+        socket.send('{"t":"who"}');
+        if (nickEl.value.trim()) sendNick(nickEl.value);
+      });
+      socket.addEventListener("message", (ev) => {
+        if (ev.data instanceof ArrayBuffer) {
+          handleText(new TextDecoder().decode(ev.data));
+        } else {
+          handleText(String(ev.data));
+        }
+      });
+      socket.addEventListener("close", () => {
+        socket = null;
+        setConnected(false);
+        log("→ closed", "local");
+      });
+      socket.addEventListener("error", () => log("× socket error", "local"));
+    }
+
+    document.getElementById("connect").addEventListener("click", connect);
+    setNickBtn.addEventListener("click", () => sendNick(nickEl.value));
+    document.getElementById("ping").addEventListener("click", () => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(new TextEncoder().encode("ping"));
+        log("→ binary ping", "local");
+      }
+    });
+    document.getElementById("form").addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      if (!socket || socket.readyState !== WebSocket.OPEN) return;
+      const text = msgEl.value.trim();
+      if (!text) return;
+      sendChatOrCommand(text);
+    });
+
+    if (served) connect();
+  </script>
+</body>
+</html>

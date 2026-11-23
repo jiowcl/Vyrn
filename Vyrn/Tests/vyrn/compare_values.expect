@@ -1,0 +1,11 @@
+le= true
+lt= true
+eq= false
+ge= true
+gt= true
+seq= true
+sne= false
+k n= 998
+k n= 999
+k n= 1000
+done

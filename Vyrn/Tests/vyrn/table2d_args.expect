@@ -1,0 +1,19 @@
+0 7
+bad arguments to 'get2d' (table, row, col, cols expected)
+bad argument #1 to 'get2d' (table expected)
+bad arguments to 'set2d' (table, row, col, cols, value expected)
+bad argument #1 to 'set2d' (table expected)
+bad arguments to 'get2d' (table, row, col, cols expected)
+bad arguments to 'get2d' (table, row, col, cols expected)
+bad arguments to 'get2d' (table, row, col, cols expected)
+bad arguments to 'set2d' (table, row, col, cols, value expected)
+bad arguments to 'get2d' (table, row, col, cols expected)
+bad argument #1 to 'get2d' (table expected)
+ok
+ok 7
+bad arguments to 'get2d' (table, row, col, cols expected)
+bad arguments to 'set2d' (table, row, col, cols, value expected)
+11 23
+18
+bad arguments to 'get2d' (table, row, col, cols expected)
+bad argument #1 to 'get2d' (table expected)

@@ -1,0 +1,13 @@
+-- vyrn: 12
+-- @compile-safe
+-- 1.6.172: VM faults must use file:line: (or path:line:), not bare "line N:" when a
+-- script/chunk name is known (PB CLI always; libvyrnrt vbc_run defaults from blob basename).
+let ok, err = pcall(def()
+  let f = 1
+  return f()
+end)
+assert(ok == false)
+assert(type(err) == "string")
+assert(string.find(err, "^line %d+:") == nil)
+assert(string.find(err, ":%d+:") ~= nil)
+print("errprefix_file_ok")

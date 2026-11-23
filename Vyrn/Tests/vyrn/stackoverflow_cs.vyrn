@@ -1,0 +1,53 @@
+-- @compile-safe
+-- vyrn: 12 strict
+-- 1.6.68: PB "Call stack overflow" (Vyrn_MaxCallDepth = 256) carries the
+-- "file:line: " prefix; pcall recovers and the VM keeps working afterwards.
+
+def tail(e)
+    let s, f = string.find(e, "stackoverflow_cs.vyrn:", 1, true)
+    if s == nil then
+        return "noprefix " .. e
+    end
+    return string.sub(e, f + 1)
+end
+
+let depth = 0
+
+def rec(n)
+    depth = n
+    return 1 + rec(n + 1)
+end
+
+def rec2(n)
+    depth = n
+    let r = rec2(n + 1)
+    return r
+end
+
+def pong(n)
+    depth = n
+    let r = ping(n + 1)
+    return r
+end
+
+def ping(n)
+    let r = pong(n + 1)
+    return r
+end
+
+def sum(n)
+    if n == 0 then
+        return 0
+    end
+    return n + sum(n - 1)
+end
+
+let ok1, e1 = pcall(rec, 1)
+print(ok1, tail(e1), depth)
+let ok2, e2 = pcall(rec2, 1)
+print(ok2, tail(e2), depth)
+let ok3, e3 = pcall(ping, 1)
+print(ok3, tail(e3), depth)
+print(sum(200))
+let ok4, v4 = pcall(sum, 100)
+print(ok4, v4)

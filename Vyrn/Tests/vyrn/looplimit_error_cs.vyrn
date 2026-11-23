@@ -1,0 +1,16 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.112: opt-in loop limit (there is no default limit any more). Run with
+-- --max-loops 100000 (PB CLI and vbc_run). Both runtimes count one tick per
+-- backward jump / flat call / return and raise
+-- "[error] <entry path>:<line>: Loop iteration limit exceeded"; pcall cannot
+-- recover because the counter is global. ship_smoke runs it with the flag and
+-- compares PB and libvyrnrt byte-for-byte. Without the flag it never ends, so
+-- it is not listed in tests/core.txt.
+
+print("before")
+let i = 0
+while true do
+    i = i + 1
+end
+print("unreachable", i)

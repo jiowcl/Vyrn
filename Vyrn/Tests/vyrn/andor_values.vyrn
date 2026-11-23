@@ -1,0 +1,65 @@
+-- @compile-safe
+-- 1.6.84: and/or yield Lua operand values in value context (not booleans);
+-- pure conditions (if/elif/while/until) keep fused compare-jumps.
+-- Vyrn truthiness: nil, false, 0 and "" are falsy (same as 'if').
+let i = 2
+let t = {a = 10}
+let x = nil
+let k = "a"
+let m = "zz"
+print(i < 3 and "y" or "n")
+print(i > 3 and "y" or "n")
+print(i == 2 and "eq" or "ne")
+print(i ~= 2 and "ne" or "eq")
+print(5 or 1, nil or 2, false or nil)
+print(1 and 2, nil and 1, false and 1)
+print(true and false or 7)
+print(i < 3 and false or "z")
+print(k ~= nil and t[k] or "d")
+print(x ~= nil and t[x] or "d")
+print(m ~= nil and t[m] or "d")
+print(i < 3 and i > 1, i < 3 and i > 5, i > 5 or i < 3, i > 5 or i < 1)
+print((i < 3) or "z", (i > 3) or "z", i < 3 and "y", i > 3 and "y")
+print(not (i < 3) and "a" or "b", not x and "nx" or "x", not i and 1 or 2)
+print(nil and nil or false, x or false or 0, x or nil)
+print(1 and 2 and 3, 1 and nil and 3, 1 or 2 or 3, nil or false or "last")
+print((i < 3 and "a" or "b") .. (i > 3 and "c" or "d"))
+let s = i < 3 and "yes" or "no"
+print(s)
+let lv = x or "L"
+print(lv)
+let u = {i < 3 and "p" or "q", x or "dflt", i and i * 10}
+print(u[1], u[2], u[3])
+def pick(c, a, b) return c and a or b end
+print(pick(true, 1, 2), pick(false, 1, 2), pick(nil, 1, 2), pick(0, "zero", "x"))
+def sgn(n) return n < 0 and -1 or n > 0 and 1 or 0 end
+print(sgn(-5), sgn(0), sgn(7))
+let acc = {}
+for j = 1, 4 do
+  acc[#acc + 1] = j % 2 == 0 and "e" or "o"
+end
+print(table.concat(acc, ","))
+let fs = {}
+for j = 1, 3 do
+  fs[j] = function() return j > 1 and j * 2 or "first" end
+end
+print(fs[1](), fs[2](), fs[3]())
+def two() return 1, 2 end
+print(x or two())
+let w1 = two() or 5
+let w2 = i and two()
+print(w1, w2, (x and two()))
+let c = 0
+if i < 3 and x == nil then c = c + 1 end
+if i > 3 or x then c = c + 10 end
+if x then
+  c = c + 100
+elif i < 3 and not x then
+  c = c + 2
+end
+while c < 5 and i do c = c + 1 end
+repeat c = c + 1 until c >= 8 or false
+print(c)
+print(i < 3 and i < 4, i < 3 or i < 1, (i == 2) == (i < 3 and true or false))
+print(type(i < 3 and "s" or 1), #(x or "abc"), (x or 4) + 1)
+print(0 and "a" or "b", "" or "e", i and "" or "f")

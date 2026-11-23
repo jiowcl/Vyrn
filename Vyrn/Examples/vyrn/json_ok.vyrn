@@ -1,0 +1,26 @@
+-- vyrn: 12
+-- Small JSON tool (1.6.148) using lib/net/util.decode_json_ok on a mock HTTP body.
+-- No network and no API keys.
+
+const OK_STATUS: number = 200
+const ERR_STATUS: number = 500
+
+let net = require("net.util")
+
+@doc("Build a fake HTTP response table")
+def fake_http(status: number, body: string) -> table
+  return { status = status, body = body }
+end
+
+let ok_body = json.encode({ name = "Ada", id = 42 })
+let data, err = net.decode_json_ok(fake_http(OK_STATUS, ok_body), nil)
+if not data then
+  print("json_ok: " .. tostring(err))
+  os.exit(1)
+end
+print("name", data.name)
+print("id", data.id)
+
+let err_body = json.encode({ error = "nope" })
+let bad, berr = net.decode_json_ok(fake_http(ERR_STATUS, err_body), nil)
+print("http_err", bad == nil, type(berr) == "string")

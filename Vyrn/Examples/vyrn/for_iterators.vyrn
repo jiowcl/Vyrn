@@ -1,0 +1,44 @@
+-- vyrn: 12
+-- Vyrn for-in iterators: arrays, pairs, custom state, continue/break, gmatch.
+-- Complements numeric `for i = a, b` in examples/vyrn/demo.vyrn and tests/vyrn/generic_for.vyrn.
+
+const RANGE_HI: number = 3
+
+@doc("Yield 1..lim as a custom iterator (stateful closure)")
+def range(lim: number)
+  let i = 0
+  return function()
+    i = i + 1
+    if i <= lim then
+      return i
+    end
+    return nil
+  end
+end
+
+let nums = { 10, 20, 30 }
+for v in nums do
+  print("each", v)
+end
+
+for i, v in nums do
+  print("idx", i, v)
+end
+
+let map = { north = 1, south = 2 }
+for k, v in pairs(map) do
+  print("pair", k, v)
+end
+
+let parts = {}
+for x in range(RANGE_HI) do
+  if x == 2 then
+    continue
+  end
+  table.insert(parts, x)
+end
+print("range", table.concat(parts, ","))
+
+for word in string.gmatch("alpha beta  gamma", "%a+") do
+  print("word", word)
+end

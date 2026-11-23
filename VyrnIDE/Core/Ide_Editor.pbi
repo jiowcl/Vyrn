@@ -174,6 +174,12 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   CompilerIf Defined(SCI_SETTEXT, #PB_Constant) = #False
     #SCI_SETTEXT = 2181
   CompilerEndIf
+  CompilerIf Defined(SCI_SETREADONLY, #PB_Constant) = #False
+    #SCI_SETREADONLY = 2145
+  CompilerEndIf
+  CompilerIf Defined(SCI_GETREADONLY, #PB_Constant) = #False
+    #SCI_GETREADONLY = 2146
+  CompilerEndIf
   CompilerIf Defined(SCI_GETTEXT, #PB_Constant) = #False
     #SCI_GETTEXT = 2182
   CompilerEndIf
@@ -199,7 +205,6 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   Global Dim Ide_Tabs.Ide_Tab(31)
   Global Ide_TabCount.i = 0
   Global Ide_UntitledSeq.i = 0
-  Global Ide_Zoom.i = 0
   Global Ide_FilePath.s = ""
   Global Ide_NeedRestyle.i = #False
   Global Ide_NeedRestyleGadget.i = 0
@@ -211,63 +216,19 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   Declare Ide_Editor_SyncActive()
   Declare Ide_Editor_UpdateTitle()
   Declare Ide_Editor_UpdateCaretStatus()
-  Declare Ide_Editor_SavePrefs()
+  Declare Ide_Welcome_ApplyToActiveIfEmpty()
+  Declare Ide_Nav_OutlineRefresh()
+  Declare Ide_AutoSave_Touch()
+  Declare.i Ide_Runner_IsBusy()
   Declare Ide_Editor_New()
-
-  ; <summary>
-  ; Path to vyrnide.ini next to the IDE executable.
-  ; </summary>
-  ; <returns>Full path of the preferences file.</returns>
-  Procedure.s Ide_Editor_PrefPath()
-    ProcedureReturn GetPathPart(ProgramFilename()) + "vyrnide.ini"
-  EndProcedure
-
-  ; <summary>
-  ; Load theme and zoom preferences from vyrnide.ini.
-  ; </summary>
-  Procedure Ide_Editor_LoadPrefs()
-    Protected path.s = Ide_Editor_PrefPath()
-    
-    If OpenPreferences(path)
-      PreferenceGroup("editor")
-      Ide_Theme_Dark = ReadPreferenceInteger("dark", 0)
-      Ide_Zoom = ReadPreferenceInteger("zoom", 0)
-      ClosePreferences()
-    EndIf
-  EndProcedure
-
-  ; <summary>
-  ; Persist theme and zoom preferences to vyrnide.ini.
-  ; </summary>
-  Procedure Ide_Editor_SavePrefs()
-    Protected path.s = Ide_Editor_PrefPath()
-    
-    If CreatePreferences(path)
-      PreferenceGroup("editor")
-      WritePreferenceInteger("dark", Ide_Theme_Dark)
-      WritePreferenceInteger("zoom", Ide_Zoom)
-      ClosePreferences()
-    EndIf
-  EndProcedure
-
-  ; <summary>
-  ; Byte length of a null-terminated UTF-8 C string.
-  ; </summary>
-  ; <param name="*p">Pointer to UTF-8 bytes, or 0.</param>
-  ; <returns>Length in bytes excluding the terminator.</returns>
-  Procedure.i Ide_Utf8Bytes(*p)
-    Protected n.i = 0
-    
-    If *p = 0
-      ProcedureReturn 0
-    EndIf
-    
-    While PeekA(*p + n)
-      n = n + 1
-    Wend
-    
-    ProcedureReturn n
-  EndProcedure
+  Declare.i Ide_Editor_LoadFile(path.s)
+  Declare.i Ide_Editor_SaveTo(path.s)
+  Declare Ide_Editor_LoadIntoTab(idx.i, path.s)
+  Declare.i Ide_Editor_CurrentGadget()
+  Declare Ide_Editor_GotoDiagnostic(lineNo.i, isWarn.i = #False)
+  Declare Ide_EditorAssist_ApplyTabWidth(g.i)
+  Declare Ide_EditorAssist_BraceHighlight(g.i)
+  Declare Ide_LiveCheck_Schedule(path.s)
 
   ; <summary>
   ; Index of the selected tab in #GAD_TABS.
@@ -314,8 +275,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
     EndIf
     
     ScintillaSendMessage(g, #SCI_SETCODEPAGE, #SC_CP_UTF8, 0)
-    ScintillaSendMessage(g, #SCI_SETTABWIDTH, 2, 0)
-    ScintillaSendMessage(g, #SCI_SETUSETABS, 0, 0)
+    Ide_EditorAssist_ApplyTabWidth(g)
     ScintillaSendMessage(g, #SCI_SETSCROLLWIDTHTRACKING, 1, 0)
     ScintillaSendMessage(g, #SCI_SETEOLMODE, #SC_EOL_LF, 0)
     ScintillaSendMessage(g, #SCI_SETMODEVENTMASK, #SC_MOD_INSERTTEXT | #SC_MOD_DELETETEXT, 0)
@@ -328,14 +288,14 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
     ScintillaSendMessage(g, #SCI_MARKERDEFINE, #Ide_MarkWarn, #SC_MARK_SHORTARROW)
     ScintillaSendMessage(g, #SCI_MARKERDEFINE, #Ide_MarkErrorBack, #SC_MARK_BACKGROUND)
     ScintillaSendMessage(g, #SCI_MARKERDEFINE, #Ide_MarkWarnBack, #SC_MARK_BACKGROUND)
-    *font = UTF8("Consolas")
+    *font = UTF8(Ide_FontName)
     
     If *font
       ScintillaSendMessage(g, #SCI_STYLESETFONT, #STYLE_DEFAULT, *font)
       FreeMemory(*font)
     EndIf
     
-    ScintillaSendMessage(g, #SCI_STYLESETSIZE, #STYLE_DEFAULT, 11)
+    ScintillaSendMessage(g, #SCI_STYLESETSIZE, #STYLE_DEFAULT, Ide_FontSize)
     ScintillaSendMessage(g, #SCI_SETZOOM, Ide_Zoom, 0)
     Ide_Highlight_ApplyStyles(g)
     Ide_Highlight_Restyle(g)
@@ -410,10 +370,10 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   ; </summary>
   Procedure Ide_Editor_UpdateCaretStatus()
     Protected g.i = Ide_Editor_CurrentGadget()
-    Protected pos.i, line.i, col.i, pathHint.s
+    Protected pos.i, line.i, col.i, pathHint.s, caret.s
     
     If g = 0
-      Ide_Ui_SetStatus("Ready")
+      Ide_Ui_SetStatus(Ide_I18n_Pick("Ready", "status.ready"))
       ProcedureReturn
     EndIf
     
@@ -431,7 +391,9 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
       EndIf
     EndIf
     
-    Ide_Ui_SetStatus("Ln " + Str(line) + " Col " + Str(col) + " | " + pathHint + " | Vyrn " + Vyrn_ProductVersion())
+    caret = Ide_I18n_Fmt2("Ln {ln} Col {col} | {path}", "status.caret", "{ln}", Str(line), "{col}", Str(col))
+    caret = ReplaceString(caret, "{path}", pathHint)
+    Ide_Ui_SetStatus(caret)
   EndProcedure
 
   ; <summary>
@@ -449,6 +411,9 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
     Ide_Editor_RefreshTab(idx)
     Ide_Editor_UpdateTitle()
     Ide_Editor_UpdateCaretStatus()
+    If Ide_OutlineVisible
+      Ide_Nav_OutlineRefresh()
+    EndIf
   EndProcedure
 
   ; <summary>
@@ -491,7 +456,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
     Protected idx.i, g.i, caption.s
     
     If Ide_TabCount >= 32
-      MessageRequester("Vyrn IDE", "Maximum 32 tabs.", #PB_MessageRequester_Warning)
+      MessageRequester(Ide_I18n_AppTitle(), Ide_I18n_Pick("Maximum 32 tabs.", "dlg.max_tabs"), #PB_MessageRequester_Warning)
       ProcedureReturn -1
     EndIf
     
@@ -504,10 +469,12 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
       caption = GetFilePart(path)
     EndIf
     
-    AddGadgetItem(#GAD_TABS, idx, caption)
-    OpenGadgetList(#GAD_TABS, idx)
+    ; PB 6.41 PanelGadget: call OpenGadgetList() without Item before each AddGadgetItem (-1 = append).
+    OpenGadgetList(#GAD_TABS)
+    AddGadgetItem(#GAD_TABS, -1, caption)
     g = ScintillaGadget(#PB_Any, 0, 0, Ide_EditorW, 200, @Ide_Editor_Callback())
     CloseGadgetList()
+    ; File drop: window + tab panel (Scintilla EnableGadgetDrop can crash on some PB builds).
     Ide_Tabs(idx)\gadget = g
     Ide_Tabs(idx)\path = path
     
@@ -550,8 +517,127 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   ; Editor subsystem init: load prefs and apply window chrome.
   ; </summary>
   Procedure Ide_Editor_Create()
-    Ide_Editor_LoadPrefs()
+    Ide_Highlight_InitMaps()
+    Ide_Editor_RefreshMruMenu()
+    If IsGadget(#GAD_TABS)
+      EnableGadgetDrop(#GAD_TABS, #PB_Drop_Files, #PB_Drag_Copy)
+    EndIf
+    If IsGadget(#GAD_PROJECT)
+      HideGadget(#GAD_PROJECT, Bool(Ide_ProjectVisible = 0 Or Ide_ProjectRoot = ""))
+      If Ide_ProjectRoot <> ""
+        Ide_Project_Refresh()
+      EndIf
+      SetMenuItemState(#MENU_MAIN, #MNU_PROJECT_PANEL, Ide_ProjectVisible)
+    EndIf
+    SetMenuItemState(#MENU_MAIN, #MNU_LIVE_CHECK, Ide_LiveCheckEnabled)
+    If IsGadget(#GAD_REPL_INPUT)
+      HideGadget(#GAD_REPL_INPUT, Bool(Ide_ReplVisible = 0))
+      HideGadget(#GAD_REPL_RUN, Bool(Ide_ReplVisible = 0))
+      SetMenuItemState(#MENU_MAIN, #MNU_REPL_PANEL, Ide_ReplVisible)
+    EndIf
+    Ide_Ui_ApplyMenuLabels()
+    Ide_Ui_ApplyToolbarLabels()
     Ide_Ui_ApplyChrome()
+    Ide_Project_MruRefreshMenu()
+    SetMenuItemState(#MENU_MAIN, #MNU_AUTOSAVE, Ide_AutoSaveEnabled)
+    SetMenuItemState(#MENU_MAIN, #MNU_OUTLINE_PANEL, Ide_OutlineVisible)
+    SetMenuItemState(#MENU_MAIN, #MNU_ERRORS_PANEL, Ide_ErrorsVisible)
+    If Ide_FindBarPinned
+      Ide_FindVisible = #True
+      Ide_Ui_Layout()
+      Ide_Ui_SetStatus(Ide_I18n_Pick("Find bar  -  Ctrl+F, F3 next, Ctrl+H replace", "status.find_bar_on"))
+    EndIf
+    SetMenuItemState(#MENU_MAIN, #MNU_FIND_PANEL, Ide_FindVisible)
+    SetMenuItemState(#MENU_MAIN, #MNU_PROJECT_VYRN_ONLY, Ide_ProjectVyrnOnly)
+  EndProcedure
+
+  ; <summary>
+  ; Open each path from a Chr(10)-separated EventDropFiles() payload.
+  ; </summary>
+  ; <param name="files">Newline-separated file paths.</param>
+  Procedure Ide_Editor_OpenDroppedFiles(files.s)
+    Protected i.i, n.i, path.s
+    If files = ""
+      ProcedureReturn
+    EndIf
+    If Ide_Runner_IsBusy()
+      Ide_Ui_SetStatus(Ide_I18n_Pick("Busy  -  drop files when idle", "drop.busy"))
+      ProcedureReturn
+    EndIf
+    n = CountString(files, Chr(10)) + 1
+    For i = 1 To n
+      path = Trim(StringField(files, i, Chr(10)))
+      If path = ""
+        Continue
+      EndIf
+      If ExamineDirectory(2, path, "*")
+        FinishDirectory(2)
+        Ide_Project_SetRoot(path)
+      Else
+        Ide_Editor_OpenPathIfScript(path)
+      EndIf
+    Next
+    If Ide_OutlineVisible
+      Ide_Nav_OutlineRefresh()
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; IDE: Editor SaveAll.
+  ; </summary>
+  Procedure Ide_Editor_SaveAll()
+    Protected i.i, saved.i = 0
+    For i = 0 To Ide_TabCount - 1
+      If ScintillaSendMessage(Ide_Tabs(i)\gadget, #SCI_GETMODIFY) = 0
+        Continue
+      EndIf
+      If Ide_Tabs(i)\path = ""
+        MessageRequester(Ide_I18n_AppTitle(), Ide_I18n_Pick("Save untitled tabs individually (Save As).", "saveall.untitled"), #PB_MessageRequester_Info)
+        ProcedureReturn
+      EndIf
+      If Ide_Editor_SaveTo(Ide_Tabs(i)\path)
+        saved + 1
+        Ide_Editor_RefreshTab(i)
+      EndIf
+    Next
+    Ide_Editor_UpdateTitle()
+    Ide_Ui_SetStatus(Ide_I18n_Pick("Saved ", "saveall.done") + Str(saved) + Ide_I18n_Pick(" tab(s)", "saveall.tabs"))
+  EndProcedure
+
+  ; <summary>
+  ; IDE: Editor RevertActive.
+  ; </summary>
+  Procedure Ide_Editor_RevertActive()
+    Protected idx.i = Ide_Editor_ActiveIndex(), path.s
+    If idx < 0
+      ProcedureReturn
+    EndIf
+    path = Ide_Tabs(idx)\path
+    If path = "" Or FileSize(path) < 0
+      MessageRequester(Ide_I18n_AppTitle(), Ide_I18n_Pick("Nothing to revert (unsaved / new file).", "revert.none"), #PB_MessageRequester_Info)
+      ProcedureReturn
+    EndIf
+    If MessageRequester(Ide_I18n_AppTitle(), Ide_I18n_Pick("Discard changes and reload from disk?", "revert.confirm"), #PB_MessageRequester_YesNo) = #PB_MessageRequester_No
+      ProcedureReturn
+    EndIf
+    Ide_Editor_LoadIntoTab(idx, path)
+    Ide_Ui_SetStatus(Ide_I18n_Pick("Reverted ", "revert.done") + path)
+  EndProcedure
+
+  ; <summary>
+  ; IDE: Editor RevealInExplorer.
+  ; </summary>
+  ; <param name="paths">see signature</param>
+  Procedure Ide_Editor_RevealInExplorer(path.s)
+    Protected p.s = path
+    If p = ""
+      p = Ide_FilePath
+    EndIf
+    If p = "" Or FileSize(p) < 0
+      MessageRequester(Ide_I18n_AppTitle(), Ide_I18n_Pick("No file on disk.", "reveal.none"), #PB_MessageRequester_Info)
+      ProcedureReturn
+    EndIf
+    RunProgram("explorer.exe", "/select," + Chr(34) + p + Chr(34), GetPathPart(p), #PB_Program_Hide | #PB_Program_Wait)
   EndProcedure
 
   ; <summary>
@@ -605,6 +691,27 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   ; Replace active buffer text, clear undo, mark clean, and restyle.
   ; </summary>
   ; <param name="text">UTF-8 source to load into the active Scintilla.</param>
+  Procedure Ide_Editor_SetTextOn(g.i, text.s)
+    Protected *utf
+    If g = 0
+      ProcedureReturn
+    EndIf
+    *utf = UTF8(text)
+    If *utf
+      ScintillaSendMessage(g, #SCI_SETTEXT, 0, *utf)
+      FreeMemory(*utf)
+    Else
+      ScintillaSendMessage(g, #SCI_CLEARALL)
+    EndIf
+    ScintillaSendMessage(g, #SCI_EMPTYUNDOBUFFER)
+    ScintillaSendMessage(g, #SCI_SETSAVEPOINT)
+    Ide_Highlight_Restyle(g)
+  EndProcedure
+
+  ; <summary>
+  ; IDE: Editor SetText.
+  ; </summary>
+  ; <param name="texts">see signature</param>
   Procedure Ide_Editor_SetText(text.s)
     Protected g.i = Ide_Editor_CurrentGadget()
     Protected *utf
@@ -672,6 +779,27 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   ; </summary>
   ; <param name="lineNo">1-based source line.</param>
   ; <param name="isWarn">#True for warning markers; #False for error.</param>
+  Procedure Ide_Editor_GotoDiagnosticPath(path.s, lineNo.i, isWarn.i = #False)
+    Protected idx.i
+    If path <> "" And FileSize(path) >= 0
+      idx = Ide_Editor_FindPath(path)
+      If idx < 0
+        If Ide_Editor_LoadFile(path) = #False
+          ProcedureReturn
+        EndIf
+      Else
+        SetGadgetState(#GAD_TABS, idx)
+        Ide_Editor_SyncActive()
+      EndIf
+    EndIf
+    Ide_Editor_GotoDiagnostic(lineNo, isWarn)
+  EndProcedure
+
+  ; <summary>
+  ; IDE: Editor GotoDiagnostic.
+  ; </summary>
+  ; <param name="lineNoi">see signature</param>
+  ; <param name="isWarni">see signature</param>
   Procedure Ide_Editor_GotoDiagnostic(lineNo.i, isWarn.i = #False)
     Protected g.i = Ide_Editor_CurrentGadget()
     Protected lineCount.i, line0.i, pos.i, endPos.i
@@ -717,6 +845,157 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   EndProcedure
 
   ; <summary>
+  ; Move caret To 1-based column on the current line.
+  ; </summary>
+  Procedure Ide_Editor_GotoColumn(col1.i)
+    Protected g.i = Ide_Editor_CurrentGadget()
+    Protected pos.i, line0.i
+    If g = 0 Or col1 < 1
+      ProcedureReturn
+    EndIf
+    line0 = ScintillaSendMessage(g, #SCI_LINEFROMPOSITION, ScintillaSendMessage(g, #SCI_GETCURRENTPOS))
+    pos = ScintillaSendMessage(g, #SCI_POSITIONFROMLINE, line0) + col1 - 1
+    ScintillaSendMessage(g, #SCI_GOTOPOS, pos)
+    ScintillaSendMessage(g, #SCI_SCROLLCARET)
+  EndProcedure
+
+  ; <summary>
+  ; Return 1-based line of `def tok` IN a script file, Or 0.
+  ; </summary>
+  Procedure.i Ide_EditorAssist_FindDefLineInFile(path.s, tok.s)
+    Protected fh.i, text.s, n.i, i.i, line.s, low.s
+    If path = "" Or tok = "" Or FileSize(path) < 0
+      ProcedureReturn 0
+    EndIf
+    fh = ReadFile(#PB_Any, path)
+    If fh = 0
+      ProcedureReturn 0
+    EndIf
+    text = ReadString(fh, FileSize(path), #PB_UTF8)
+    CloseFile(fh)
+    n = CountString(text, Chr(10)) + 1
+    For i = 1 To n
+      line = Trim(StringField(text, i, Chr(10)))
+      low = LCase(line)
+      If FindString(low, "def " + LCase(tok), 1) Or FindString(low, "def\t" + LCase(tok), 1)
+        ProcedureReturn i
+      EndIf
+      If FindString(low, "function " + LCase(tok), 1)
+        ProcedureReturn i
+      EndIf
+      If FindString(low, "struct " + LCase(tok), 1) Or FindString(low, "enum " + LCase(tok), 1)
+        ProcedureReturn i
+      EndIf
+    Next
+    ProcedureReturn 0
+  EndProcedure
+
+  ; <summary>
+  ; Scan project panel scripts (cap 80) For `def tok`.
+  ; </summary>
+  Procedure Ide_EditorAssist_GotoTokenInProject(tok.s)
+    Protected i.i, n.i, path.s, ln.i, scanned.i = 0
+    If tok = "" Or Ide_ProjectRoot = ""
+      ProcedureReturn
+    EndIf
+    If IsGadget(#GAD_PROJECT) = #False
+      ProcedureReturn
+    EndIf
+    n = CountGadgetItems(#GAD_PROJECT)
+    For i = 0 To n - 1
+      path = GetGadgetItemText(#GAD_PROJECT, i, 1)
+      If path = "" Or Left(path, 1) = "("
+        Continue
+      EndIf
+      ln = Ide_EditorAssist_FindDefLineInFile(path, tok)
+      If ln > 0
+        If Ide_Editor_LoadFile(path)
+          Ide_Editor_GotoDiagnostic(ln, #False)
+          Ide_Ui_SetStatus(Ide_I18n_Fmt2("Project def: {tok} in {file}", "status.proj_def", "{tok}", tok, "{file}", GetFilePart(path)))
+        EndIf
+        ProcedureReturn
+      EndIf
+      scanned + 1
+      If scanned >= 80
+        Break
+      EndIf
+    Next
+    Ide_Ui_SetStatus(Ide_I18n_Fmt2("No project def for '{tok}' (scanned {n} files)", "status.no_proj_def", "{tok}", tok, "{n}", Str(scanned)))
+  EndProcedure
+
+  ; <summary>
+  ; Light go-To: `def name` IN file, Or warn on bare Status.X tokens.
+  ; </summary>
+  Procedure Ide_EditorAssist_GotoTokenLight()
+    Protected g.i = Ide_Editor_CurrentGadget()
+    Protected pos.i, line0.i, line1.i, col1.i, startCol.i, endCol.i, ch.i, tok.s, text.s, i.i, n.i, line.s, low.s, lineText.s
+    If g = 0
+      ProcedureReturn
+    EndIf
+    pos = ScintillaSendMessage(g, #SCI_GETCURRENTPOS)
+    line0 = ScintillaSendMessage(g, #SCI_LINEFROMPOSITION, pos)
+    line1 = line0 + 1
+    col1 = pos - ScintillaSendMessage(g, #SCI_POSITIONFROMLINE, line0) + 1
+    text = Ide_Editor_GetTextFrom(g)
+    lineText = StringField(text, line1, Chr(10))
+    If lineText = "" Or col1 < 1
+      ProcedureReturn
+    EndIf
+  startCol = col1
+    While startCol > 1
+      ch = Asc(Mid(lineText, startCol - 1, 1))
+      If (ch >= Asc("a") And ch <= Asc("z")) Or (ch >= Asc("A") And ch <= Asc("Z")) Or (ch >= Asc("0") And ch <= Asc("9")) Or ch = Asc("_") Or ch = Asc(".")
+        startCol - 1
+      Else
+        Break
+      EndIf
+    Wend
+    endCol = col1
+    While endCol <= Len(lineText)
+      ch = Asc(Mid(lineText, endCol, 1))
+      If (ch >= Asc("a") And ch <= Asc("z")) Or (ch >= Asc("A") And ch <= Asc("Z")) Or (ch >= Asc("0") And ch <= Asc("9")) Or ch = Asc("_") Or ch = Asc(".")
+        endCol + 1
+      Else
+        Break
+      EndIf
+    Wend
+    If endCol <= startCol
+      ProcedureReturn
+    EndIf
+    tok = Mid(lineText, startCol, endCol - startCol)
+    If tok = ""
+      ProcedureReturn
+    EndIf
+    If Left(tok, 7) = "Status."
+      Ide_Ui_SetStatus(Ide_I18n_Pick("Status.* is a type tag  -  use if/elif or quoted match literals", "status.status_token"))
+      ProcedureReturn
+    EndIf
+    text = Ide_Editor_GetTextFrom(g)
+    n = CountString(text, Chr(10)) + 1
+  For i = 1 To n
+      line = Trim(StringField(text, i, Chr(10)))
+      low = LCase(line)
+      If FindString(low, "def " + LCase(tok), 1) Or FindString(low, "def\t" + LCase(tok), 1)
+        Ide_Editor_GotoDiagnostic(i, #False)
+        ProcedureReturn
+      EndIf
+      If FindString(low, "function " + LCase(tok), 1)
+        Ide_Editor_GotoDiagnostic(i, #False)
+        ProcedureReturn
+      EndIf
+      If FindString(low, "struct " + LCase(tok), 1) Or FindString(low, "enum " + LCase(tok), 1)
+        Ide_Editor_GotoDiagnostic(i, #False)
+        ProcedureReturn
+      EndIf
+    Next
+    If Ide_ProjectRoot <> ""
+      Ide_EditorAssist_GotoTokenInProject(tok)
+      ProcedureReturn
+    EndIf
+    Ide_Ui_SetStatus(Ide_I18n_Fmt1("No local def for '{tok}'", "status.no_def", "{tok}", tok))
+  EndProcedure
+
+  ; <summary>
   ; Scintilla notification handler: schedule restyle on edit; update caret status on UI change.
   ; </summary>
   ; <param name="g">Scintilla gadget that raised the notification.</param>
@@ -742,15 +1021,19 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
             
             If idx = Ide_Editor_ActiveIndex()
               Ide_Editor_UpdateTitle()
+              Ide_AutoSave_Touch()
             EndIf
-            
             Break
           EndIf
         Next
+        If g = Ide_Editor_CurrentGadget() And Ide_FilePath <> ""
+          Ide_LiveCheck_Schedule(Ide_FilePath)
+        EndIf
       EndIf
     ElseIf code = #SCN_UPDATEUI
       If g = Ide_Editor_CurrentGadget()
         Ide_Editor_UpdateCaretStatus()
+        Ide_EditorAssist_BraceHighlight(g)
       EndIf
     EndIf
   EndProcedure
@@ -782,6 +1065,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
     ScintillaSendMessage(Ide_Tabs(idx)\gadget, #SCI_SETSAVEPOINT)
     SetGadgetState(#GAD_TABS, idx)
     Ide_Editor_SyncActive()
+    Ide_Editor_MruPush(path)
     
     ProcedureReturn #True
   EndProcedure
@@ -819,7 +1103,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
       name = Mid(name, 2)
     EndIf
     
-    r = MessageRequester("Vyrn IDE", "Save changes to " + name + "?", #PB_MessageRequester_YesNoCancel)
+    r = MessageRequester(Ide_I18n_AppTitle(), ReplaceString(Ide_I18n_Pick("Save changes to {name}?", "dlg.save_dirty"), "{name}", name), #PB_MessageRequester_YesNoCancel)
     
     If r = #PB_MessageRequester_Cancel
       ProcedureReturn #False
@@ -906,11 +1190,16 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   EndProcedure
 
   ; <summary>
-  ; Create an untitled tab seeded with a short Hello sample.
+  ; Create an untitled tab (welcome hints or a short Hello sample).
   ; </summary>
   Procedure Ide_Editor_New()
     Ide_Editor_AddTab("")
-    Ide_Editor_SetText("-- vyrn: 12" + Chr(10) + Chr(10) + "local name = " + Chr(34) + "Vyrn" + Chr(34) + Chr(10) + "print(" + Chr(34) + "Hello, {name}!" + Chr(34) + ")" + Chr(10))
+    If Ide_ShowWelcome
+      Ide_Welcome_ApplyToActiveIfEmpty()
+      Ide_Ui_SetStatus(Ide_I18n_Pick("Welcome  -  drag files onto the window; F5 Run, F8 syntax", "welcome.hint"))
+    Else
+      Ide_Editor_SetText("-- vyrn: 12" + Chr(10) + Chr(10) + "local name = " + Chr(34) + "Vyrn" + Chr(34) + Chr(10) + "print(" + Chr(34) + "Hello, {name}!" + Chr(34) + ")" + Chr(10))
+    EndIf
   EndProcedure
 
   ; <summary>
@@ -918,6 +1207,40 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   ; </summary>
   ; <param name="path">File to load.</param>
   ; <returns>#True on success.</returns>
+  Procedure Ide_Editor_LoadIntoTab(idx.i, path.s)
+    Protected src.s = "", f.i, line.s
+    If idx < 0 Or idx >= Ide_TabCount Or path = "" Or FileSize(path) < 0
+      ProcedureReturn
+    EndIf
+    f = ReadFile(#PB_Any, path)
+    If f = 0
+      ProcedureReturn
+    EndIf
+    While Eof(f) = #False
+      line = ReadString(f)
+      src = src + line
+      If Eof(f) = #False
+        src = src + Chr(10)
+      EndIf
+    Wend
+    CloseFile(f)
+    If Len(src) >= 3 And Asc(Mid(src, 1, 1)) = 239 And Asc(Mid(src, 2, 1)) = 187 And Asc(Mid(src, 3, 1)) = 191
+      src = Mid(src, 4)
+    EndIf
+    Ide_Editor_SetTextOn(Ide_Tabs(idx)\gadget, src)
+    Ide_Tabs(idx)\path = path
+    Ide_Tabs(idx)\untitled = 0
+    Ide_Editor_RefreshTab(idx)
+    If idx = Ide_Editor_ActiveIndex()
+      Ide_Editor_SyncActive()
+    EndIf
+    Ide_Highlight_Restyle(Ide_Tabs(idx)\gadget)
+  EndProcedure
+
+  ; <summary>
+  ; IDE: Editor LoadFile.
+  ; </summary>
+  ; <param name="paths">see signature</param>
   Procedure.i Ide_Editor_LoadFile(path.s)
     Protected src.s = ""
     Protected f.i, line.s, idx.i
@@ -959,6 +1282,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
     EndIf
     
     Ide_Editor_SetText(src)
+    Ide_Editor_MruPush(path)
     
     ProcedureReturn #True
   EndProcedure
@@ -1078,195 +1402,19 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   Procedure Ide_Editor_ToggleTheme()
     Ide_Theme_Dark = Bool(Ide_Theme_Dark = 0)
     Ide_Editor_ApplyThemeAll()
-  EndProcedure
-
-  ; <summary>
-  ; UTF-8 text of the current selection in a Scintilla.
-  ; </summary>
-  ; <param name="g">Scintilla gadget id.</param>
-  ; <returns>Selected text, or empty if none.</returns>
-  Procedure.s Ide_Editor_GetSelText(g.i)
-    Protected len.i, *buf, result.s
-    
-    If g = 0
-      ProcedureReturn ""
+    If Ide_Theme_Dark
+      Ide_Ui_SetStatus(Ide_I18n_Pick("Dark theme", "status.theme_dark"))
+    Else
+      Ide_Ui_SetStatus(Ide_I18n_Pick("Light theme", "status.theme_light"))
     EndIf
-    
-    len = ScintillaSendMessage(g, #SCI_GETSELTEXT, 0, 0)
-    
-    If len <= 1
-      ProcedureReturn ""
-    EndIf
-    
-    *buf = AllocateMemory(len + 4)
-    
-    If *buf = 0
-      ProcedureReturn ""
-    EndIf
-    
-    FillMemory(*buf, len + 4, 0)
-    ScintillaSendMessage(g, #SCI_GETSELTEXT, 0, *buf)
-    result = PeekS(*buf, -1, #PB_UTF8)
-    FreeMemory(*buf)
-    
-    ProcedureReturn result
-  EndProcedure
-
-  ; <summary>
-  ; Find next occurrence of the find-bar needle from the caret (wraps); respects Match case.
-  ; </summary>
-  ; <returns>#True if a match was selected.</returns>
-  Procedure.i Ide_Editor_FindNext()
-    Protected g.i = Ide_Editor_CurrentGadget()
-    Protected needle.s, *utf8, nlen.i, pos.i, found.i, flags.i, length.i
-    
-    If g = 0
-      ProcedureReturn #False
-    EndIf
-    
-    needle = GetGadgetText(#GAD_FIND_STR)
-    
-    If needle = ""
-      ProcedureReturn #False
-    EndIf
-    
-    flags = 0
-    
-    If GetGadgetState(#GAD_FIND_CASE)
-      flags = #SCFIND_MATCHCASE
-    EndIf
-    
-    ScintillaSendMessage(g, #SCI_SETSEARCHFLAGS, flags, 0)
-    *utf8 = UTF8(needle)
-    nlen = Ide_Utf8Bytes(*utf8)
-    pos = ScintillaSendMessage(g, #SCI_GETCURRENTPOS)
-    length = ScintillaSendMessage(g, #SCI_GETLENGTH)
-    ScintillaSendMessage(g, #SCI_SETTARGETSTART, pos, 0)
-    ScintillaSendMessage(g, #SCI_SETTARGETEND, length, 0)
-    found = ScintillaSendMessage(g, #SCI_SEARCHINTARGET, nlen, *utf8)
-    
-    If found < 0
-      ScintillaSendMessage(g, #SCI_SETTARGETSTART, 0, 0)
-      ScintillaSendMessage(g, #SCI_SETTARGETEND, pos, 0)
-      found = ScintillaSendMessage(g, #SCI_SEARCHINTARGET, nlen, *utf8)
-    EndIf
-    
-    If *utf8
-      FreeMemory(*utf8)
-    EndIf
-    
-    If found >= 0
-      ScintillaSendMessage(g, #SCI_SETSEL, found, ScintillaSendMessage(g, #SCI_GETTARGETEND))
-      ScintillaSendMessage(g, #SCI_SCROLLCARET)
-      
-      ProcedureReturn #True
-    EndIf
-    
-    ProcedureReturn #False
-  EndProcedure
-
-  ; <summary>
-  ; Whether selection equals the find needle under current Match case setting.
-  ; </summary>
-  ; <param name="sel">Current selection text.</param>
-  ; <param name="needle">Find string from the find bar.</param>
-  ; <returns>#True if they match.</returns>
-  Procedure.i Ide_Editor_SelMatches(sel.s, needle.s)
-    If sel = "" Or needle = ""
-      ProcedureReturn #False
-    EndIf
-    
-    If GetGadgetState(#GAD_FIND_CASE)
-      ProcedureReturn Bool(sel = needle)
-    EndIf
-    
-    ProcedureReturn Bool(LCase(sel) = LCase(needle))
-  EndProcedure
-
-  ; <summary>
-  ; Replace the current matching selection, then find the next match.
-  ; </summary>
-  Procedure Ide_Editor_ReplaceOnce()
-    Protected g.i = Ide_Editor_CurrentGadget()
-    Protected needle.s, repl.s, *utf8
-    
-    If g = 0
-      ProcedureReturn
-    EndIf
-    
-    needle = GetGadgetText(#GAD_FIND_STR)
-    repl = GetGadgetText(#GAD_REPLACE_STR)
-    
-    If Ide_Editor_SelMatches(Ide_Editor_GetSelText(g), needle)
-      *utf8 = UTF8(repl)
-      ScintillaSendMessage(g, #SCI_REPLACESEL, 0, *utf8)
-      
-      If *utf8
-        FreeMemory(*utf8)
-      EndIf
-    EndIf
-    
-    If Ide_Editor_FindNext() = #False
-      Ide_Ui_SetStatus("No more matches")
-    EndIf
-  EndProcedure
-
-  ; <summary>
-  ; Replace all find-bar matches in the active buffer and report the count.
-  ; </summary>
-  Procedure Ide_Editor_ReplaceAll()
-    Protected g.i = Ide_Editor_CurrentGadget()
-    Protected needle.s, repl.s, *n8, *r8, nlen.i, found.i, count.i, flags.i, length.i
-    
-    If g = 0
-      ProcedureReturn
-    EndIf
-    
-    needle = GetGadgetText(#GAD_FIND_STR)
-    repl = GetGadgetText(#GAD_REPLACE_STR)
-    
-    If needle = ""
-      ProcedureReturn
-    EndIf
-    
-    flags = 0
-    
-    If GetGadgetState(#GAD_FIND_CASE)
-      flags = #SCFIND_MATCHCASE
-    EndIf
-    
-    ScintillaSendMessage(g, #SCI_SETSEARCHFLAGS, flags, 0)
-    *n8 = UTF8(needle)
-    *r8 = UTF8(repl)
-    nlen = Ide_Utf8Bytes(*n8)
-    count = 0
-    ScintillaSendMessage(g, #SCI_SETTARGETSTART, 0, 0)
-    length = ScintillaSendMessage(g, #SCI_GETLENGTH)
-    ScintillaSendMessage(g, #SCI_SETTARGETEND, length, 0)
-    found = ScintillaSendMessage(g, #SCI_SEARCHINTARGET, nlen, *n8)
-    
-    While found >= 0
-      ScintillaSendMessage(g, #SCI_REPLACETARGET, -1, *r8)
-      count = count + 1
-      found = ScintillaSendMessage(g, #SCI_GETTARGETEND)
-      length = ScintillaSendMessage(g, #SCI_GETLENGTH)
-      ScintillaSendMessage(g, #SCI_SETTARGETSTART, found, 0)
-      ScintillaSendMessage(g, #SCI_SETTARGETEND, length, 0)
-      found = ScintillaSendMessage(g, #SCI_SEARCHINTARGET, nlen, *n8)
-    Wend
-    
-    If *n8 : FreeMemory(*n8) : EndIf
-    If *r8 : FreeMemory(*r8) : EndIf
-    
-    Ide_Highlight_Restyle(g)
-    MessageRequester("Vyrn IDE", "Replaced " + Str(count) + " occurrence(s).", #PB_MessageRequester_Info)
   EndProcedure
 
 CompilerEndIf
 
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 229
-; Folding = -------------------
+; CursorPosition = 927
+; FirstLine = 906
+; Folding = --------------------
 ; Optimizer
 ; EnableAsm
 ; EnableXP

@@ -1,0 +1,53 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- struct_retype (1.6.109): a table keeps the struct layout it was first bound to.
+-- Changing `_typename` later (to another struct, a plain name or back) does not move
+-- fields: dynamic `t[k]`, `t[k] = v` and table.fields keep using the stored field
+-- names, the same on the PB VM and libvyrnrt.
+struct A
+    x: number
+    y: number
+end
+struct B
+    y: number
+    x: number
+end
+struct C
+    w: number
+end
+def getf(t, k) return t[k] end
+def setf(t, k, v) t[k] = v end
+let p = A { x = 1, y = 2 }
+p._typename = "B"
+print("b", getf(p, "x"), getf(p, "y"))
+setf(p, "x", 30)
+print("b2", getf(p, "x"), getf(p, "y"), p[1], p[2])
+let r = A { x = 5, y = 6 }
+r._typename = "C"
+print("c", getf(r, "x"), getf(r, "y"), getf(r, "w"), r[1], r[2])
+setf(r, "x", 50)
+print("c2", getf(r, "x"), r[1], r[2])
+let fs = table.fields(r)
+print("fields", fs[1], fs[2], fs[3])
+let s = {}
+s.x = 1
+s._typename = "A"
+print("s", getf(s, "x"), s[1])
+let u = B { x = 7, y = 8 }
+let ga = A { x = 0, y = 0 }
+print("u", getf(u, "x"), getf(u, "y"), u[1], u[2])
+
+let a2 = A { x = 11, y = 12 }
+let b3 = B { x = 13, y = 14 }
+print("fresh", getf(a2, "x"), a2[1], getf(b3, "x"), b3[1])
+let q = A { x = 21, y = 22 }
+q._typename = "Foo"
+q._typename = "B"
+print("q", getf(q, "x"), getf(q, "y"), q._typename)
+q._typename = "A"
+print("q2", getf(q, "x"), getf(q, "y"), q._typename)
+let w = {}
+w._typename = "Foo"
+w._typename = "A"
+w.x = 31
+print("w", getf(w, "x"), w[1])

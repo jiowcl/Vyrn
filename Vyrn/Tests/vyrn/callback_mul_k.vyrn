@@ -1,0 +1,29 @@
+-- @compile-safe
+-- Regression (1.6.62): `local * K` inside table.map/filter callbacks.
+-- 1.6.61 Release builds heap-corrupted here (uninitialized C locals in
+-- libvyrnrt were clear()ed / free()d); tests had to use `2 * v`.
+
+def triple(k, v)
+  return v * 3
+end
+def big(k, v)
+  return v * 2 > 3
+end
+def outer(k, v)
+  let inner = table.map({v, v + 1}, triple)
+  return inner[1] * 10 + inner[2] * 2
+end
+
+let t = {1, 2, 3, 4}
+let m = table.map(t, triple)
+print(table.concat(m, ","))
+let f = table.filter(t, big)
+print(f[2], f[3], f[4])
+print(table.concat(table.map(t, outer), ","))
+
+let total = 0
+for i = 1, 300 do
+  let r = table.map(t, triple)
+  total = total + r[4] * 1
+end
+print(total)

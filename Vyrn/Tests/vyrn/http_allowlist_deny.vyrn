@@ -1,0 +1,11 @@
+-- 1.6.121: --allow-net=nope.example denies 127.0.0.1 (raises; no real network).
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let ok, err = pcall(function()
+  http.get("http://127.0.0.1:" .. port .. "/json")
+end)
+assert(ok == false, "expected raise")
+let msg = string.gsub(tostring(err), "^.-%d+: ", "")
+assert(string.find(msg, "network access to host 127.0.0.1 is not allowed", 1, true), msg)
+print("allow_deny_ok")
+print("done")

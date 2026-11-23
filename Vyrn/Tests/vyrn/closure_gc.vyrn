@@ -1,0 +1,417 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- closure_gc (1.6.93): unreachable closures and upvalue cells are reclaimed; reachable
+-- ones (tables, globals, upvalues, coroutines) survive collectgarbage(). Prints booleans only.
+-- rep(n, fn): calls fn(i) for i = 1..n via gsub, from a host callback (gsub) frame.
+-- Chunks of 1000 keep the gsub strings small, so "count" deltas track closures.
+def rep(n, fn)
+  let i = 0
+  let chunk = string.rep("x", 1000)
+  while i < n do
+    string.gsub(chunk, "x", function() if i < n then i = i + 1 fn(i) end end)
+  end
+end
+def mk(i)
+  return function() return i end
+end
+def counter()
+  let n = 0
+  return function() n = n + 1 return n end
+end
+def outer(x)
+  def middle()
+    return function() x = x + 1 return x end
+  end
+  return middle()
+end
+def wide(k)
+  let w0 = 0
+  let w1 = 1
+  let w2 = 2
+  let w3 = 3
+  let w4 = 4
+  let w5 = 5
+  let w6 = 6
+  let w7 = 7
+  let w8 = 8
+  let w9 = 9
+  let w10 = 10
+  let w11 = 11
+  let w12 = 12
+  let w13 = 13
+  let w14 = 14
+  let w15 = 15
+  let w16 = 16
+  let w17 = 17
+  let w18 = 18
+  let w19 = 19
+  let w20 = 20
+  let w21 = 21
+  let w22 = 22
+  let w23 = 23
+  let w24 = 24
+  let w25 = 25
+  let w26 = 26
+  let w27 = 27
+  let w28 = 28
+  let w29 = 29
+  let w30 = 30
+  let w31 = 31
+  let w32 = 32
+  let w33 = 33
+  let w34 = 34
+  let w35 = 35
+  let w36 = 36
+  let w37 = 37
+  let w38 = 38
+  let w39 = 39
+  let w40 = 40
+  let w41 = 41
+  let w42 = 42
+  let w43 = 43
+  let w44 = 44
+  let w45 = 45
+  let w46 = 46
+  let w47 = 47
+  let w48 = 48
+  let w49 = 49
+  let w50 = 50
+  let w51 = 51
+  let w52 = 52
+  let w53 = 53
+  let w54 = 54
+  let w55 = 55
+  let w56 = 56
+  let w57 = 57
+  let w58 = 58
+  let w59 = 59
+  let w60 = 60
+  let w61 = 61
+  let w62 = 62
+  let w63 = 63
+  let w64 = 64
+  let w65 = 65
+  let w66 = 66
+  let w67 = 67
+  let w68 = 68
+  let w69 = 69
+  let w70 = 70
+  let w71 = 71
+  let w72 = 72
+  let w73 = 73
+  let w74 = 74
+  let w75 = 75
+  let w76 = 76
+  let w77 = 77
+  let w78 = 78
+  let w79 = 79
+  let w80 = 80
+  let w81 = 81
+  let w82 = 82
+  let w83 = 83
+  let w84 = 84
+  let w85 = 85
+  let w86 = 86
+  let w87 = 87
+  let w88 = 88
+  let w89 = 89
+  let w90 = 90
+  let w91 = 91
+  let w92 = 92
+  let w93 = 93
+  let w94 = 94
+  let w95 = 95
+  let w96 = 96
+  let w97 = 97
+  let w98 = 98
+  let w99 = 99
+  let w100 = 100
+  let w101 = 101
+  let w102 = 102
+  let w103 = 103
+  let w104 = 104
+  let w105 = 105
+  let w106 = 106
+  let w107 = 107
+  let w108 = 108
+  let w109 = 109
+  let w110 = 110
+  let w111 = 111
+  let w112 = 112
+  let w113 = 113
+  let w114 = 114
+  let w115 = 115
+  let w116 = 116
+  let w117 = 117
+  let w118 = 118
+  let w119 = 119
+  let w120 = 120
+  let w121 = 121
+  let w122 = 122
+  let w123 = 123
+  let w124 = 124
+  let w125 = 125
+  let w126 = 126
+  let w127 = 127
+  let w128 = 128
+  let w129 = 129
+  let w130 = 130
+  let w131 = 131
+  let w132 = 132
+  let w133 = 133
+  let w134 = 134
+  let w135 = 135
+  let w136 = 136
+  let w137 = 137
+  let w138 = 138
+  let w139 = 139
+  let w140 = 140
+  let w141 = 141
+  let w142 = 142
+  let w143 = 143
+  let w144 = 144
+  let w145 = 145
+  let w146 = 146
+  let w147 = 147
+  let w148 = 148
+  let w149 = 149
+  let w150 = 150
+  let w151 = 151
+  let w152 = 152
+  let w153 = 153
+  let w154 = 154
+  let w155 = 155
+  let w156 = 156
+  let w157 = 157
+  let w158 = 158
+  let w159 = 159
+  let w160 = 160
+  let w161 = 161
+  let w162 = 162
+  let w163 = 163
+  let w164 = 164
+  let w165 = 165
+  let w166 = 166
+  let w167 = 167
+  let w168 = 168
+  let w169 = 169
+  let w170 = 170
+  let w171 = 171
+  let w172 = 172
+  let w173 = 173
+  let w174 = 174
+  let w175 = 175
+  let w176 = 176
+  let w177 = 177
+  let w178 = 178
+  let w179 = 179
+  let w180 = 180
+  let w181 = 181
+  let w182 = 182
+  let w183 = 183
+  let w184 = 184
+  let w185 = 185
+  let w186 = 186
+  let w187 = 187
+  let w188 = 188
+  let w189 = 189
+  let w190 = 190
+  let w191 = 191
+  let w192 = 192
+  let w193 = 193
+  let w194 = 194
+  let w195 = 195
+  let w196 = 196
+  let w197 = 197
+  let w198 = 198
+  let w199 = 199
+  let w200 = 200
+  let w201 = 201
+  let w202 = 202
+  let w203 = 203
+  let w204 = 204
+  let w205 = 205
+  let w206 = 206
+  let w207 = 207
+  let w208 = 208
+  let w209 = 209
+  let w210 = 210
+  let w211 = 211
+  let w212 = 212
+  let w213 = 213
+  let w214 = 214
+  let w215 = 215
+  let w216 = 216
+  let w217 = 217
+  let w218 = 218
+  let w219 = 219
+  let w220 = 220
+  let w221 = 221
+  let w222 = 222
+  let w223 = 223
+  let w224 = 224
+  let w225 = 225
+  let w226 = 226
+  let w227 = 227
+  let w228 = 228
+  let w229 = 229
+  let w230 = 230
+  let w231 = 231
+  let w232 = 232
+  let w233 = 233
+  let w234 = 234
+  let w235 = 235
+  let w236 = 236
+  let w237 = 237
+  let w238 = 238
+  let w239 = 239
+  let w240 = 240
+  let w241 = 241
+  let w242 = 242
+  let w243 = 243
+  let w244 = 244
+  let w245 = 245
+  let w246 = 246
+  let w247 = 247
+  let w248 = 248
+  let w249 = 249
+  let w250 = 250
+  let w251 = 251
+  let w252 = 252
+  let w253 = 253
+  let w254 = 254
+  let w255 = 255
+  let w256 = 256
+  let w257 = 257
+  let w258 = 258
+  let w259 = 259
+  let w260 = 260
+  let w261 = 261
+  let w262 = 262
+  let w263 = 263
+  let w264 = 264
+  let w265 = 265
+  let w266 = 266
+  let w267 = 267
+  let w268 = 268
+  let w269 = 269
+  let w270 = 270
+  let w271 = 271
+  let w272 = 272
+  let w273 = 273
+  let w274 = 274
+  let w275 = 275
+  let w276 = 276
+  let w277 = 277
+  let w278 = 278
+  let w279 = 279
+  let w280 = 280
+  let w281 = 281
+  let w282 = 282
+  let w283 = 283
+  let w284 = 284
+  let w285 = 285
+  let w286 = 286
+  let w287 = 287
+  let w288 = 288
+  let w289 = 289
+  let w290 = 290
+  let w291 = 291
+  let w292 = 292
+  let w293 = 293
+  let w294 = 294
+  let w295 = 295
+  let w296 = 296
+  let w297 = 297
+  let w298 = 298
+  let w299 = 299
+  w299 = w299 + k
+  return function() w299 = w299 + 1 return w299 + w0 + w256 end
+end
+collectgarbage()
+let c0 = collectgarbage("count")
+-- 1: 200k churn, nothing kept
+let s = 0
+rep(200000, function(i)
+  let f = mk(i)
+  s = s + f()
+end)
+let lastf = nil
+for i = 1, 20000 do
+  let x = i
+  lastf = function() return x end
+end
+collectgarbage()
+let c1 = collectgarbage("count")
+print("churn", s == 20000100000, lastf() == 20000, c1 - c0 < 512)
+-- 2: survivors in tables, globals, upvalues and coroutines
+keepT = {}
+for i = 1, 100 do keepT[i] = counter() end
+gkeep = counter()
+let up = counter()
+def useUp() return up() end
+let co = coroutine.create(function()
+  let v = 7
+  let f = function() v = v + 1 return v end
+  coroutine.yield(f)
+  return v
+end)
+let ok1, cf = coroutine.resume(co)
+let co2 = coroutine.create(function()
+  let v = 1
+  let g = function() v = v * 3 return v end
+  g()
+  g = nil
+  coroutine.yield(0)
+  v = v + 1
+  return v
+end)
+coroutine.resume(co2)
+rep(30000, function(i) let f = counter() f() end)
+collectgarbage()
+collectgarbage()
+print("survive", keepT[1]() == 1, keepT[100]() == 1, keepT[100]() == 2, gkeep() == 1, useUp() == 1)
+print("co", ok1, cf() == 8, cf() == 9)
+let ok2, rv = coroutine.resume(co)
+let ok3, rv3 = coroutine.resume(co2)
+print("co2", ok2, rv == 9, ok3, rv3 == 4)
+-- 3: self-referential / recursive closures and pass-through chains
+let fsum = 0
+rep(20000, function(i)
+  let fact = nil
+  fact = function(n) if n <= 1 then return 1 end return n * fact(n - 1) end
+  fsum = fsum + fact(5)
+  let p = outer(i)
+  fsum = fsum + p() - i
+end)
+let keepP = outer(100)
+let selfT = {}
+selfT.f = function() return selfT end
+collectgarbage()
+let c3 = collectgarbage("count")
+print("rec", fsum == 20000 * 121, keepP() == 101, keepP() == 102, selfT.f() == selfT, c3 - c0 < 512)
+-- 4: dropped suspended coroutines
+let alive = nil
+for i = 1, 3000 do
+  let c = coroutine.create(function()
+    let z = i
+    let h = function() z = z + 1 return z end
+    coroutine.yield(h)
+    return z
+  end)
+  let okc, h = coroutine.resume(c)
+  if i == 1500 then alive = { c, h } end
+end
+collectgarbage()
+let hv = alive[2]()
+let okA, rA = coroutine.resume(alive[1])
+print("dropco", hv == 1501, okA, rA == 1501, alive[2]() == 1502)
+-- 5: wide-slot (v4) captures
+let wsum = 0
+for i = 1, 2000 do
+  let wf = wide(i)
+  wsum = wsum + wf()
+end
+let wk = wide(1)
+collectgarbage()
+print("wide", wsum == 2000 * (299 + 1 + 256) + 2001000, wk() == 557, wk() == 558)

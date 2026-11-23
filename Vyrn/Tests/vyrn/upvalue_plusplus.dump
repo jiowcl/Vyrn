@@ -1,0 +1,3 @@
+# upvalue ++ → load / add 1 / store (not INC_GLOBAL)
+STORE_UPVALUE
+!INC_GLOBAL

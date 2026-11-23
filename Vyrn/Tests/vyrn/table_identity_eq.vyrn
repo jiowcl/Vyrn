@@ -1,0 +1,22 @@
+-- vyrn: 8
+-- 1.6.75: '==' / '~=' compare tables and functions by identity (were always false).
+let t = {}
+let u = t
+let v = {}
+print(t == u, t == v, t ~= v, t ~= u)
+def id(x) return x end
+print(id(t) == t, id(t) == id(t), {} == {})
+def f() return 1 end
+let g = f
+print(f == g, f == id, f ~= id, print == print)
+def mk(n)
+  return def() return n end
+end
+let c1 = mk(1)
+let c2 = c1
+print(c1 == c2)
+let seen = {}
+let keyt = {}
+seen[1] = keyt
+if seen[1] == keyt then print("found") end
+if t != v then print("ne ok") end

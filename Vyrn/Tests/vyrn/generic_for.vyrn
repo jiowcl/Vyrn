@@ -1,0 +1,37 @@
+let t = {10, 20, 30}
+for v in t do print("e", v) end
+for i, v in t do print("iv", i, v) end
+for i, v in ipairs(t) do print("ip", i, v) end
+let m = {a = 1}
+for k, v in pairs(m) do print("p", k, v) end
+let n = 0
+for k, v in next, m do print("n", k, v) end
+def range(lim)
+  let i = 0
+  return function()
+    i = i + 1
+    if i <= lim then return i end
+    return nil
+  end
+end
+for x in range(3) do print("r", x) end
+def step(s, c)
+  if c >= s then return nil end
+  return c + 1, c * 10
+end
+for a, b in step, 3, 0 do print("s", a, b) end
+for x in range(5) do
+  if x == 2 then continue end
+  if x == 4 then break end
+  for y in range(2) do print("nest", x, y) end
+end
+let v = {7, 8}
+for k, v in pairs(v) do print("sh", k, v) end
+print("done", #v)
+for w in string.gmatch("one two  three", "%a+") do print("w", w) end
+for k, v in string.gmatch("a=1, b=2", "(%w+)=(%w+)") do print("kv", k, v) end
+let it = string.gmatch("x1y22", "%d+")
+print(type(it), it(), it(), it())
+let cnt = 0
+for p in string.gmatch("abc", "()") do cnt = cnt + 1 end
+print("pos", cnt)

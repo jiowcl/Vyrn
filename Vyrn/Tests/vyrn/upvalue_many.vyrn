@@ -1,0 +1,170 @@
+-- @compile-safe
+-- 1.6.91: the per-function upvalue limit is 255 (was 16); pass-through captures count.
+-- 1. one closure capturing 40 locals; writes through a sibling closure are shared
+def many40()
+  let v1 = 1
+  let v2 = 2
+  let v3 = 3
+  let v4 = 4
+  let v5 = 5
+  let v6 = 6
+  let v7 = 7
+  let v8 = 8
+  let v9 = 9
+  let v10 = 10
+  let v11 = 11
+  let v12 = 12
+  let v13 = 13
+  let v14 = 14
+  let v15 = 15
+  let v16 = 16
+  let v17 = 17
+  let v18 = 18
+  let v19 = 19
+  let v20 = 20
+  let v21 = 21
+  let v22 = 22
+  let v23 = 23
+  let v24 = 24
+  let v25 = 25
+  let v26 = 26
+  let v27 = 27
+  let v28 = 28
+  let v29 = 29
+  let v30 = 30
+  let v31 = 31
+  let v32 = 32
+  let v33 = 33
+  let v34 = 34
+  let v35 = 35
+  let v36 = 36
+  let v37 = 37
+  let v38 = 38
+  let v39 = 39
+  let v40 = 40
+  return function()
+    return v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8 + v9 + v10 + v11 + v12 + v13 + v14 + v15 + v16 + v17 + v18 + v19 + v20 + v21 + v22 + v23 + v24 + v25 + v26 + v27 + v28 + v29 + v30 + v31 + v32 + v33 + v34 + v35 + v36 + v37 + v38 + v39 + v40
+  end, function(d)
+    v1 = v1 + d
+    v40 = v40 + d
+  end
+end
+let s40, bump = many40()
+print("1a", s40())
+bump(5)
+print("1b", s40())
+def str40()
+  let s1 = "a"
+  let s2 = "b"
+  let s3 = "c"
+  let s4 = "d"
+  let s5 = "e"
+  let s6 = "f"
+  let s7 = "g"
+  let s8 = "h"
+  let s9 = "i"
+  let s10 = "j"
+  let s11 = "k"
+  let s12 = "l"
+  let s13 = "m"
+  let s14 = "n"
+  let s15 = "o"
+  let s16 = "p"
+  let s17 = "q"
+  let s18 = "r"
+  let s19 = "s"
+  let s20 = "t"
+  let s21 = "u"
+  let s22 = "v"
+  let s23 = "w"
+  let s24 = "x"
+  let s25 = "y"
+  let s26 = "z"
+  let s27 = "A"
+  let s28 = "B"
+  let s29 = "C"
+  let s30 = "D"
+  let s31 = "E"
+  let s32 = "F"
+  let s33 = "G"
+  let s34 = "H"
+  let s35 = "I"
+  let s36 = "J"
+  let s37 = "K"
+  let s38 = "L"
+  let s39 = "M"
+  let s40 = "N"
+  return function() return s1 .. s2 .. s3 .. s4 .. s5 .. s6 .. s7 .. s8 .. s9 .. s10 .. s11 .. s12 .. s13 .. s14 .. s15 .. s16 .. s17 .. s18 .. s19 .. s20 .. s21 .. s22 .. s23 .. s24 .. s25 .. s26 .. s27 .. s28 .. s29 .. s30 .. s31 .. s32 .. s33 .. s34 .. s35 .. s36 .. s37 .. s38 .. s39 .. s40 end
+end
+print("1c", str40()())
+-- 2. six-level chain: each level has 8 locals, the innermost function reads all 48
+-- (levels 2..6 carry the outer values as pass-through upvalues)
+def chain()
+  let a1 = 1
+  let a2 = 2
+  let a3 = 3
+  let a4 = 4
+  let a5 = 5
+  let a6 = 6
+  let a7 = 7
+  let a8 = 8
+  return function()
+    let b1 = 10
+    let b2 = 20
+    let b3 = 30
+    let b4 = 40
+    let b5 = 50
+    let b6 = 60
+    let b7 = 70
+    let b8 = 80
+    return function()
+      let c1 = 100
+      let c2 = 200
+      let c3 = 300
+      let c4 = 400
+      let c5 = 500
+      let c6 = 600
+      let c7 = 700
+      let c8 = 800
+      return function()
+        let d1 = 1000
+        let d2 = 2000
+        let d3 = 3000
+        let d4 = 4000
+        let d5 = 5000
+        let d6 = 6000
+        let d7 = 7000
+        let d8 = 8000
+        return function()
+          let e1 = 10000
+          let e2 = 20000
+          let e3 = 30000
+          let e4 = 40000
+          let e5 = 50000
+          let e6 = 60000
+          let e7 = 70000
+          let e8 = 80000
+          return function()
+            let f1 = 100000
+            let f2 = 200000
+            let f3 = 300000
+            let f4 = 400000
+            let f5 = 500000
+            let f6 = 600000
+            let f7 = 700000
+            let f8 = 800000
+            return function() return a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + b1 + b2 + b3 + b4 + b5 + b6 + b7 + b8 + c1 + c2 + c3 + c4 + c5 + c6 + c7 + c8 + d1 + d2 + d3 + d4 + d5 + d6 + d7 + d8 + e1 + e2 + e3 + e4 + e5 + e6 + e7 + e8 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8 end, function() a1 = a1 + 1 f1 = f1 + 1 end
+          end
+        end
+      end
+    end
+  end
+end
+let csum, cinc = chain()()()()()()
+print("2a", csum())
+cinc()
+print("2b", csum())
+let l3 = chain()()()
+let x1 = l3()()()
+let x2 = l3()()()
+print("2c", x1(), x2())

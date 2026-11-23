@@ -1,0 +1,25 @@
+-- vyrn: 12
+-- Builtins P5a/b: string.replace/pad*, table.assign, path.abspath
+
+print(string.replace("a-a-a-a", "-", "+"))
+print(string.replace("a-a-a-a", "-", "+", 2))
+print(string.replace("hello", "", "x"))
+print(string.padleft("7", 3, "0"))
+print(string.padright("x", 4, "."))
+print(string.padleft("abcd", 2))
+print(string.padright("ab", 5))
+
+let a = {x = 1}
+let b = {y = 2, x = 9}
+let c = table.assign(a, b)
+print(a.x)
+print(a.y)
+print(c.x)
+table.assign(a, {w = 4}, {z = 3})
+print(a.w)
+print(a.z)
+
+let cwd = path.normalize(path.cwd())
+print(path.abspath(cwd) == cwd)
+print(string.startswith(path.normalize(path.abspath("foo")), cwd))
+print(path.abspath(".") == cwd)

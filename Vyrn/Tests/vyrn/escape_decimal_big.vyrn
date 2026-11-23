@@ -1,0 +1,4 @@
+-- vyrn: 12
+-- 1.6.115: a malformed string escape is a compile error with file:line.
+let ok = 1
+print("\256")

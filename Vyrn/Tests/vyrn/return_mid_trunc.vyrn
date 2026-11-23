@@ -1,0 +1,16 @@
+-- @compile-safe
+-- vyrn: 12
+def pair()
+  return 1, 2
+end
+
+def mid_user()
+  return pair(), 9
+end
+
+def mid_pcall()
+  return pcall(pair), 9
+end
+
+print("user", mid_user())
+print("pcall", mid_pcall())

@@ -1,0 +1,162 @@
+-- @compile-safe
+-- 1.6.138: setmetatable / getmetatable and high-value metamethods.
+-- Cases were checked against Lua 5.4 (set/get, __metatable, rawget/rawset,
+-- __index table/function, __newindex, __tostring on print/tostring, __add and
+-- the rest of the arithmetic family). ValueToString / concat does not use
+-- __tostring. getmetatable of a non-table (except strings, 1.6.139) is nil.
+
+-- set / get / clear
+let t = {x = 1}
+print("no-mt", getmetatable(t) == nil)
+let mt = {tag = "mt"}
+let r = setmetatable(t, mt)
+print("set-ret", rawequal(r, t))
+print("get-same", rawequal(getmetatable(t), mt))
+setmetatable(t, nil)
+print("cleared", getmetatable(t) == nil)
+print("nt-num", getmetatable(1) == nil)
+print("str-mt", rawequal(getmetatable("hi").__index, string))
+print("str-mt-same", rawequal(getmetatable("hi"), getmetatable("")))
+
+-- __metatable protection
+let prot = {}
+prot.__metatable = "locked"
+let p = setmetatable({}, prot)
+print("prot-get", getmetatable(p))
+def try_prot()
+    setmetatable(p, {})
+end
+let pok, perr = pcall(try_prot)
+print("prot-set", pok, not (string.find(perr, "cannot change a protected metatable") == nil))
+
+def try_bad1()
+    setmetatable(1, {})
+end
+let b1, e1 = pcall(try_bad1)
+print("bad1", b1, not (string.find(e1, "table expected") == nil))
+
+def try_bad2()
+    setmetatable({}, 1)
+end
+let b2, e2 = pcall(try_bad2)
+print("bad2", b2, not (string.find(e2, "nil or table expected") == nil))
+
+-- __index table and function; rawget bypass
+let proto = {y = 2}
+proto.__index = proto
+let o = setmetatable({x = 1}, proto)
+print("idx-hit", o.x)
+print("idx-miss", o.y)
+print("raw-miss", rawget(o, "y") == nil)
+rawset(o, "y", 9)
+print("raw-set", o.y, rawget(o, "y"))
+
+def idx_fn(obj, k)
+    return "I:" .. k
+end
+let fnmt = {}
+fnmt.__index = idx_fn
+let f = setmetatable({}, fnmt)
+print("idx-fn", f.hello)
+
+-- __index chain
+let a = {v = "A"}
+let b = setmetatable({}, {__index = a})
+let c = setmetatable({}, {__index = b})
+print("chain", c.v)
+
+-- __newindex function and table; existing key is raw
+let captured = ""
+def ni_fn(obj, k, v)
+    captured = k .. "=" .. v
+end
+let ni = {}
+ni.__newindex = ni_fn
+let n = setmetatable({keep = 1}, ni)
+n.keep = 2
+print("ni-exist", n.keep, captured == "")
+n.z = 3
+print("ni-fn", rawget(n, "z") == nil, captured)
+
+let store = {}
+let n2 = setmetatable({}, {__newindex = store})
+n2.q = 7
+print("ni-tab", rawget(n2, "q") == nil, store.q)
+
+-- __tostring: print and tostring honor it; concat does not
+def ts_fn(v)
+    return "TS:" .. v.name
+end
+let tsmt = {}
+tsmt.__tostring = ts_fn
+let ts = setmetatable({name = "vec"}, tsmt)
+print("ts", tostring(ts))
+print("ts-print", ts)
+print("ts-concat", "X" .. 1)
+
+-- __add (and a Vector like test2.lua)
+let Vector = {}
+Vector.__index = Vector
+def Vector.new(x, y)
+    return setmetatable({x = x, y = y}, Vector)
+end
+def Vector.__add(a, b)
+    return Vector.new(a.x + b.x, a.y + b.y)
+end
+def Vector.__tostring(v)
+    return "(" .. v.x .. ", " .. v.y .. ")"
+end
+let v1 = Vector.new(1, 2)
+let v2 = Vector.new(3, 4)
+let v3 = v1 + v2
+print("add", v3.x, v3.y)
+print("add-ts", tostring(v3))
+print("vec-print", v1)
+
+-- other arithmetic metamethods
+def arm_add(a, b) return "add" end
+def arm_sub(a, b) return "sub" end
+def arm_mul(a, b) return "mul" end
+def arm_div(a, b) return "div" end
+def arm_mod(a, b) return "mod" end
+def arm_pow(a, b) return "pow" end
+def arm_idiv(a, b) return "idiv" end
+let Arm = {}
+Arm.__add = arm_add
+Arm.__sub = arm_sub
+Arm.__mul = arm_mul
+Arm.__div = arm_div
+Arm.__mod = arm_mod
+Arm.__pow = arm_pow
+Arm.__idiv = arm_idiv
+let ua = setmetatable({}, Arm)
+let ub = setmetatable({}, Arm)
+print("arith", ua + ub, ua - ub, ua * ub, ua / ub, ua % ub, ua ^ ub, ua // ub)
+
+-- tables without a metatable keep the old print / tostring
+let plain = {1, 2}
+print("plain-ts", tostring(plain))
+print("plain-miss", plain.missing == nil)
+
+-- __tostring: Lua 5.4 lua_isstring — a number is accepted and formatted; other non-strings error.
+def num_ts_fn(v)
+    return 1
+end
+let numts = {}
+numts.__tostring = num_ts_fn
+def try_numts()
+    return tostring(setmetatable({}, numts))
+end
+let tso, tse = pcall(try_numts)
+print("ts-num", tso, tso and tse == "1")
+
+def bad_ts_fn(v)
+    return true
+end
+let badts = {}
+badts.__tostring = bad_ts_fn
+def try_badts()
+    return tostring(setmetatable({}, badts))
+end
+let tso2, tse2 = pcall(try_badts)
+print("bad-ts", tso2, not (string.find(tse2, "must return a string") == nil))

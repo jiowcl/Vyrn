@@ -1,0 +1,7 @@
+bad_compress err bad argument #1 to 'compress' (string expected)
+bad_level err bad argument #2 to 'compress' (level must be an integer 0..9)
+bad_enc err bad argument #2 to 'compress' (encoding must be 'base64' or 'hex')
+corrupt_ok
+toobig_ok
+nul_out_ok
+done

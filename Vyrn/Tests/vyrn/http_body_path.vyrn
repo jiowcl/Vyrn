@@ -1,0 +1,86 @@
+-- 1.6.137: loopback body_path raw PUT and save_path download (requires --allow-net and VYRN_HTTP_TEST_PORT).
+-- Binary fixtures use crypto_nul.bin so NULs never go through a Vyrn string.
+
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+let tmp = os.getenv("TEMP") or os.getenv("TMP") or os.getenv("TMPDIR") or path.cwd()
+
+let fixture_hex = "68656c6c6f0001fffe80776f726c64"
+let fx = path.join("tests", "vyrn", "fixtures", "crypto_nul.bin")
+if not path.isfile(fx) then
+  fx = path.join(tmp, "vyrn_crypto_nul.bin")
+  let made, me = crypto.fromhex_file(fx, fixture_hex)
+  assert(made, me)
+end
+
+let want_sha, se = crypto.sha256_file(fx)
+assert(want_sha, se)
+let want_size = path.size(fx)
+assert(want_size == 15, "fixture size")
+
+let empty_path = path.join(tmp, "vyrn_body_path_empty.bin")
+let empty_ok, empty_err = crypto.fromhex_file(empty_path, "")
+assert(empty_ok, empty_err)
+let empty_sha = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+let bin_sha = "526d081674275e9f42edffd5e0c0f9d760557ac31fe76a75c181dd7dfc53484e"
+
+let out1 = path.join(tmp, "vyrn_body_path_echo.bin")
+let r, err = http.request{
+  method = "PUT",
+  url = base .. "/echo-bin",
+  body_path = fx,
+  save_path = out1
+}
+assert(r, err)
+assert(r.body == "", "save_path body should be empty")
+let got, ge = crypto.sha256_file(out1)
+assert(got, ge)
+print("put_echo", r.status, got == want_sha, path.size(out1) == want_size)
+
+let out_empty = path.join(tmp, "vyrn_body_path_empty_out.bin")
+let r0, e0 = http.request{
+  method = "POST",
+  url = base .. "/echo-bin",
+  body_path = empty_path,
+  save_path = out_empty
+}
+assert(r0, e0)
+let g0, g0e = crypto.sha256_file(out_empty)
+assert(g0, g0e)
+print("empty", r0.status, g0 == empty_sha, path.size(out_empty) == 0)
+
+let out3 = path.join(tmp, "vyrn_body_path_307.bin")
+let r3, e3 = http.request{
+  method = "PUT",
+  url = base .. "/redirect/307-echo-bin",
+  body_path = fx,
+  save_path = out3
+}
+assert(r3, e3)
+let g3, g3e = crypto.sha256_file(out3)
+assert(g3, g3e)
+print("redir307", r3.status, g3 == want_sha)
+
+let out_bin = path.join(tmp, "vyrn_body_path_bin.bin")
+let rb, eb = http.get(base .. "/bin", { save_path = out_bin })
+assert(rb, eb)
+let gb, gbe = crypto.sha256_file(out_bin)
+assert(gb, gbe)
+print("get_bin", rb.status, gb == bin_sha, path.size(out_bin) == 6)
+
+let over_path = path.join(tmp, "vyrn_body_path_oversize.bin")
+if path.isfile(over_path) then
+  os.remove(over_path)
+end
+let ro, eo = http.get(base .. "/bin", { save_path = over_path, max = 3 })
+assert(ro == nil, "oversize should soft-fail")
+print("too_large", eo)
+assert(not path.isfile(over_path), "oversize must not write a partial file")
+
+let bad_path = path.join(tmp, "vyrn_missing_dir_137", "out.bin")
+let rw, ew = http.get(base .. "/bin", { save_path = bad_path })
+assert(rw == nil, "missing parent dir should soft-fail")
+print("cannot_write", ew)
+
+print("done")

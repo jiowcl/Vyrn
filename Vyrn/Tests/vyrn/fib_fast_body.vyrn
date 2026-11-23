@@ -1,0 +1,19 @@
+-- @compile-safe
+-- vyrn: 12
+-- Regression: fastBodyIp must skip LE+RETURN_LOCAL only for non-base number args.
+
+def Fib(n: number) -> number
+    if n <= 1 then
+        return n
+    end
+    return Fib(n - 1) + Fib(n - 2)
+end
+
+print(Fib(0))
+print(Fib(1))
+print(Fib(2))
+print(Fib(3))
+print(Fib(4))
+print(Fib(5))
+print(Fib(10))
+print(Fib(20))

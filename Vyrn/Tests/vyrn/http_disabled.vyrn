@@ -1,0 +1,9 @@
+-- http.* disabled by default (1.6.120). No --allow-net => raise.
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+print(type(http), type(http.get), type(http.post), type(http.request))
+print(msg(pcall(http.get, "http://127.0.0.1:9/")))
+print(msg(pcall(http.post, "http://127.0.0.1:9/", "x")))
+print(msg(pcall(http.request, {method="GET", url="http://127.0.0.1:9/"})))

@@ -1,0 +1,55 @@
+-- vyrn: 12
+-- Shared HTTP/JSON helpers for lib/ service clients (1.6.136; Doc + types in 1.6.145).
+-- Not part of the product stdlib. Load with require("net.util").
+
+@doc("True when err is the CLI message for a disabled --allow-net capability")
+def is_disabled_net(err) -> bool
+  let s = tostring(err)
+  return string.find(s, "network access is disabled", 1, true) ~= nil
+end
+
+@doc("Resolve opts.image_b64 or opts.image_path to base64 plus a MIME type")
+def resolve_image(opts: table)
+  let mime = opts.image_mime or "image/png"
+  let b64 = opts.image_b64 or ""
+  let p = opts.image_path or ""
+  if b64 == "" and p ~= "" then
+    let enc, e = crypto.tobase64_file(p)
+    if not enc then
+      return nil, nil, e
+    end
+    b64 = enc
+  end
+  if b64 == "" then
+    return nil, mime, nil
+  end
+  return b64, mime, nil
+end
+
+-- When ok_status is set, status must equal it. Returns data or nil, err.
+@doc("Decode JSON from an HTTP response body after a 2xx (or a custom ok_status)")
+def decode_json_ok(r, err, ok_status)
+  if not r then
+    return nil, err
+  end
+  if ok_status then
+    if r.status ~= ok_status then
+      return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+    end
+  else
+    if r.status < 200 or r.status >= 300 then
+      return nil, "http " .. tostring(r.status) .. ": " .. tostring(r.body)
+    end
+  end
+  let data, jerr = json.decode(r.body)
+  if not data then
+    return nil, jerr
+  end
+  return data
+end
+
+let M = {}
+M.is_disabled_net = is_disabled_net
+M.resolve_image = resolve_image
+M.decode_json_ok = decode_json_ok
+return M

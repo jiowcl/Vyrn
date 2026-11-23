@@ -1,0 +1,48 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.124: zlib stdlib — miniz wrapper, identical on PB VM and libvyrnrt.
+-- Default compressed encoding is base64; tests use hex for stable literals.
+
+assert(zlib.adler32("") == 1)
+assert(zlib.adler32("hello") == 0x062c0215)
+assert(math.type(zlib.adler32("hello")) == "integer")
+assert(crypto.crc32("hello") == 0x3610a686)
+
+let z = zlib.compress("hello", {encoding = "hex"})
+assert(z == "789c010500faff68656c6c6f062c0215")
+let t, e = zlib.decompress(z, {encoding = "hex"})
+assert(t == "hello", e)
+
+let z6 = zlib.compress("hello", 6)
+let t6, e6 = zlib.decompress(z6)
+assert(t6 == "hello", e6)
+assert(z6 == zlib.compress("hello"))
+
+let empty = zlib.compress("", {encoding = "hex"})
+assert(empty == "789c030000000001")
+let et, ee = zlib.decompress(empty, {encoding = "hex"})
+assert(et == "", ee)
+
+let raw = zlib.deflate("hello", {encoding = "hex"})
+assert(raw == "010500faff68656c6c6f")
+let rt, re = zlib.inflate(raw, {encoding = "hex"})
+assert(rt == "hello", re)
+
+let gz = zlib.gzip("hello", {encoding = "hex"})
+assert(gz == "1f8b08000000000000ff010500faff68656c6c6f86a6103605000000")
+let gt, ge = zlib.gunzip(gz, {encoding = "hex"})
+assert(gt == "hello", ge)
+
+-- Unicode text roundtrip
+let u = "中文ok"
+let uz, ue = zlib.decompress(zlib.compress(u))
+assert(uz == u, ue)
+
+-- Binary payload via hex input / hex compressed / hex output
+let payload = "00ff10"
+let bz = zlib.compress(payload, {input = "hex", encoding = "hex"})
+let back, be = zlib.decompress(bz, {encoding = "hex", output = "hex"})
+assert(back == payload, be)
+
+print("zlib_cs_ok")
+print("done")

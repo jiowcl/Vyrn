@@ -1,0 +1,16 @@
+-- vyrn: 12
+def worker()
+  yield 1
+  yield 2
+end
+let co = coroutine.create(worker)
+coroutine.resume(co)
+print(coroutine.status(co))
+let ok = coroutine.close(co)
+print(ok, coroutine.status(co))
+let ok2, err = coroutine.close(co)
+print(ok2, err)
+let co2 = coroutine.create(worker)
+coroutine.resume(co2)
+coroutine.resume(co2)
+print(coroutine.close(co2), coroutine.status(co2))

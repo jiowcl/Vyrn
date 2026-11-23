@@ -1,0 +1,10 @@
+-- 1.6.122: allowlist + same-host redirect follows to /json.
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+let r, e = http.get(base .. "/redirect/same")
+assert(r, e)
+assert(r.status == 200, "expected 200 after redirect, got " .. tostring(r.status))
+assert(string.find(r.body, '"ok"', 1, true), r.body)
+print("redir_ok")
+print("done")

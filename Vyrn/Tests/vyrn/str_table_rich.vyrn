@@ -1,0 +1,20 @@
+-- @compile-safe
+-- richer string/table subset
+
+print(string.byte("ABC", 1, 2))
+print(string.format("n=%d s=%s", 3, "ok"))
+print(table.concat(string.split("a,b,c", ","), "-"))
+print(string.replace("aa-bb-aa", "aa", "X", 1))
+
+let t = table.pack(3, 1, 2)
+print(t.n, table.concat(t, ","))
+table.sort(t)
+print(table.concat(t, ","))
+let a, b = table.unpack(t, 1, 2)
+print(a, b)
+
+let o = {x = 1, y = 2}
+let ks = table.keys(o)
+print(#ks >= 2)
+let c = table.copy(o)
+print(c.x, c.y)

@@ -1,0 +1,6 @@
+-- Helper module for runtime_fault_lines_mod.vyrn (error on line 4).
+def bad(v)
+  let n = 1
+  return v + n
+end
+return { bad = bad }

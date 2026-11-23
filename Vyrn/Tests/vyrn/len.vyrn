@@ -1,4 +1,6 @@
--- # length operator
+-- @compile-safe
+-- vyrn: 12
+-- length operator
 
 print("str len:", #"hello")
 print("empty:", #"")

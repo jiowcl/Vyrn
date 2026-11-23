@@ -1,0 +1,51 @@
+-- @compile-safe
+-- vyrn: 13
+-- 1.6.127: http.request opts.multipart argument policy (both runtimes).
+-- Shape errors raise (caught by pcall) even without --allow-net.
+-- Missing files return nil, err before the network call.
+
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+
+def soft(v, e)
+  if v ~= nil then return "ok" end
+  return "err " .. tostring(e)
+end
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", body = "x", multipart = { {name = "a", value = "b"} } }
+end)))
+
+print(msg(pcall(function()
+  http.request{ method = "GET", url = "http://127.0.0.1/", multipart = { {name = "a", value = "b"} } }
+end)))
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", multipart = "nope" }
+end)))
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", multipart = { "x" } }
+end)))
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", multipart = { {value = "b"} } }
+end)))
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", multipart = { {name = "a", value = "b", path = "z"} } }
+end)))
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", multipart = { {name = "a"} } }
+end)))
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", multipart = { {name = "a", value = "b"} }, max = -1 }
+end)))
+
+print(soft(http.request{ url = "http://127.0.0.1/", method = "POST", multipart = { {name = "f", path = "vyrn_missing_multipart_file.bin"} } }))
+
+print("done")

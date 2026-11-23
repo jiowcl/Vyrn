@@ -1,0 +1,13 @@
+ge m= 1
+ge m= 2
+ge m= 3
+ge m= 4
+le a= 3
+le a= 2
+le a= 1
+eq e= 1
+eq e= 2
+eq e= 3
+gt x= 2
+gt x= 1
+done

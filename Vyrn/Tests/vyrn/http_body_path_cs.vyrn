@@ -1,0 +1,57 @@
+-- @compile-safe
+-- vyrn: 13
+-- 1.6.137: http.request opts.body_path / save_path argument policy (both runtimes).
+-- Shape errors raise (caught by pcall) even without --allow-net.
+-- Missing / oversize files return nil, err before the network call.
+
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+
+def soft(v, e)
+  if v ~= nil then return "ok" end
+  return "err " .. tostring(e)
+end
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", method = "POST", body = "x", body_path = "z" }
+end)))
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", method = "POST", body_path = "z", multipart = { {name = "a", value = "b"} } }
+end)))
+
+print(msg(pcall(function()
+  http.request{ method = "GET", url = "http://127.0.0.1/", body_path = "z" }
+end)))
+
+print(msg(pcall(function()
+  http.request{ method = "HEAD", url = "http://127.0.0.1/", body_path = "z" }
+end)))
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", method = "POST", body_path = 1 }
+end)))
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", save_path = 1 }
+end)))
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", save_path = "out.bin", on_chunk = function(c) end }
+end)))
+
+print(soft(http.request{ url = "http://127.0.0.1/", method = "POST", body_path = "vyrn_missing_body_path.bin" }))
+
+-- temp file so this does not depend on the repo-relative test path (compile_suite cwd differs).
+let tmp = os.getenv("TEMP") or os.getenv("TMP") or os.getenv("TMPDIR") or path.cwd()
+let tiny = path.join(tmp, "vyrn_body_path_cs_tiny.bin")
+let made, me = crypto.fromhex_file(tiny, "00")
+if not made then
+  print("err " .. tostring(me))
+else
+  print(soft(http.request{ url = "http://127.0.0.1/", method = "POST", body_path = tiny, max = 0 }))
+end
+
+print("done")

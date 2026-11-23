@@ -1,0 +1,14 @@
+tbl false table true 42
+tbl2 false table 7
+num false number 12
+bool false boolean true
+nil false nil
+num2 false number 5
+xp false h:msg
+xp2 false table
+xp3 false table 1
+pc false msg
+pc2 false msg
+co false table
+rt false string
+stale table string

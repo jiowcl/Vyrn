@@ -1,0 +1,14 @@
+-- vyrn: 12 strict
+def f() -> number
+  yield 1
+end
+
+def g() -> string
+  yield "x"
+end
+
+let co = coroutine.create(f)
+co = coroutine.create(g)
+let ok: bool, s: string = coroutine.resume(co)
+print(ok)
+print(s)

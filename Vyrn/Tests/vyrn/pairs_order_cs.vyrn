@@ -1,0 +1,124 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.68: next()/pairs() order matches the PB VM slot order exactly: dense
+-- part first (struct field names, then extra indices), then the shared
+-- string/number slot region (linear up to 16 slots, hashed after migration),
+-- keys set to nil keep their slot but next() skips them (1.6.112, Lua), table
+-- ids > 4096 start hashed.
+
+def showkv(tb, key, acc)
+    let nk, nv = next(tb, key)
+    if nk == nil then
+        return acc
+    end
+    let piece = acc .. " " .. tostring(nk) .. "=" .. tostring(nv)
+    return showkv(tb, nk, piece)
+end
+
+def showk(tb, key, acc)
+    let nk, nv = next(tb, key)
+    if nk == nil then
+        return acc
+    end
+    let piece = acc .. " " .. tostring(nk)
+    return showk(tb, nk, piece)
+end
+
+def showv(tb, key, acc)
+    let nk, nv = next(tb, key)
+    if nk == nil then
+        return acc
+    end
+    let piece = acc .. " " .. tostring(nv)
+    return showv(tb, nk, piece)
+end
+
+struct Point
+    x: number
+    y: number
+end
+
+let a = {}
+a["b"] = 2
+a[3] = "three"
+a[-1] = "m"
+a["a"] = 1
+a[1] = "one"
+a[0.5] = "half"
+a["b"] = nil
+print("mixed", showkv(a, nil, ""))
+
+let s = {}
+let i = 1
+while i <= 40 do
+    s["k" .. i] = i
+    i = i + 1
+end
+print("str40", showk(s, nil, ""))
+
+let n = {}
+i = 1
+while i <= 24 do
+    n[-i] = i
+    n[i + 0.25] = i
+    i = i + 1
+end
+print("num48", showk(n, nil, ""))
+
+let u = {}
+u["中"] = 1
+u["文"] = 2
+u["é"] = 3
+u["😀"] = 4
+i = 1
+while i <= 14 do
+    u["鍵" .. i] = i + 10
+    i = i + 1
+end
+print("utf8", showv(u, nil, ""))
+
+let mix = {}
+i = 1
+while i <= 12 do
+    mix["s" .. i] = i
+    mix[0 - i * 3] = i
+    i = i + 1
+end
+mix["s5"] = nil
+mix[-9] = nil
+print("mix24", showkv(mix, nil, ""))
+
+let p = Point { x = 1, y = 2 }
+p["z"] = 3
+p[3] = "three"
+p[0] = "zero"
+print("struct", showkv(p, nil, ""))
+let q = Point { x = 5, y = 6 }
+q.x = nil
+print("struct-nil", showkv(q, nil, ""))
+
+let c = {}
+i = 1
+while i <= 20 do
+    c["c" .. i] = i
+    i = i + 1
+end
+table.clear(c)
+c["zz"] = 1
+c["aa"] = 2
+c[-5] = 3
+print("cleared", showkv(c, nil, ""))
+
+let pad = 0
+while pad < 4200 do
+    let tmp = {}
+    pad = pad + 1
+end
+let big = {}
+i = 1
+while i <= 10 do
+    big["b" .. i] = i
+    big[-i] = i
+    i = i + 1
+end
+print("hashed", showk(big, nil, ""))

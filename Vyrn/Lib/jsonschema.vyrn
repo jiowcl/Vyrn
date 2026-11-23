@@ -1,0 +1,347 @@
+-- vyrn: 12
+-- Draft-07 subset JSON Schema validator (1.6.158). Pure Vyrn; no native deps.
+-- Not part of the product stdlib. Load with require("jsonschema").
+-- Supported keywords: type, properties, required, additionalProperties,
+-- items, minItems, maxItems, enum, const, minimum, maximum,
+-- exclusiveMinimum, exclusiveMaximum, minLength, maxLength, pattern
+-- (Lua patterns, not ECMAScript), allOf, anyOf, oneOf.
+-- Ignored: $schema, $id, title, description, default, examples, and anything else.
+
+@doc("True when t is a JSON array (keys exactly 1..n), including empty")
+def is_json_array(t: table) -> bool
+  if type(t) ~= "table" then
+    return false
+  end
+  if t == json.null then
+    return false
+  end
+  let n = #t
+  let i = 1
+  while i <= n do
+    if t[i] == nil then
+      return false
+    end
+    i = i + 1
+  end
+  for k, _ in pairs(t) do
+    if type(k) ~= "number" or math.type(k) ~= "integer" or k < 1 or k > n then
+      return false
+    end
+  end
+  return true
+end
+
+@doc("JSON Schema type name for a Vyrn value (null / boolean / integer / number / string / array / object)")
+def json_type_of(v) -> string
+  if v == nil or v == json.null then
+    return "null"
+  end
+  let t = type(v)
+  if t == "boolean" then
+    return "boolean"
+  end
+  if t == "string" then
+    return "string"
+  end
+  if t == "number" then
+    if math.type(v) == "integer" then
+      return "integer"
+    end
+    return "number"
+  end
+  if t == "table" then
+    if is_json_array(v) then
+      return "array"
+    end
+    return "object"
+  end
+  return t
+end
+
+@doc("Whether value matches a single JSON Schema type name")
+def type_matches(v, typ: string) -> bool
+  let jt = json_type_of(v)
+  if typ == "number" then
+    return jt == "number" or jt == "integer"
+  end
+  if typ == "integer" then
+    return jt == "integer"
+  end
+  return jt == typ
+end
+
+@doc("Deep equality for enum and const (tables by structure; json.null identity)")
+def deep_eq(a, b) -> bool
+  if a == b then
+    return true
+  end
+  if a == json.null or b == json.null then
+    return a == b
+  end
+  if type(a) ~= type(b) then
+    return false
+  end
+  if type(a) ~= "table" then
+    return false
+  end
+  if is_json_array(a) ~= is_json_array(b) then
+    return false
+  end
+  if is_json_array(a) then
+    if #a ~= #b then
+      return false
+    end
+    let i = 1
+    while i <= #a do
+      if not deep_eq(a[i], b[i]) then
+        return false
+      end
+      i = i + 1
+    end
+    return true
+  end
+  for k, va in pairs(a) do
+    if not deep_eq(va, b[k]) then
+      return false
+    end
+  end
+  for k, _ in pairs(b) do
+    if a[k] == nil then
+      return false
+    end
+  end
+  return true
+end
+
+@doc("Child JSON Pointer-ish path")
+def child_path(path: string, key) -> string
+  return path .. "/" .. tostring(key)
+end
+
+@doc("Validate instance at path against schema (internal)")
+def validate_at(instance, schema, path: string)
+  if schema == true then
+    return true
+  end
+  if schema == false then
+    return nil, path .. ": false schema"
+  end
+  if type(schema) ~= "table" then
+    return nil, path .. ": schema must be a table or boolean"
+  end
+
+  -- "const" / "enum" are Vyrn keywords; always use bracket keys in schemas.
+  let sch_const = schema["const"]
+  if sch_const ~= nil then
+    if not deep_eq(instance, sch_const) then
+      return nil, path .. ": const mismatch"
+    end
+  end
+
+  let sch_enum = schema["enum"]
+  if sch_enum ~= nil then
+    if type(sch_enum) ~= "table" or not is_json_array(sch_enum) then
+      return nil, path .. ": enum must be an array"
+    end
+    let found = false
+    let ei = 1
+    while ei <= #sch_enum do
+      if deep_eq(instance, sch_enum[ei]) then
+        found = true
+        break
+      end
+      ei = ei + 1
+    end
+    if not found then
+      return nil, path .. ": value not in enum"
+    end
+  end
+
+  if schema.type ~= nil then
+    let typ = schema.type
+    if type(typ) == "string" then
+      if not type_matches(instance, typ) then
+        return nil, path .. ": expected type " .. typ .. ", got " .. json_type_of(instance)
+      end
+    elif type(typ) == "table" and is_json_array(typ) then
+      let ok_type = false
+      let ti = 1
+      while ti <= #typ do
+        if type(typ[ti]) == "string" and type_matches(instance, typ[ti]) then
+          ok_type = true
+          break
+        end
+        ti = ti + 1
+      end
+      if not ok_type then
+        return nil, path .. ": type mismatch"
+      end
+    else
+      return nil, path .. ": type must be a string or array of strings"
+    end
+  end
+
+  let jt = json_type_of(instance)
+
+  if jt == "string" then
+    let len = #instance
+    if schema.minLength ~= nil and type(schema.minLength) == "number" and len < schema.minLength then
+      return nil, path .. ": string shorter than minLength"
+    end
+    if schema.maxLength ~= nil and type(schema.maxLength) == "number" and len > schema.maxLength then
+      return nil, path .. ": string longer than maxLength"
+    end
+    if schema.pattern ~= nil then
+      if type(schema.pattern) ~= "string" then
+        return nil, path .. ": pattern must be a string"
+      end
+      let mok, mres = pcall(string.match, instance, "^" .. schema.pattern .. "$")
+      if not mok then
+        return nil, path .. ": invalid pattern"
+      end
+      if mres == nil then
+        return nil, path .. ": string does not match pattern"
+      end
+    end
+  end
+
+  if jt == "number" or jt == "integer" then
+    if schema.minimum ~= nil and type(schema.minimum) == "number" and instance < schema.minimum then
+      return nil, path .. ": below minimum"
+    end
+    if schema.maximum ~= nil and type(schema.maximum) == "number" and instance > schema.maximum then
+      return nil, path .. ": above maximum"
+    end
+    if schema.exclusiveMinimum ~= nil and type(schema.exclusiveMinimum) == "number" and instance <= schema.exclusiveMinimum then
+      return nil, path .. ": not above exclusiveMinimum"
+    end
+    if schema.exclusiveMaximum ~= nil and type(schema.exclusiveMaximum) == "number" and instance >= schema.exclusiveMaximum then
+      return nil, path .. ": not below exclusiveMaximum"
+    end
+  end
+
+  if jt == "array" then
+    let n = #instance
+    if schema.minItems ~= nil and type(schema.minItems) == "number" and n < schema.minItems then
+      return nil, path .. ": fewer items than minItems"
+    end
+    if schema.maxItems ~= nil and type(schema.maxItems) == "number" and n > schema.maxItems then
+      return nil, path .. ": more items than maxItems"
+    end
+    if schema.items ~= nil then
+      let ii = 1
+      while ii <= n do
+        let ok_i, err_i = validate_at(instance[ii], schema.items, child_path(path, ii - 1))
+        if not ok_i then
+          return nil, err_i
+        end
+        ii = ii + 1
+      end
+    end
+  end
+
+  if jt == "object" then
+    if schema.required ~= nil then
+      if type(schema.required) ~= "table" or not is_json_array(schema.required) then
+        return nil, path .. ": required must be an array"
+      end
+      let ri = 1
+      while ri <= #schema.required do
+        let rk = schema.required[ri]
+        if type(rk) ~= "string" then
+          return nil, path .. ": required entries must be strings"
+        end
+        if instance[rk] == nil then
+          return nil, child_path(path, rk) .. ": required property missing"
+        end
+        ri = ri + 1
+      end
+    end
+    let props = schema.properties
+    for k, v in pairs(instance) do
+      let sk = tostring(k)
+      let sub = nil
+      if type(props) == "table" and props[sk] ~= nil then
+        sub = props[sk]
+      else
+        let ap = schema.additionalProperties
+        if ap == false then
+          return nil, child_path(path, sk) .. ": additional property not allowed"
+        end
+        if type(ap) == "table" then
+          sub = ap
+        end
+      end
+      if sub ~= nil then
+        let ok_p, err_p = validate_at(v, sub, child_path(path, sk))
+        if not ok_p then
+          return nil, err_p
+        end
+      end
+    end
+  end
+
+  if schema.allOf ~= nil then
+    if type(schema.allOf) ~= "table" or not is_json_array(schema.allOf) then
+      return nil, path .. ": allOf must be an array"
+    end
+    let ai = 1
+    while ai <= #schema.allOf do
+      let ok_a, err_a = validate_at(instance, schema.allOf[ai], path)
+      if not ok_a then
+        return nil, err_a
+      end
+      ai = ai + 1
+    end
+  end
+
+  if schema.anyOf ~= nil then
+    if type(schema.anyOf) ~= "table" or not is_json_array(schema.anyOf) then
+      return nil, path .. ": anyOf must be an array"
+    end
+    let any_ok = false
+    let yi = 1
+    while yi <= #schema.anyOf do
+      let ok_y, _ = validate_at(instance, schema.anyOf[yi], path)
+      if ok_y then
+        any_ok = true
+        break
+      end
+      yi = yi + 1
+    end
+    if not any_ok then
+      return nil, path .. ": anyOf failed"
+    end
+  end
+
+  if schema.oneOf ~= nil then
+    if type(schema.oneOf) ~= "table" or not is_json_array(schema.oneOf) then
+      return nil, path .. ": oneOf must be an array"
+    end
+    let hits = 0
+    let oi = 1
+    while oi <= #schema.oneOf do
+      let ok_o, _ = validate_at(instance, schema.oneOf[oi], path)
+      if ok_o then
+        hits = hits + 1
+      end
+      oi = oi + 1
+    end
+    if hits ~= 1 then
+      return nil, path .. ": oneOf expected exactly one match"
+    end
+  end
+
+  return true
+end
+
+@doc("Validate instance against a Draft-07 subset schema; returns true or nil, err")
+def validate(instance, schema)
+  return validate_at(instance, schema, "$")
+end
+
+let M = {}
+M.validate = validate
+M.is_json_array = is_json_array
+M.json_type_of = json_type_of
+return M

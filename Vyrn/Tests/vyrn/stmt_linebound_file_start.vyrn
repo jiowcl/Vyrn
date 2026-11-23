@@ -1,0 +1,5 @@
+-- vyrn: 12
+-- First statement at TokPos=0 must not LineBound-misparse print(...).
+print("hi", 1)
+(print)("ok")
+print("done")

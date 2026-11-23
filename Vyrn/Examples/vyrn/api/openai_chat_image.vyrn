@@ -1,12 +1,24 @@
 -- vyrn: 12
--- OpenAI Chat Completions image-input example (1.6.126).
+-- OpenAI Chat Completions image-input example (1.6.126; Doc / const / types in 1.6.147).
 -- Sends a data URL built with crypto.tobase64_file. Reads OPENAI_API_KEY
 -- (required) and optional OPENAI_BASE_URL / OPENAI_MODEL / OPENAI_IMAGE.
 -- Never hardcodes secrets. Needs --allow-net. Not run against the real API in CI;
 -- see tests/vyrn/api_clients.vyrn.
 
-let api = require("clients")
+const DEFAULT_BASE: string = "https://api.openai.com"
+const DEFAULT_MODEL: string = "gpt-4o-mini"
+const DEFAULT_PROMPT: string = "Describe this image in one sentence."
 
+@doc("Return the env value, or fallback when unset or empty")
+def env_or(name: string, fallback: string) -> string
+  let v = os.getenv(name) or ""
+  if v == "" then
+    return fallback
+  end
+  return v
+end
+
+@doc("Resolve the image path from OPENAI_IMAGE or local sample.png")
 def find_image()
   let envp = os.getenv("OPENAI_IMAGE") or ""
   if envp ~= "" then return envp end
@@ -22,6 +34,8 @@ def find_image()
   return nil
 end
 
+let api = require("ai.openai")
+
 let key = os.getenv("OPENAI_API_KEY") or ""
 if key == "" then
   print("openai_chat_image: OPENAI_API_KEY is not set. Export a key (never commit it) and rerun with --allow-net.")
@@ -36,9 +50,9 @@ end
 
 let opts = {
   key = key,
-  base = os.getenv("OPENAI_BASE_URL") or "https://api.openai.com",
-  model = os.getenv("OPENAI_MODEL") or "gpt-4o-mini",
-  prompt = "Describe this image in one sentence.",
+  base = env_or("OPENAI_BASE_URL", DEFAULT_BASE),
+  model = env_or("OPENAI_MODEL", DEFAULT_MODEL),
+  prompt = DEFAULT_PROMPT,
   image_path = img,
   image_mime = "image/png",
   timeout = 30

@@ -1,0 +1,12 @@
+-- vyrn: 8
+-- 1.6.75: runtime errors raised inside a required module name the module file.
+let m = require("lib.rt_err_mod")
+def has(s, needle)
+  return string.find(s, needle, 1, true) ~= nil
+end
+let ok, e = pcall(m.err)
+print(ok, has(e, "mod err"))
+let ok2, e2 = pcall(m.callnil)
+print(ok2, has(e2, "rt_err_mod.vyrn:8:"))
+let ok3, e3 = pcall(error, "main err")
+print(ok3, e3)

@@ -1,0 +1,2 @@
+# call-before-bind: conservative MULTRET for no-meta upvalue call-arg
+CALL_MULTRET

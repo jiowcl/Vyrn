@@ -1,0 +1,5 @@
+# Rename to on_check_finish.ps1 to run after each F8 syntax check completes.
+$log = Join-Path $env:TEMP "vyrn_ide_hooks.log"
+$line = "$(Get-Date -Format o) check_ok=$env:VYRN_IDE_CHECK_OK file=$env:VYRN_IDE_FILE"
+Add-Content -LiteralPath $log -Value $line -Encoding UTF8
+Write-Output "[hook] check_finish ok=$env:VYRN_IDE_CHECK_OK -> $log"

@@ -1,0 +1,18 @@
+sizes 4095 4096 4097 10000
+append 20000 20000
+insert 5001 0 5000
+remove 5000 5000 0 4999 1 4999
+shrink 4000 4000 nil
+hole 4999
+refill 10000
+hole3 2
+refill3 10000
+reverse 10000 e x
+clear 0
+regrow 1
+concat 5000 9999
+sort 6000 1 4097 6000
+ipairs 6000
+unpack x x nil
+slice 2001
+empty 0 3

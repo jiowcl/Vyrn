@@ -1,0 +1,680 @@
+-- @compile-safe
+-- 1.6.92: captured locals in slots >= 256 (wide upvalue slot descriptors, VYBC v4).
+-- 1. 300 locals; a closure captures slots near 0, 255, 256 and 299; writes are shared
+def wide()
+  let w1 = 1
+  let w2 = 2
+  let w3 = 3
+  let w4 = 4
+  let w5 = 5
+  let w6 = 6
+  let w7 = 7
+  let w8 = 8
+  let w9 = 9
+  let w10 = 10
+  let w11 = 11
+  let w12 = 12
+  let w13 = 13
+  let w14 = 14
+  let w15 = 15
+  let w16 = 16
+  let w17 = 17
+  let w18 = 18
+  let w19 = 19
+  let w20 = 20
+  let w21 = 21
+  let w22 = 22
+  let w23 = 23
+  let w24 = 24
+  let w25 = 25
+  let w26 = 26
+  let w27 = 27
+  let w28 = 28
+  let w29 = 29
+  let w30 = 30
+  let w31 = 31
+  let w32 = 32
+  let w33 = 33
+  let w34 = 34
+  let w35 = 35
+  let w36 = 36
+  let w37 = 37
+  let w38 = 38
+  let w39 = 39
+  let w40 = 40
+  let w41 = 41
+  let w42 = 42
+  let w43 = 43
+  let w44 = 44
+  let w45 = 45
+  let w46 = 46
+  let w47 = 47
+  let w48 = 48
+  let w49 = 49
+  let w50 = 50
+  let w51 = 51
+  let w52 = 52
+  let w53 = 53
+  let w54 = 54
+  let w55 = 55
+  let w56 = 56
+  let w57 = 57
+  let w58 = 58
+  let w59 = 59
+  let w60 = 60
+  let w61 = 61
+  let w62 = 62
+  let w63 = 63
+  let w64 = 64
+  let w65 = 65
+  let w66 = 66
+  let w67 = 67
+  let w68 = 68
+  let w69 = 69
+  let w70 = 70
+  let w71 = 71
+  let w72 = 72
+  let w73 = 73
+  let w74 = 74
+  let w75 = 75
+  let w76 = 76
+  let w77 = 77
+  let w78 = 78
+  let w79 = 79
+  let w80 = 80
+  let w81 = 81
+  let w82 = 82
+  let w83 = 83
+  let w84 = 84
+  let w85 = 85
+  let w86 = 86
+  let w87 = 87
+  let w88 = 88
+  let w89 = 89
+  let w90 = 90
+  let w91 = 91
+  let w92 = 92
+  let w93 = 93
+  let w94 = 94
+  let w95 = 95
+  let w96 = 96
+  let w97 = 97
+  let w98 = 98
+  let w99 = 99
+  let w100 = 100
+  let w101 = 101
+  let w102 = 102
+  let w103 = 103
+  let w104 = 104
+  let w105 = 105
+  let w106 = 106
+  let w107 = 107
+  let w108 = 108
+  let w109 = 109
+  let w110 = 110
+  let w111 = 111
+  let w112 = 112
+  let w113 = 113
+  let w114 = 114
+  let w115 = 115
+  let w116 = 116
+  let w117 = 117
+  let w118 = 118
+  let w119 = 119
+  let w120 = 120
+  let w121 = 121
+  let w122 = 122
+  let w123 = 123
+  let w124 = 124
+  let w125 = 125
+  let w126 = 126
+  let w127 = 127
+  let w128 = 128
+  let w129 = 129
+  let w130 = 130
+  let w131 = 131
+  let w132 = 132
+  let w133 = 133
+  let w134 = 134
+  let w135 = 135
+  let w136 = 136
+  let w137 = 137
+  let w138 = 138
+  let w139 = 139
+  let w140 = 140
+  let w141 = 141
+  let w142 = 142
+  let w143 = 143
+  let w144 = 144
+  let w145 = 145
+  let w146 = 146
+  let w147 = 147
+  let w148 = 148
+  let w149 = 149
+  let w150 = 150
+  let w151 = 151
+  let w152 = 152
+  let w153 = 153
+  let w154 = 154
+  let w155 = 155
+  let w156 = 156
+  let w157 = 157
+  let w158 = 158
+  let w159 = 159
+  let w160 = 160
+  let w161 = 161
+  let w162 = 162
+  let w163 = 163
+  let w164 = 164
+  let w165 = 165
+  let w166 = 166
+  let w167 = 167
+  let w168 = 168
+  let w169 = 169
+  let w170 = 170
+  let w171 = 171
+  let w172 = 172
+  let w173 = 173
+  let w174 = 174
+  let w175 = 175
+  let w176 = 176
+  let w177 = 177
+  let w178 = 178
+  let w179 = 179
+  let w180 = 180
+  let w181 = 181
+  let w182 = 182
+  let w183 = 183
+  let w184 = 184
+  let w185 = 185
+  let w186 = 186
+  let w187 = 187
+  let w188 = 188
+  let w189 = 189
+  let w190 = 190
+  let w191 = 191
+  let w192 = 192
+  let w193 = 193
+  let w194 = 194
+  let w195 = 195
+  let w196 = 196
+  let w197 = 197
+  let w198 = 198
+  let w199 = 199
+  let w200 = 200
+  let w201 = 201
+  let w202 = 202
+  let w203 = 203
+  let w204 = 204
+  let w205 = 205
+  let w206 = 206
+  let w207 = 207
+  let w208 = 208
+  let w209 = 209
+  let w210 = 210
+  let w211 = 211
+  let w212 = 212
+  let w213 = 213
+  let w214 = 214
+  let w215 = 215
+  let w216 = 216
+  let w217 = 217
+  let w218 = 218
+  let w219 = 219
+  let w220 = 220
+  let w221 = 221
+  let w222 = 222
+  let w223 = 223
+  let w224 = 224
+  let w225 = 225
+  let w226 = 226
+  let w227 = 227
+  let w228 = 228
+  let w229 = 229
+  let w230 = 230
+  let w231 = 231
+  let w232 = 232
+  let w233 = 233
+  let w234 = 234
+  let w235 = 235
+  let w236 = 236
+  let w237 = 237
+  let w238 = 238
+  let w239 = 239
+  let w240 = 240
+  let w241 = 241
+  let w242 = 242
+  let w243 = 243
+  let w244 = 244
+  let w245 = 245
+  let w246 = 246
+  let w247 = 247
+  let w248 = 248
+  let w249 = 249
+  let w250 = 250
+  let w251 = 251
+  let w252 = 252
+  let w253 = 253
+  let w254 = 254
+  let w255 = 255
+  let w256 = 256
+  let w257 = 257
+  let w258 = 258
+  let w259 = 259
+  let w260 = 260
+  let w261 = 261
+  let w262 = 262
+  let w263 = 263
+  let w264 = 264
+  let w265 = 265
+  let w266 = 266
+  let w267 = 267
+  let w268 = 268
+  let w269 = 269
+  let w270 = 270
+  let w271 = 271
+  let w272 = 272
+  let w273 = 273
+  let w274 = 274
+  let w275 = 275
+  let w276 = 276
+  let w277 = 277
+  let w278 = 278
+  let w279 = 279
+  let w280 = 280
+  let w281 = 281
+  let w282 = 282
+  let w283 = 283
+  let w284 = 284
+  let w285 = 285
+  let w286 = 286
+  let w287 = 287
+  let w288 = 288
+  let w289 = 289
+  let w290 = 290
+  let w291 = 291
+  let w292 = 292
+  let w293 = 293
+  let w294 = 294
+  let w295 = 295
+  let w296 = 296
+  let w297 = 297
+  let w298 = 298
+  let w299 = 299
+  let w300 = 300
+  return function()
+    return w1 + w255 + w256 + w257 + w300
+  end, function(d)
+    w256 = w256 + d
+    w300 = w300 + d
+  end, function()
+    return function()
+      return w256 * 1000 + w300
+    end
+  end
+end
+let get, bump, outer = wide()
+print("1a", get())
+bump(7)
+print("1b", get())
+let inner = outer()
+print("1c", inner())
+bump(1)
+print("1d", inner(), get())
+-- 2. a captured local function and a value in high slots, passed through three closure levels
+def wide2()
+  let z1 = 1
+  let z2 = 2
+  let z3 = 3
+  let z4 = 4
+  let z5 = 5
+  let z6 = 6
+  let z7 = 7
+  let z8 = 8
+  let z9 = 9
+  let z10 = 10
+  let z11 = 11
+  let z12 = 12
+  let z13 = 13
+  let z14 = 14
+  let z15 = 15
+  let z16 = 16
+  let z17 = 17
+  let z18 = 18
+  let z19 = 19
+  let z20 = 20
+  let z21 = 21
+  let z22 = 22
+  let z23 = 23
+  let z24 = 24
+  let z25 = 25
+  let z26 = 26
+  let z27 = 27
+  let z28 = 28
+  let z29 = 29
+  let z30 = 30
+  let z31 = 31
+  let z32 = 32
+  let z33 = 33
+  let z34 = 34
+  let z35 = 35
+  let z36 = 36
+  let z37 = 37
+  let z38 = 38
+  let z39 = 39
+  let z40 = 40
+  let z41 = 41
+  let z42 = 42
+  let z43 = 43
+  let z44 = 44
+  let z45 = 45
+  let z46 = 46
+  let z47 = 47
+  let z48 = 48
+  let z49 = 49
+  let z50 = 50
+  let z51 = 51
+  let z52 = 52
+  let z53 = 53
+  let z54 = 54
+  let z55 = 55
+  let z56 = 56
+  let z57 = 57
+  let z58 = 58
+  let z59 = 59
+  let z60 = 60
+  let z61 = 61
+  let z62 = 62
+  let z63 = 63
+  let z64 = 64
+  let z65 = 65
+  let z66 = 66
+  let z67 = 67
+  let z68 = 68
+  let z69 = 69
+  let z70 = 70
+  let z71 = 71
+  let z72 = 72
+  let z73 = 73
+  let z74 = 74
+  let z75 = 75
+  let z76 = 76
+  let z77 = 77
+  let z78 = 78
+  let z79 = 79
+  let z80 = 80
+  let z81 = 81
+  let z82 = 82
+  let z83 = 83
+  let z84 = 84
+  let z85 = 85
+  let z86 = 86
+  let z87 = 87
+  let z88 = 88
+  let z89 = 89
+  let z90 = 90
+  let z91 = 91
+  let z92 = 92
+  let z93 = 93
+  let z94 = 94
+  let z95 = 95
+  let z96 = 96
+  let z97 = 97
+  let z98 = 98
+  let z99 = 99
+  let z100 = 100
+  let z101 = 101
+  let z102 = 102
+  let z103 = 103
+  let z104 = 104
+  let z105 = 105
+  let z106 = 106
+  let z107 = 107
+  let z108 = 108
+  let z109 = 109
+  let z110 = 110
+  let z111 = 111
+  let z112 = 112
+  let z113 = 113
+  let z114 = 114
+  let z115 = 115
+  let z116 = 116
+  let z117 = 117
+  let z118 = 118
+  let z119 = 119
+  let z120 = 120
+  let z121 = 121
+  let z122 = 122
+  let z123 = 123
+  let z124 = 124
+  let z125 = 125
+  let z126 = 126
+  let z127 = 127
+  let z128 = 128
+  let z129 = 129
+  let z130 = 130
+  let z131 = 131
+  let z132 = 132
+  let z133 = 133
+  let z134 = 134
+  let z135 = 135
+  let z136 = 136
+  let z137 = 137
+  let z138 = 138
+  let z139 = 139
+  let z140 = 140
+  let z141 = 141
+  let z142 = 142
+  let z143 = 143
+  let z144 = 144
+  let z145 = 145
+  let z146 = 146
+  let z147 = 147
+  let z148 = 148
+  let z149 = 149
+  let z150 = 150
+  let z151 = 151
+  let z152 = 152
+  let z153 = 153
+  let z154 = 154
+  let z155 = 155
+  let z156 = 156
+  let z157 = 157
+  let z158 = 158
+  let z159 = 159
+  let z160 = 160
+  let z161 = 161
+  let z162 = 162
+  let z163 = 163
+  let z164 = 164
+  let z165 = 165
+  let z166 = 166
+  let z167 = 167
+  let z168 = 168
+  let z169 = 169
+  let z170 = 170
+  let z171 = 171
+  let z172 = 172
+  let z173 = 173
+  let z174 = 174
+  let z175 = 175
+  let z176 = 176
+  let z177 = 177
+  let z178 = 178
+  let z179 = 179
+  let z180 = 180
+  let z181 = 181
+  let z182 = 182
+  let z183 = 183
+  let z184 = 184
+  let z185 = 185
+  let z186 = 186
+  let z187 = 187
+  let z188 = 188
+  let z189 = 189
+  let z190 = 190
+  let z191 = 191
+  let z192 = 192
+  let z193 = 193
+  let z194 = 194
+  let z195 = 195
+  let z196 = 196
+  let z197 = 197
+  let z198 = 198
+  let z199 = 199
+  let z200 = 200
+  let z201 = 201
+  let z202 = 202
+  let z203 = 203
+  let z204 = 204
+  let z205 = 205
+  let z206 = 206
+  let z207 = 207
+  let z208 = 208
+  let z209 = 209
+  let z210 = 210
+  let z211 = 211
+  let z212 = 212
+  let z213 = 213
+  let z214 = 214
+  let z215 = 215
+  let z216 = 216
+  let z217 = 217
+  let z218 = 218
+  let z219 = 219
+  let z220 = 220
+  let z221 = 221
+  let z222 = 222
+  let z223 = 223
+  let z224 = 224
+  let z225 = 225
+  let z226 = 226
+  let z227 = 227
+  let z228 = 228
+  let z229 = 229
+  let z230 = 230
+  let z231 = 231
+  let z232 = 232
+  let z233 = 233
+  let z234 = 234
+  let z235 = 235
+  let z236 = 236
+  let z237 = 237
+  let z238 = 238
+  let z239 = 239
+  let z240 = 240
+  let z241 = 241
+  let z242 = 242
+  let z243 = 243
+  let z244 = 244
+  let z245 = 245
+  let z246 = 246
+  let z247 = 247
+  let z248 = 248
+  let z249 = 249
+  let z250 = 250
+  let z251 = 251
+  let z252 = 252
+  let z253 = 253
+  let z254 = 254
+  let z255 = 255
+  let z256 = 256
+  let z257 = 257
+  let z258 = 258
+  let z259 = 259
+  let z260 = 260
+  let z261 = 261
+  let z262 = 262
+  let z263 = 263
+  let z264 = 264
+  let z265 = 265
+  let z266 = 266
+  let z267 = 267
+  let z268 = 268
+  let z269 = 269
+  let z270 = 270
+  let z271 = 271
+  let z272 = 272
+  let z273 = 273
+  let z274 = 274
+  let z275 = 275
+  let z276 = 276
+  let z277 = 277
+  let z278 = 278
+  let z279 = 279
+  let z280 = 280
+  let dbl = function(x) return x * 2 end
+  let acc = 1000
+  return function()
+    return function()
+      return function(k)
+        acc = acc + dbl(k) + z280
+        return acc
+      end
+    end
+  end
+end
+let mk = wide2()
+let f3 = mk()()
+print("2a", f3(1), f3(10))
+let g3 = mk()()
+print("2b", g3(0))
+-- 3. a 300-argument call assigned to several targets (generic call path)
+def many(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, p64, p65, p66, p67, p68, p69, p70, p71, p72, p73, p74, p75, p76, p77, p78, p79, p80, p81, p82, p83, p84, p85, p86, p87, p88, p89, p90, p91, p92, p93, p94, p95, p96, p97, p98, p99, p100, p101, p102, p103, p104, p105, p106, p107, p108, p109, p110, p111, p112, p113, p114, p115, p116, p117, p118, p119, p120, p121, p122, p123, p124, p125, p126, p127, p128, p129, p130, p131, p132, p133, p134, p135, p136, p137, p138, p139, p140, p141, p142, p143, p144, p145, p146, p147, p148, p149, p150, p151, p152, p153, p154, p155, p156, p157, p158, p159, p160, p161, p162, p163, p164, p165, p166, p167, p168, p169, p170, p171, p172, p173, p174, p175, p176, p177, p178, p179, p180, p181, p182, p183, p184, p185, p186, p187, p188, p189, p190, p191, p192, p193, p194, p195, p196, p197, p198, p199, p200, p201, p202, p203, p204, p205, p206, p207, p208, p209, p210, p211, p212, p213, p214, p215, p216, p217, p218, p219, p220, p221, p222, p223, p224, p225, p226, p227, p228, p229, p230, p231, p232, p233, p234, p235, p236, p237, p238, p239, p240, p241, p242, p243, p244, p245, p246, p247, p248, p249, p250, p251, p252, p253, p254, p255, p256, p257, p258, p259, p260, p261, p262, p263, p264, p265, p266, p267, p268, p269, p270, p271, p272, p273, p274, p275, p276, p277, p278, p279, p280, p281, p282, p283, p284, p285, p286, p287, p288, p289, p290, p291, p292, p293, p294, p295, p296, p297, p298, p299, p300)
+  return p1 + p300, p256
+end
+let ma, mb = many(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300)
+print("3a", ma, mb)
+-- 4. 16 enclosing functions (the nesting limit) still compile and run
+def lvl0()
+  let x0 = 7
+  return function()
+    let x1 = 1
+    return function()
+      let x2 = 2
+      return function()
+        let x3 = 3
+        return function()
+          let x4 = 4
+          return function()
+            let x5 = 5
+            return function()
+              let x6 = 6
+              return function()
+                let x7 = 7
+                return function()
+                  let x8 = 8
+                  return function()
+                    let x9 = 9
+                    return function()
+                      let x10 = 10
+                      return function()
+                        let x11 = 11
+                        return function()
+                          let x12 = 12
+                          return function()
+                            let x13 = 13
+                            return function()
+                              let x14 = 14
+                              return function()
+                                let x15 = 15
+                                return x0 * 100 + x1 + x15
+                              end
+                            end
+                          end
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+let lg = lvl0()
+for i = 1, 14 do lg = lg() end
+print("4a", lg())

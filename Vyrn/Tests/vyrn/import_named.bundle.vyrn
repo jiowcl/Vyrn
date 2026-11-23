@@ -1,0 +1,22 @@
+-- vyrn: 12
+-- vyrn bundle: generated from tests\vyrn\import_named.vyrn
+
+let __bundle_pl = package.preload
+
+-- --- module: lib.mod_exports @ tests\vyrn\lib\mod_exports.vyrn ---
+def __bundle_mod_lib_mod_exports(__modname)
+def run(label: string) -> string
+    return "ok:" .. label
+end
+
+def tag() -> string
+    return "tag"
+end
+
+return { run = run, tag = tag }
+end
+__bundle_pl["lib.mod_exports"] = __bundle_mod_lib_mod_exports
+
+-- --- entry ---
+import { run, tag } from "lib.mod_exports"
+print(run("Vyrn"), tag())

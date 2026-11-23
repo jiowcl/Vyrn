@@ -1,0 +1,164 @@
+-- vyrn: 12
+-- Thin ISO-8601 helpers on top of os.date / os.time (1.6.171).
+-- Pure Vyrn; no native deps. Not part of the product stdlib.
+-- Load with require("time").
+--
+-- Contract:
+--   format([unix [, opts]]) -> string
+--     opts.utc truthy → YYYY-MM-DDTHH:MM:SSZ (UTC via os.date "!*t")
+--     else             → YYYY-MM-DDTHH:MM:SS  (local via os.date "*t")
+--   parse(s) -> number | nil, err
+--     Strict subset: YYYY-MM-DD[THH:MM:SS][Z|±HH:MM]
+
+@doc("Zero-pad a non-negative integer to two digits")
+def pad2(n: number) -> string
+  if n < 10 then
+    return "0" .. tostring(n)
+  end
+  return tostring(n)
+end
+
+@doc("Format unix seconds as ISO-8601; opts.utc selects Zulu time")
+def format(unix, opts)
+  let t = unix
+  if t == nil then
+    t = os.time()
+  elseif type(t) ~= "number" then
+    return nil, "time.format: number expected"
+  end
+  let utc = false
+  if type(opts) == "table" and opts.utc then
+    utc = true
+  end
+  let d
+  if utc then
+    d = os.date("!*t", t)
+  else
+    d = os.date("*t", t)
+  end
+  let s = tostring(d.year) .. "-" .. pad2(d.month) .. "-" .. pad2(d.day) .. "T" .. pad2(d.hour) .. ":" .. pad2(d.min) .. ":" .. pad2(d.sec)
+  if utc then
+    return s .. "Z"
+  end
+  return s
+end
+
+@doc("Parse a digit run of exact length starting at pos; returns value, next pos or nil")
+def parse_digits(s: string, pos: number, len: number)
+  let i = pos
+  let endp = pos + len - 1
+  if endp > #s then
+    return nil
+  end
+  let n = 0
+  while i <= endp do
+    let c = string.byte(s, i)
+    if c < 48 or c > 57 then
+      return nil
+    end
+    n = n * 10 + (c - 48)
+    i = i + 1
+  end
+  return n, i
+end
+
+@doc("Local-minus-UTC offset in seconds at instant t using !*t round-trip")
+def tz_offset_sec(t: number) -> number
+  return os.difftime(t, os.time(os.date("!*t", t)))
+end
+
+@doc("Parse strict ISO-8601 subset to unix seconds; nil, err on failure")
+def parse(s: string)
+  if type(s) ~= "string" then
+    return nil, "time.parse: string expected"
+  end
+  if #s < 10 then
+    return nil, "time.parse: too short"
+  end
+  let y, p = parse_digits(s, 1, 4)
+  if y == nil or string.sub(s, p, p) ~= "-" then
+    return nil, "time.parse: bad year"
+  end
+  p = p + 1
+  let mo, p2 = parse_digits(s, p, 2)
+  if mo == nil or string.sub(s, p2, p2) ~= "-" then
+    return nil, "time.parse: bad month"
+  end
+  p = p2 + 1
+  let d, p3 = parse_digits(s, p, 2)
+  if d == nil then
+    return nil, "time.parse: bad day"
+  end
+  p = p3
+  let h = 0
+  let mi = 0
+  let sec = 0
+  if p <= #s and string.sub(s, p, p) == "T" then
+    p = p + 1
+    let h2, p4 = parse_digits(s, p, 2)
+    if h2 == nil or string.sub(s, p4, p4) ~= ":" then
+      return nil, "time.parse: bad hour"
+    end
+    h = h2
+    p = p4 + 1
+    let mi2, p5 = parse_digits(s, p, 2)
+    if mi2 == nil or string.sub(s, p5, p5) ~= ":" then
+      return nil, "time.parse: bad minute"
+    end
+    mi = mi2
+    p = p5 + 1
+    let sec2, p6 = parse_digits(s, p, 2)
+    if sec2 == nil then
+      return nil, "time.parse: bad second"
+    end
+    sec = sec2
+    p = p6
+  end
+  let offset_min = 0
+  let is_utc = false
+  if p <= #s then
+    let ch = string.sub(s, p, p)
+    if ch == "Z" then
+      is_utc = true
+      p = p + 1
+    elseif ch == "+" or ch == "-" then
+      let sign = 1
+      if ch == "-" then
+        sign = -1
+      end
+      p = p + 1
+      let oh, p7 = parse_digits(s, p, 2)
+      if oh == nil or string.sub(s, p7, p7) ~= ":" then
+        return nil, "time.parse: bad offset"
+      end
+      p = p7 + 1
+      let om, p8 = parse_digits(s, p, 2)
+      if om == nil then
+        return nil, "time.parse: bad offset"
+      end
+      p = p8
+      offset_min = sign * (oh * 60 + om)
+      is_utc = true
+    else
+      return nil, "time.parse: trailing junk"
+    end
+  end
+  if p <= #s then
+    return nil, "time.parse: trailing junk"
+  end
+  if mo < 1 or mo > 12 or d < 1 or d > 31 or h > 23 or mi > 59 or sec > 60 then
+    return nil, "time.parse: out of range"
+  end
+  let tab = { year = y, month = mo, day = d, hour = h, min = mi, sec = sec }
+  let as_local = os.time(tab)
+  if is_utc then
+    -- os.time reads tab as local; subtract TZ offset so wall clock is UTC, then apply ±offset.
+    return as_local - tz_offset_sec(as_local) - offset_min * 60
+  end
+  return as_local
+end
+
+let M = {}
+M.format = format
+M.parse = parse
+return M

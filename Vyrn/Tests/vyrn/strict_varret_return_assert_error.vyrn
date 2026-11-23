@@ -1,0 +1,11 @@
+-- vyrn: 12 strict
+def pair() -> number, string
+  return 7, "ok"
+end
+
+-- assert forwards callee returns 1:1 (no leading status bool).
+def via_assert() -> bool, number, string
+  return assert(pair())
+end
+
+via_assert()

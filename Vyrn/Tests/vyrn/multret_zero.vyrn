@@ -1,0 +1,81 @@
+-- @compile-safe
+-- 1.6.87: a zero-result call (or empty ...) in an expanding position yields ZERO values
+-- (Lua). Expanding: last call argument, last table-constructor element, last return value.
+-- Non-expanding positions (operands, parens, non-last elements, let targets) still see nil.
+def none() end
+def none2() return end
+def one() return 1 end
+def two() return 1, 2 end
+def cnt(...) return select("#", ...) end
+def va(...) return ... end
+def vk(...) return cnt(...) end
+
+-- last argument: builtins and Vyrn functions
+print("arg", select("#", none()), select("#", none2()), cnt(none()), cnt(1, none()))
+print("arg2", cnt(none(), none()), cnt(none(), 1), cnt(one()), cnt(two()))
+-- nested
+print("nest", cnt(cnt(none())), cnt(cnt(none(), none())), cnt(va(none())), cnt(va()))
+print("vk", vk(), vk(none()), vk(1, none()))
+-- print with zero args prints an empty line
+print(none())
+print("after-empty")
+
+-- methods
+let o = {}
+o.m = function(self) end
+o.one = function(self) return 1 end
+o.k = function(self, ...) return select("#", ...) end
+print("meth", cnt(o:m()), o:k(none()), o:k(o:m()), o:k(o:one()), o:k(1, o:m()))
+
+-- table constructors
+def ev(...) return {...} end
+print("tbl", #{none()}, #{1, none()}, #ev(), #ev(none()))
+-- a table constructor or function literal argument is one value, whatever its body calls
+def setidx(t, v) t[1] = v end
+print("lit", cnt({none()}), cnt({setidx({}, 1)}), cnt("x", {none()}), cnt({k = none()}), cnt(function() setidx({}, 1) end))
+def mk() return {none()} end
+def mk2() return function() none() end end
+print("lit2", cnt(mk()), #mk(), cnt(mk2()), type(mk2()))
+let p = table.pack(none())
+print("pack", p.n, table.pack(none(), none()).n, table.pack(1, none()).n)
+
+-- return lists
+print("ret", select("#", (function() return none() end)()), select("#", (function() end)()))
+def ret2() return none(), none() end
+def ret3() return 1, none() end
+print("ret2", cnt(ret2()), cnt(ret3()))
+
+-- non-expanding positions keep one nil
+let a, b = none()
+print("let", a, b)
+let c = none()
+print("let1", c)
+print("paren", cnt((none())), cnt((va())))
+let x = none() or "d"
+print("ops", x, not none(), none() == nil)
+
+-- pcall
+print("pcall", select("#", pcall(none)), pcall(none))
+print("pcall2", select("#", pcall(two)), pcall(two))
+
+-- coroutines
+let co = coroutine.create(function(...)
+  print("co-start", select("#", ...))
+  let r = coroutine.yield()
+  print("co-r", r)
+  let s = coroutine.yield(none())
+  print("co-s", s)
+end)
+print("res1", select("#", coroutine.resume(co)))
+print("res2", select("#", coroutine.resume(co, none())))
+print("res3", select("#", coroutine.resume(co)))
+let co2 = coroutine.create(function(...) return ... end)
+print("res4", select("#", coroutine.resume(co2)))
+-- Lua 5.4: a wrap() proxy returns only the payload, so a zero-value yield/finish is 0 results.
+let wr = coroutine.wrap(function(...) print("wr-start", select("#", ...)) coroutine.yield() end)
+print("wrap", cnt(wr()), cnt(wr()))
+
+-- Vyrn leniency (Lua raises "wrong number of arguments to 'insert'"): no-op.
+let t = {}
+table.insert(t, none())
+print("insert", #t)

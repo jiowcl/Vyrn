@@ -1,0 +1,13 @@
+-- 1.6.121: short timeout against /slow must return nil, err within bound.
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+
+let t0 = os.clock()
+let r, e = http.get(base .. "/slow", {timeout = 0.5})
+let elapsed = os.clock() - t0
+assert(r == nil, "expected nil response on timeout")
+assert(e and string.find(tostring(e), "timed out", 1, true), "expected timed out err, got: " .. tostring(e))
+assert(elapsed < 2.5, "timeout took too long: " .. tostring(elapsed))
+print("timeout_ok")
+print("done")

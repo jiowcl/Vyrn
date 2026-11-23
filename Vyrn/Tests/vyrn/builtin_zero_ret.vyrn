@@ -1,0 +1,50 @@
+-- @compile-safe
+-- 1.6.88: builtins that return nothing in Lua (print, table.insert, table.sort,
+-- math.randomseed, select past the end) return zero values.
+def cnt(...) return select("#", ...) end
+def rp() return print() end
+print(select("#", select(2, "a")))
+let t0 = {select(2, "a")}
+print(#t0)
+print(pcall(select, 2, "a"))
+print(select("#", print()))
+print(pcall(print))
+let u = {print()}
+print(#u)
+let x = print()
+print(x)
+let q = {}
+print(select("#", table.insert(q, 1)))
+print(pcall(table.insert, q, 2))
+print(select("#", table.sort(q)))
+print(select("#", collectgarbage("count")))
+print("a", print(), 1)
+print("b", (print()))
+let a, b = print()
+print("c", a, b)
+print("d", cnt(print()))
+print("e", cnt(print(), 2))
+print("f", cnt(rp()))
+print("g", print() or "dflt")
+let q2 = {3, 1, 2}
+print("h", cnt(table.sort(q2)), q2[1])
+print("i", cnt(table.insert(q2, 9)), #q2)
+print("j", select("#", math.randomseed(1)))
+print("k", pcall(table.insert, q2, 5))
+def main()
+  print("l", cnt(later()))
+  print("m", cnt(later2()))
+  print("l2", later())
+  let t = {later()}
+  print("l3", #t)
+  print("r", fact(5))
+  print("s", cnt(rec(3)))
+end
+def later() return 1, 2, 3 end
+def later2() end
+def fact(n) if n <= 1 then return 1 end return n * fact(n - 1) end
+def rec(n) if n == 0 then return 7, 8 end return rec(n - 1) end
+main()
+print("n", cnt(select(5, 1, 2)))
+let t = {print(), print()}
+print("o", #t, t[1])

@@ -1,0 +1,6 @@
+get 1 2
+dyn 2
+set 10 10
+pairs1 x 10
+pairs2 y 2
+next-sum 12 1 1

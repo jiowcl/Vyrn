@@ -1,0 +1,56 @@
+-- @compile-safe
+-- vyrn: 13
+-- 1.6.128: http.sse_events parser and streaming argument policy (both runtimes).
+-- Parser and shape errors need no --allow-net.
+
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+
+def show(s)
+  let t = string.gsub(tostring(s), "\r", "\\r")
+  t = string.gsub(t, "\n", "\\n")
+  return t
+end
+
+print(msg(pcall(function()
+  http.sse_events(1)
+end)))
+
+print(msg(pcall(function()
+  http.stream{ url = "http://127.0.0.1/" }
+end)))
+
+print(msg(pcall(function()
+  http.stream{ on_chunk = function(c) end }
+end)))
+
+print(msg(pcall(function()
+  http.request{ url = "http://127.0.0.1/", on_chunk = 1 }
+end)))
+
+let evs, rest = http.sse_events("data: hello\n\n")
+print("simple", #evs, evs[1].event, evs[1].data, show(rest))
+
+evs, rest = http.sse_events("event: ping\ndata: line1\ndata: line2\n\n")
+print("multi", #evs, evs[1].event, show(evs[1].data), show(rest))
+
+evs, rest = http.sse_events(": comment\n\ndata: x\n\n")
+print("comment", #evs, evs[1].event, evs[1].data, show(rest))
+
+evs, rest = http.sse_events("data: hello\n")
+print("leftover", #evs, show(rest))
+
+evs, rest = http.sse_events("id: 7\nretry: 3000\ndata: [DONE]\n\n")
+print("done", #evs, evs[1].event, evs[1].data, evs[1].id, evs[1].retry, show(rest))
+
+evs, rest = http.sse_events("data: a\r\n\r\ndata: b\r\r")
+print("cr", #evs, evs[1].data, evs[2].data, show(rest))
+
+evs, rest = http.sse_events("data: he")
+evs, rest = http.sse_events(rest .. "llo\n\ndata: x")
+print("feed", #evs, evs[1].data, show(rest))
+
+print("empty", #http.sse_events(""))
+print("done")

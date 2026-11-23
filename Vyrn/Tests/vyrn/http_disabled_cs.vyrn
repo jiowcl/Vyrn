@@ -1,0 +1,9 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.120: http.* disabled without capabilities (compile-safe; no network).
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+print(type(http), type(http.get))
+print(msg(pcall(http.get, "http://127.0.0.1:9/")))

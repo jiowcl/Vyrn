@@ -1,0 +1,20 @@
+-- vyrn: 12
+-- 1.6.159: duration_ms > 0 alone stops the accept loop (no max_requests).
+-- Harness runs with --allow-listen; port from VYRN_HTTP_SERVE_PORT.
+let port = tonumber(os.getenv("VYRN_HTTP_SERVE_PORT") or "0")
+assert(port > 0)
+let t0 = os.clock()
+let r = http.serve({
+  host = "127.0.0.1",
+  port = port,
+  duration_ms = 400,
+  handler = function(req)
+    return { status = 200, body = "x", content_type = "text/plain" }
+  end
+})
+let elapsed = os.clock() - t0
+assert(type(r) == "table")
+assert(r.served == 0)
+-- Should return soon after 400ms, not the 30s safety cap.
+assert(elapsed < 5.0)
+print("short_duration_ok", r.served)

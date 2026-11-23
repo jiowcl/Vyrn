@@ -1,0 +1,11 @@
+-- vyrn: 10
+struct Vec2
+    def length(self)
+        return self.x * self.x + self.y * self.y
+    end
+    x: number
+    y: number
+end
+
+let v = Vec2 { x = 3, y = 4 }
+print(v:length())

@@ -1,4 +1,7 @@
--- examples/vyrn/showcase/json.vyrn — json.encode / decode (1.6.123)
+-- @compile-safe
+-- vyrn: 12
+-- Showcase: json.encode / decode (1.6.123)
+
 let tags = {"lang", "math"}
 let user = {}
 user.name = "Ada"
@@ -6,7 +9,7 @@ user.id = 42
 user.tags = tags
 let s = json.encode(tags)
 print("tags", s)
-let back, err = json.decode('{"name":"Ada","id":42}')
+let back, err = json.decode(json.encode({ name = "Ada", id = 42 }))
 assert(back, err)
 print("name", back.name)
 print("id", back.id, math.type(back.id))

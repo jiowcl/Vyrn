@@ -1,0 +1,53 @@
+-- @compile-safe
+-- 1.6.123: json.encode / json.decode / json.null
+assert(json.encode(nil) == "null")
+assert(json.encode(true) == "true")
+assert(json.encode(false) == "false")
+assert(json.encode(1) == "1")
+assert(json.encode(1.0) == "1.0")
+assert(json.encode("hi") == '"hi"')
+assert(json.encode(json.null) == "null")
+
+let a = {10, 20, 30}
+assert(json.encode(a) == "[10,20,30]")
+
+let o = {}
+o.n = 42
+assert(json.encode(o) == '{"n":42}')
+
+let pretty = json.encode(a, {pretty = true})
+assert(string.find(pretty, "\n", 1, true) ~= nil)
+let back, perr = json.decode(pretty)
+assert(back, perr)
+assert(back[1] == 10 and back[2] == 20 and back[3] == 30)
+
+let t, e = json.decode('{"ok":true,"n":42}')
+assert(t, e)
+assert(t.ok == true and t.n == 42)
+assert(math.type(t.n) == "integer")
+
+let n1, e1 = json.decode("1")
+assert(e1 == nil)
+assert(n1 == 1 and math.type(n1) == "integer")
+let n2, e2 = json.decode("1.0")
+assert(e2 == nil)
+assert(n2 == 1 and math.type(n2) == "float")
+
+let z = json.decode("null")
+assert(z == json.null)
+assert(json.encode(z) == "null")
+
+let u, ue = json.decode('"\\u4e2d"')
+assert(u, ue)
+assert(u == "中")
+
+let esc, ee = json.decode('"a\\nb\\t\\"c"')
+assert(esc, ee)
+assert(esc == "a\nb\t\"c")
+assert(json.encode(esc) == '"a\\nb\\t\\"c"')
+
+-- empty table is an array
+assert(json.encode({}) == "[]")
+
+print("json_basic_ok")
+print("done")

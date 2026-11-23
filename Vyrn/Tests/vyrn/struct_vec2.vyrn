@@ -1,3 +1,4 @@
+-- @compile-safe
 -- vyrn: 9
 struct Vec2
     x: number

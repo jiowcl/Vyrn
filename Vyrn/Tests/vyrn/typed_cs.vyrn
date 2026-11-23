@@ -1,0 +1,40 @@
+-- @compile-safe
+-- vyrn: 12 strict
+-- Type annotations under Compile: CHECK_TYPE / CHECK_RET, struct typename
+-- checks, optional struct fields (JMP_IF_NIL), and type errors via pcall.
+
+struct Point
+    x: number
+    y: number = 0
+end
+
+def Add(a: number, b: number) -> number
+    return a + b
+end
+
+def MakePoint(x: number) -> Point
+    return Point { x = x }
+end
+
+def SumPoint(p: Point) -> number
+    return p.x + p.y
+end
+
+def Label(n: number) -> string
+    return "n=" .. n
+end
+
+let p = MakePoint(3)
+print(p.x, p.y)
+let q = Point { x = 1, y = 2 }
+print(q.x, q.y)
+print(Add(2, 3), SumPoint(q), Label(4))
+
+let ok1, e1 = pcall(Add, "a", 1)
+let m1 = string.match(e1, "type mismatch")
+print("bad-arg", ok1, m1)
+let ok2, e2 = pcall(SumPoint, {x = 1, y = 1})
+let m2 = string.match(e2, "expected Point")
+print("bad-struct", ok2, m2)
+let ok3, r3 = pcall(SumPoint, p)
+print("good-struct", ok3, r3)

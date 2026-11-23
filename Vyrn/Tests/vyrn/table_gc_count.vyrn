@@ -1,0 +1,30 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- table_gc_count (1.6.104 PB VM, 1.6.107 libvyrnrt): collectgarbage("count") reports the live table heap,
+-- so it stays bounded under churn and drops once tables (and cycles) become unreachable.
+-- Both VMs reclaim unreachable tables (libvyrnrt since 1.6.107).
+collectgarbage()
+let c0 = collectgarbage("count")
+let s = 0
+for i = 1, 300000 do
+  let t = {i, i, name = "n" .. i}
+  s = s + t[2]
+end
+collectgarbage()
+let c1 = collectgarbage("count")
+print("churn", s == 45000150000, c1 - c0 < 256)
+keep = {}
+for i = 1, 20000 do keep[i] = {i, tag = "k" .. i} end
+let ck = collectgarbage("count")
+for i = 1, 20000 do
+  let a = {}
+  let b = {a = a}
+  a.b = b
+end
+collectgarbage()
+let cc = collectgarbage("count")
+print("live", ck - c0 > 1000, cc - ck < 256, keep[20000].tag == "k20000")
+keep = nil
+collectgarbage()
+let c2 = collectgarbage("count")
+print("drop", c2 < ck, c2 - c0 < 256)

@@ -1,0 +1,17 @@
+-- vyrn: 12 strict
+def worker() -> number, string
+  yield 1, "a"
+  return 2, "b"
+end
+
+let co = coroutine.create(worker)
+let ok: bool, n: number, s: string = coroutine.resume(co)
+print(ok, n, s)
+let ok2: bool, n2: number, s2: string = coroutine.resume(co)
+print(ok2, n2, s2)
+
+def via_resume() -> bool, number, string
+  let c = coroutine.create(worker)
+  return coroutine.resume(c)
+end
+print("ret", via_resume())

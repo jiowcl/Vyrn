@@ -1,0 +1,15 @@
+-- vyrn: 12
+let path = "tests/vyrn/_io_chunk_test.txt"
+let w = io.open(path, "w")
+w:write("ABCDEFGHIJ")
+w:close()
+
+let f = io.open(path, "r")
+let a = f:read_chunk(4)
+let b = f:read_chunk(4)
+let c = f:read_chunk(4)
+f:close()
+
+print(a)
+print(b)
+print(c)

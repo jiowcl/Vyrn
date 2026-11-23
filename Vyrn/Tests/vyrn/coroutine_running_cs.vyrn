@@ -1,0 +1,18 @@
+-- @compile-safe
+-- vyrn: 12
+-- coroutine.running / isyieldable / close (cheap)
+
+def worker()
+  let co = coroutine.running()
+  print("isyieldable", coroutine.isyieldable())
+  yield 1
+  return co
+end
+
+let w = coroutine.wrap(worker)
+let v1 = w()
+print("yielded", v1)
+let co = w()
+print("done", type(co))
+let okc = coroutine.close(co)
+print("close", okc)

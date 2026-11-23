@@ -1,0 +1,71 @@
+-- vyrn: 12
+-- 1.6.136: repo-root / pack-root lib/ is visible as require("ai.openai") etc.
+-- Does not call the network; only checks that the modules load and export functions.
+assert(type(package) == "table")
+let net = require("net.util")
+let openai = require("ai.openai")
+let gemini = require("ai.gemini")
+let adobe = require("cloud.adobe_pdf")
+let js = require("jsonschema")
+let aitools = require("ai.tools")
+let vec = require("vector")
+if type(net) ~= "table" or type(net.is_disabled_net) ~= "function" then
+  error("net.util missing")
+end
+print("net_ok")
+if type(openai.openai_chat) ~= "function" or type(openai.openai_chat_stream) ~= "function" then
+  error("ai.openai missing")
+end
+if type(openai.openai_chat_tools) ~= "function" then
+  error("ai.openai openai_chat_tools missing")
+end
+if type(openai.openai_embeddings) ~= "function" then
+  error("ai.openai openai_embeddings missing")
+end
+print("openai_ok")
+if type(gemini.gemini_generate) ~= "function" or type(gemini.gemini_stream) ~= "function" then
+  error("ai.gemini missing")
+end
+if type(gemini.gemini_generate_tools) ~= "function" then
+  error("ai.gemini gemini_generate_tools missing")
+end
+if type(gemini.gemini_embeddings) ~= "function" then
+  error("ai.gemini gemini_embeddings missing")
+end
+print("gemini_ok")
+if type(adobe.adobe_get_token) ~= "function" or type(adobe.adobe_combine_pdf) ~= "function" then
+  error("cloud.adobe_pdf missing")
+end
+print("adobe_ok")
+if type(js) ~= "table" or type(js.validate) ~= "function" then
+  error("jsonschema missing")
+end
+print("jsonschema_ok")
+if type(aitools) ~= "table" or type(aitools.openai_parse_tool_calls) ~= "function" or type(aitools.run_tool) ~= "function" then
+  error("ai.tools missing")
+end
+print("ai_tools_ok")
+if type(vec) ~= "table" or type(vec.cosine) ~= "function" or type(vec.dot) ~= "function" then
+  error("vector missing")
+end
+if type(vec.add) ~= "function" or type(vec.axpy) ~= "function" or type(vec.normalize) ~= "function" then
+  error("vector helpers missing")
+end
+if type(vec.mul) ~= "function" or type(vec.l2_distance) ~= "function" then
+  error("vector mul/l2_distance missing")
+end
+print("vector_ok")
+let tm = require("time")
+if type(tm) ~= "table" or type(tm.format) ~= "function" or type(tm.parse) ~= "function" then
+  error("time missing")
+end
+print("time_ok")
+let ap = require("argparse")
+if type(ap) ~= "table" or type(ap.new) ~= "function" or type(ap.help) ~= "function" or type(ap.parse) ~= "function" then
+  error("argparse missing")
+end
+if type(ap.add_flag) ~= "function" or type(ap.add_option) ~= "function" then
+  error("argparse helpers missing")
+end
+print("argparse_ok")
+print("require_repo_lib_ok")

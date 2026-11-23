@@ -1,0 +1,22 @@
+-- @compile-safe
+-- 1.6.70 / 1.6.117: integral keys beyond 2^53. As of 1.6.117 integer keys
+-- hash/compare by int64 value (Lua 5.4), so -2^53, -2^53-1, -2^53-2 are
+-- distinct slots (earlier double-key rounding made them collide). Large
+-- positive dense keys are not exercised: PB allocates its dense part up to
+-- the key and aborts with "Invalid memory access" once the key reaches ~1e9.
+let t = {1, 2, 3}
+let b = -9007199254740992
+t[b] = "a"
+t[b - 2] = "b"
+t[b - 1] = "c"
+t[b * 1000000] = "d"
+t[b * 1000000 * 1000000] = "e"
+t[0.5] = "g"
+print(t[b], t[b - 2], t[b - 1], t[b * 1000000], t[b * 1000000 * 1000000], t[0.5], #t)
+print(t[b - 1] == t[b], t[b + 1] == t[b])
+t[b] = nil
+print(t[b], t[b - 1], t[b - 2])
+let u = {}
+u[b] = 1
+u[b - 1] = 2
+print(u[b], u[b - 1])

@@ -1,0 +1,38 @@
+-- vyrn: 12
+-- Capability gates: http.* and process.run are off unless the CLI grants them.
+-- Always exits 0; safe to run in CI without --allow-net or --allow-process.
+
+let net = require("net.util")
+
+@doc("Print whether pcall saw a disabled-capability error string")
+def probe_http()
+  let ok, err = pcall(function()
+    return http.get("http://127.0.0.1:9/")
+  end)
+  if ok then
+    print("net", "unexpected_ok")
+    return
+  end
+  print("net", net.is_disabled_net(err))
+end
+
+@doc("True when err is the disabled --allow-process message")
+def is_disabled_process(err) -> bool
+  let s = tostring(err)
+  return string.find(s, "process access is disabled", 1, true) ~= nil
+end
+
+def probe_process()
+  let ok, err = pcall(function()
+    return process.run({ "cmd.exe", "/c", "echo", "1" }, { timeout_ms = 5000 })
+  end)
+  if ok then
+    print("process", "allowed")
+    return
+  end
+  print("process", is_disabled_process(err))
+end
+
+probe_http()
+probe_process()
+print("hint", "use --allow-net=host and --allow-process when needed")

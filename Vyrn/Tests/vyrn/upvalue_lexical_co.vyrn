@@ -1,0 +1,92 @@
+-- @compile-safe
+-- 1.6.90: lexical pass-through upvalues combined with coroutines and the GC.
+-- 1. middle function is a coroutine body; inner closure reads an outer local
+def mkco(tag)
+  let pre = tag
+  return coroutine.create(function()
+    let own = 1
+    let f = function() return pre .. own end
+    coroutine.yield(f())
+    own = own + 1
+    pre = pre .. "!"
+    coroutine.yield(f())
+    return function() return pre .. "/" .. own end
+  end)
+end
+let c1 = mkco("A")
+let c2 = mkco("B")
+print("1a", coroutine.resume(c1))
+print("1b", coroutine.resume(c2))
+print("1c", coroutine.resume(c1))
+let ok1, fin1 = coroutine.resume(c1)
+print("1d", ok1, fin1(), coroutine.status(c1))
+-- 2. wrap generator whose body builds closures two levels deep across yields
+def gen(start)
+  let acc = start
+  return coroutine.wrap(function()
+    for i = 1, 3 do
+      let step = function()
+        return function() acc = acc + i return acc end
+      end
+      coroutine.yield(step()())
+    end
+    return -1
+  end)
+end
+let g = gen(100)
+let v1 = g()
+let v2 = g()
+let v3 = g()
+let v4 = g()
+print("2a", v1, v2, v3, v4)
+-- 3. closure captured through a middle function inside a coroutine, used after yields
+let keep = {}
+let co3 = coroutine.create(function(base)
+  let n = base
+  let mid = function()
+    return function() n = n + 1 return n end
+  end
+  keep.inc = mid()
+  coroutine.yield(n)
+  coroutine.yield(keep.inc())
+  return n
+end)
+print("3a", coroutine.resume(co3, 10))
+print("3b", keep.inc(), keep.inc())
+print("3c", coroutine.resume(co3))
+print("3d", coroutine.resume(co3))
+print("3e", keep.inc(), coroutine.status(co3))
+-- 4. GC keeps pass-through cells alive after the outer and middle frames are gone
+cells = {}
+for i = 1, 30 do
+  let outer = function()
+    let v = i * 2
+    return function()
+      return function() v = v + 1 return v end
+    end
+  end
+  cells[i] = outer()()
+end
+def churn(n)
+  let t = {}
+  for k = 1, n do t[k] = { k, "s" .. k } end
+  return #t
+end
+print("4a", churn(600))
+collectgarbage()
+collectgarbage()
+print("4b", cells[1](), cells[2](), cells[30](), cells[1]())
+let sum = 0
+for i = 1, 30 do sum = sum + cells[i]() end
+print("4c", sum)
+-- 5. status of a coroutine that resumed another one
+let outerCo
+let innerCo = coroutine.create(function()
+  coroutine.yield(coroutine.status(outerCo))
+end)
+outerCo = coroutine.create(function()
+  let ok, st = coroutine.resume(innerCo)
+  coroutine.yield(st, coroutine.status(innerCo))
+end)
+let ok5, st5, in5 = coroutine.resume(outerCo)
+print("5a", ok5, st5, in5, coroutine.status(outerCo))

@@ -1,0 +1,5 @@
+-- vyrn: 12
+let size = 3
+let matrixC = table.create2d(size, size, 0.0)
+table.set2d(matrixC, 1, 1, size, 2.0)
+print("checkpoint ", table.get2d(matrixC, 1, 1, size))

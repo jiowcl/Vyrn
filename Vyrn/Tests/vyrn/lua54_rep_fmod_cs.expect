@@ -1,0 +1,5 @@
+rep0 true true
+rep x-x-x
+fmod_ok 1 integer
+fmod_zero err bad argument #2 to 'fmod' (zero)
+done

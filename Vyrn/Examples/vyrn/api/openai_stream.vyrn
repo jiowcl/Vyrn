@@ -1,11 +1,24 @@
 -- vyrn: 12
--- OpenAI Chat Completions streaming example (1.6.128).
+-- OpenAI Chat Completions streaming example (1.6.128; Doc / const / types in 1.6.147).
 -- Uses opts.on_chunk + http.sse_events. Reads OPENAI_API_KEY (required) and
 -- optional OPENAI_BASE_URL / OPENAI_MODEL / OPENAI_PROMPT.
 -- Never hardcodes secrets. Needs --allow-net. Not run against the real API in CI;
 -- see tests/vyrn/http_sse.vyrn.
 
-let api = require("clients")
+const DEFAULT_BASE: string = "https://api.openai.com"
+const DEFAULT_MODEL: string = "gpt-4o-mini"
+const DEFAULT_PROMPT: string = "Say hello in one short sentence."
+
+@doc("Return the env value, or fallback when unset or empty")
+def env_or(name: string, fallback: string) -> string
+  let v = os.getenv(name) or ""
+  if v == "" then
+    return fallback
+  end
+  return v
+end
+
+let api = require("ai.openai")
 
 let key = os.getenv("OPENAI_API_KEY") or ""
 if key == "" then
@@ -15,9 +28,9 @@ end
 
 let text, err = api.openai_chat_stream({
   key = key,
-  base = os.getenv("OPENAI_BASE_URL") or "https://api.openai.com",
-  model = os.getenv("OPENAI_MODEL") or "gpt-4o-mini",
-  prompt = os.getenv("OPENAI_PROMPT") or "Say hello in one short sentence."
+  base = env_or("OPENAI_BASE_URL", DEFAULT_BASE),
+  model = env_or("OPENAI_MODEL", DEFAULT_MODEL),
+  prompt = env_or("OPENAI_PROMPT", DEFAULT_PROMPT)
 })
 if not text then
   print("openai_stream: " .. tostring(err))

@@ -1,0 +1,55 @@
+-- @compile-safe
+-- vyrn: 12
+-- 1.6.115: Lua 5.4 bitwise operators & | ~ << >> and unary ~ on 64-bit integers.
+-- Precedence (low to high): or, and, comparison, |, ~, &, << >>, .., + -, * / // %, unary, ^.
+-- Shifts are logical; a shift of 64 or more gives 0 and a negative count reverses it.
+-- Operands must be numbers with an exact integer value (strings do not convert).
+-- Expected output checked against Lua 5.4.
+
+def err(f, ...)
+    let ok, e = pcall(f, ...)
+    if ok then
+        return "ok"
+    end
+    -- Lua adds variable info ("number (local 'a') has no ..."); keep the common part.
+    if string.match(e, "has no integer representation") then
+        return "number has no integer representation"
+    end
+    return string.match(e, "attempt to perform bitwise operation on a %a+ value") or e
+end
+
+print(5 & 3, 5 | 3, 5 ~ 3, ~5, ~0, ~-1)
+print(1 << 4, 256 >> 4, -1 >> 60, 1 << 62, -1 << 63 == -1 << 63)
+print(1 << 64, 1 << -1, 2 >> -1, -1 >> 64, 3 >> 2, 0xff >> 4, 1 << 0)
+print(0xff ~ 0x0f, 0xF0 | 0x0F, 0xFF & 0x3C, -1 & 0xff, 0x7FFFFFFF & -0x10)
+print(1 | 2 ~ 3 & 4, 1 + 2 << 1, 2 ^ 2 & 7, 3 | 4 == 7, "a" .. (1 << 2), 5 & 3 + 1)
+print(~5 & 0xF, - ~5, ~ -5, ~~7, #"abcd" << 1, 3.0 & 1, 2 ^ 3 | 0)
+print(7 // 2, -7 // 2, 7 // 2 << 1, 2 ^ 10 >> 3)
+let flags = 0
+flags = flags | 1 << 3
+flags |= 1
+flags &= ~2
+flags <<= 2
+flags >>= 1
+print(flags, flags & 1 << 4 ~= 0, flags & 2 == 0)
+def popcount(n)
+    let c = 0
+    while n ~= 0 do
+        c = c + (n & 1)
+        n = n >> 1
+    end
+    return c
+end
+print(popcount(0), popcount(255), popcount(0x5555), popcount(0xFFFFFFFF))
+print(err(function(a, b) return a & b end, "3", 1))
+print(err(function(a) return ~a end, "7"))
+print(err(function(a, b) return a | b end, {}, 1))
+print(err(function(a, b) return a ~ b end, 1, nil))
+print(err(function(a, b) return a << b end, true, 1))
+print(err(function(a, b) return a & b end, 1.5, 1))
+print(err(function(a) return ~a end, 1.5))
+print(err(function(a, b) return a >> b end, 1, 0.5))
+print(err(function(a, b) return a & b end, 2 ^ 63, 1))
+print(err(function(a, b) return a & b end, "1.5", 1))
+print(err(function(a, b) return a & b end, 1.5, "3"))
+print(err(function(a, b) return a & b end, 0 / 0, 1))

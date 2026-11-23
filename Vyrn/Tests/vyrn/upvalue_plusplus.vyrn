@@ -1,0 +1,8 @@
+-- vyrn: 12
+-- Dump: upvalue ++ must not emit INC_GLOBAL (would write a different cell).
+let n = 0
+def bump()
+    n++
+end
+bump()
+print(n)

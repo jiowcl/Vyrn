@@ -1,0 +1,31 @@
+-- 1.6.124: zlib error policy — bad args raise; corrupt / too-large / bad text output return nil, err.
+def msg(ok, e)
+  if ok then return "ok" end
+  return "err " .. string.gsub(tostring(e), "^.-%d+: ", "")
+end
+
+print("bad_compress", msg(pcall(function() zlib.compress(1) end)))
+print("bad_level", msg(pcall(function() zlib.compress("a", 99) end)))
+print("bad_enc", msg(pcall(function() zlib.compress("a", {encoding = "text"}) end)))
+
+let z, e = zlib.decompress("789cffff", {encoding = "hex"})
+assert(z == nil, "expected nil on corrupt")
+assert(e and string.find(tostring(e), "corrupt", 1, true), "expected corrupt err, got: " .. tostring(e))
+print("corrupt_ok")
+
+let hi = zlib.compress("hello", {encoding = "hex"})
+let z2, e2 = zlib.decompress(hi, {encoding = "hex", max = 1})
+assert(z2 == nil, "expected nil on max")
+assert(e2 and string.find(tostring(e2), "too large", 1, true), "expected too large, got: " .. tostring(e2))
+print("toobig_ok")
+
+-- Binary (NUL) cannot be returned as text
+let nulz = zlib.compress("00", {input = "hex", encoding = "hex"})
+let z3, e3 = zlib.decompress(nulz, {encoding = "hex", output = "text"})
+assert(z3 == nil, "expected nil on NUL text output")
+assert(e3 and string.find(tostring(e3), "NUL", 1, true), "expected NUL err, got: " .. tostring(e3))
+let z4, e4 = zlib.decompress(nulz, {encoding = "hex", output = "hex"})
+assert(z4 == "00", e4)
+print("nul_out_ok")
+
+print("done")

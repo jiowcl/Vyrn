@@ -1,0 +1,10 @@
+-- vyrn: 12
+-- @compile-safe
+-- 1.6.136: require("exelib_probe") via <exe dir>/lib (run_tests copies the
+-- fixture next to the CLI; compile_suite sets vyrnrt_set_exe_dir to the suite dir).
+let m = require("exelib_probe")
+if type(m) ~= "table" or type(m.hello) ~= "function" then
+  error("exelib_probe missing")
+end
+print(m.hello())
+print("require_exelib_ok")

@@ -1,0 +1,11 @@
+get_json 200 {"ok":true,"n":42}
+ctype application/json; charset=utf-8
+post_echo_status 200
+post_echo_has_method true
+post_echo_has_body true
+post_echo_has_token true
+put_status 201 status 201
+bin_b64 200 AAEC/wBB
+bin_hex 200 000102ff0041
+err http: response body contains a NUL byte (use opts.encoding='base64' or 'hex')
+done

@@ -1,0 +1,75 @@
+-- 1.6.137: Adobe PDF Services loopback mock (token, upload, combine, poll, download).
+-- Uses lib/cloud/adobe_pdf against scripts/http_loopback_server.ps1. No paid API.
+
+let api = require("cloud.adobe_pdf")
+let port = os.getenv("VYRN_HTTP_TEST_PORT")
+assert(port and port ~= "", "VYRN_HTTP_TEST_PORT not set")
+let base = "http://127.0.0.1:" .. port
+let tmp = os.getenv("TEMP") or os.getenv("TMP") or os.getenv("TMPDIR") or path.cwd()
+
+let fx1_hex = "68656c6c6f0001fffe80776f726c64"
+let fx2_hex = "dead00beef"
+let want_combined = "d9e26b461490a3c0f626bd9768bfff7a3140c93c1ae65dcba5c6b9fb19fae178"
+
+let fx1 = path.join("tests", "vyrn", "fixtures", "crypto_nul.bin")
+if not path.isfile(fx1) then
+  fx1 = path.join(tmp, "vyrn_adobe_fx1.bin")
+  let m1, e1 = crypto.fromhex_file(fx1, fx1_hex)
+  assert(m1, e1)
+end
+let fx2 = path.join(tmp, "vyrn_adobe_fx2.bin")
+let m2, e2 = crypto.fromhex_file(fx2, fx2_hex)
+assert(m2, e2)
+
+let token, terr = api.adobe_get_token({
+  client_id = "test-id",
+  client_secret = "test-secret",
+  base = base,
+  timeout = 10
+})
+assert(token, terr)
+print("token", type(token) == "string" and token ~= "")
+
+let id1, u1 = api.adobe_upload_asset({
+  token = token,
+  client_id = "test-id",
+  base = base,
+  path = fx1,
+  media_type = "application/pdf",
+  timeout = 10
+})
+assert(id1, u1)
+let id2, u2 = api.adobe_upload_asset({
+  token = token,
+  client_id = "test-id",
+  base = base,
+  path = fx2,
+  media_type = "application/pdf",
+  timeout = 10
+})
+assert(id2, u2)
+print("uploaded", id1 ~= id2)
+
+let download_uri, cerr = api.adobe_combine_pdf({
+  token = token,
+  client_id = "test-id",
+  base = base,
+  asset_ids = { id1, id2 },
+  timeout = 10,
+  poll_interval = 0.05,
+  poll_timeout = 10
+})
+assert(download_uri, cerr)
+print("combined", type(download_uri) == "string" and download_uri ~= "")
+
+let out_path = path.join(tmp, "vyrn_adobe_combined.bin")
+let saved, derr = api.adobe_download({
+  url = download_uri,
+  out_path = out_path,
+  timeout = 10
+})
+assert(saved, derr)
+let got, ge = crypto.sha256_file(out_path)
+assert(got, ge)
+print("download", path.size(out_path) == 20, got == want_combined)
+print("done")

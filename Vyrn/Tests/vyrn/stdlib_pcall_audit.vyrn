@@ -1,0 +1,40 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- stdlib_pcall_audit (1.6.107): stdlib argument errors raise at the call on both VMs,
+-- so pcall catches them with the PB message and code after the failing call never runs.
+let reached = 0
+let try = def(name, f)
+  let ok, e = pcall(def()
+    f()
+    reached = reached + 1
+  end)
+  print(name, ok, tostring(e))
+end
+try("map1", def() return table.map(1, print) end)
+try("map2", def() return table.map({1}, 2) end)
+try("filter1", def() return table.filter(1, print) end)
+try("filter2", def() return table.filter({1}, 2) end)
+try("sort2", def() table.sort({3, 1}, 5) end)
+try("sortinv", def() table.sort({3, 1, 2}, def(a, b) return 1 end) end)
+try("create2d", def() return table.create2d(-1, 2, 0) end)
+try("cocreate", def() return coroutine.create(5) end)
+try("costatus", def() return coroutine.status(5) end)
+try("cowrap", def() return coroutine.wrap(5) end)
+try("ipairs", def() return ipairs(5) end)
+try("pairs", def() return pairs(5) end)
+try("next", def() return next(5) end)
+try("osdate", def() return os.date(1) end)
+-- Inside a coroutine the error ends it: resume returns false, msg; wrap re-raises (catch with pcall).
+let co = coroutine.create(def() table.map(1, print) end)
+let okc, ec = coroutine.resume(co)
+print("resumed", okc, ec, coroutine.status(co))
+let w = coroutine.wrap(def() table.sort({2, 1}, 5) end)
+let okw, ew = pcall(w)
+print("wrapped", okw, ew)
+-- A callback error inside a coroutine; later callbacks on the main thread still return values.
+let co2 = coroutine.create(def() table.map({1}, def(k, v) error("cb", 0) end) end)
+print("callback", coroutine.resume(co2))
+-- The stdlib keeps working after caught errors.
+let m = table.map({1, 2, 3}, def(k, v) return v * 2 end)
+print("map ok", m[1], m[2], m[3])
+print("reached", reached)

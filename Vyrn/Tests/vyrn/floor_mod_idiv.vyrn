@@ -1,0 +1,18 @@
+-- 1.6.79: Lua floored modulo and // floor division
+def msg(ok, e)
+  return tostring(ok) .. " " .. string.gsub(e, "^.-%d+: ", "")
+end
+print("mod", -7 % 3, 7 % -3, -7 % -3, 7 % 3, 5.5 % 2, -5.5 % 2, 5.25 % -2)
+print("mod0", 0 % 5, 0 % -5, 6 % 3, -6 % 3)
+let a, b = -7, 3
+print("modvar", a % b, b % a, a % a)
+print("idiv", 7 // 2, -7 // 2, 7 // -2, 7.5 // 2, -0.5 // 1, 1 // 0.5)
+print("idivvar", a // b, b // a, a // 1)
+print("fdiv0", 1.5 // 0, -1.5 // 0)
+let q = 17
+print("prec", q // 5 * 5 + q % 5, 2 + 9 // 2 * 3, 10 - 7 // 2, -q // 5) -- comment after //
+print("str", "a//b", "8" // "3", "-7" % "3")
+print("law", a == (a // b) * b + a % b)
+print(msg(pcall(function() return q // 0 end)))
+print(msg(pcall(function() return -3 % 0 end)))
+print(msg(pcall(function() return {} // 1 end)))

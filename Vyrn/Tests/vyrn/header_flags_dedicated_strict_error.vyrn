@@ -1,0 +1,5 @@
+-- vyrn: 12
+-- strict
+-- A dedicated flag line must still enable --strict (compile error on this let).
+let n: number = "x"
+print(n)

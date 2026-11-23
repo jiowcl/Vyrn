@@ -1,0 +1,19 @@
+-- @compile-safe
+-- path + os subset (CWD-independent)
+
+let p = path.join("a", "b", "hello.vyrn")
+print(path.basename(p))
+print(path.ext(p))
+if #path.dirname(p) > 0 then
+  print("dirname-ok")
+end
+if path.isdir(".") then
+  print("isdir-ok")
+end
+if path.exists(".") then
+  print("exists-ok")
+end
+print(type(path.cwd()))
+print(type(os.clock()))
+print(type(os.time()))
+print(os.difftime(10, 3))

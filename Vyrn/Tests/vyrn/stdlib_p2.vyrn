@@ -1,0 +1,13 @@
+-- vyrn: 12
+print(string.byte("ABC"))
+let b1, b2, b3 = string.byte("ABC", 1, 3)
+print(b1)
+print(b2)
+print(b3)
+print(string.byte("ABC", 9) == nil)
+let t = {1, 2, x = "y"}
+table.clear(t)
+print(#t)
+print(t.x == nil)
+t[1] = 7
+print(t[1])

@@ -1,0 +1,11 @@
+-- @compile-safe
+-- vyrn: 12
+def triple()
+  return 1, 2, 3
+end
+def one()
+  return 42
+end
+print(triple())
+print("a", triple())
+print(one(), 99)

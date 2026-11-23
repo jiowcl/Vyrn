@@ -1,0 +1,10 @@
+-- vyrn: 8
+-- Module used by require_runtime_err: runtime errors must name this file.
+def err()
+  error("mod err")
+end
+def callnil()
+  let f = nil
+  f()
+end
+return {err = err, callnil = callnil}

@@ -1,0 +1,8 @@
+-- vyrn: 9
+-- Module header dialect (12) applies to the module even when the main script is dialect 9.
+-- A second require returns the cached table (identity: rawequal; Vyrn '==' is false for tables, see Builtins.md).
+let g = require("lib.geom_struct")
+print(g.len2(g.make(2)))
+let g2 = require("lib.geom_struct")
+print(rawequal(g, g2))
+print(rawequal(g, package.loaded["lib.geom_struct"]))

@@ -1,0 +1,23 @@
+-- {...} / {a, ...} expand every vararg into the array part (Lua semantics).
+def pack(...)
+  let t = {...}
+  return #t, t[1], t[3]
+end
+print(pack(10, 20, 30))
+def pack2(a, ...)
+  return {a, ...}
+end
+let p2 = pack2(1, 2, 3)
+print(#p2, p2[1], p2[3])
+def none(...)
+  return #{...}
+end
+print(none())
+def two(...)
+  let x = {...}
+  let y = {...}
+  x[1] = 99
+  return y[1], x == y
+end
+print(two(5))
+print(#pack2(1, 2, 3))

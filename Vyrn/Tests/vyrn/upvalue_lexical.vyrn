@@ -1,0 +1,120 @@
+-- @compile-safe
+-- 1.6.90: upvalues resolve lexically (Lua upvaldesc instack/idx). A function nested
+-- two or more levels deep captures an ancestor local through pass-through upvalues of
+-- the intermediate functions, so it works after the middle function has returned.
+-- 1. two levels, middle returned before the call
+def a()
+  let x = "X"
+  return function()
+    let y = "Y"
+    return function() return x .. y end
+  end
+end
+print("1a", a()()())
+let mid = a()
+let inner1 = mid()
+let inner2 = mid()
+print("1b", inner1(), inner2())
+-- 2. three and four levels deep
+def l3()
+  let p = 1
+  return function()
+    let q = 2
+    return function()
+      let r = 3
+      return function() return p + q * 10 + r * 100 end
+    end
+  end
+end
+print("2a", l3()()()())
+def l4()
+  let p = "p"
+  return function()
+    return function()
+      return function()
+        return function() return p .. "4" end
+      end
+    end
+  end
+end
+print("2b", l4()()()()())
+-- 3. writes from the innermost closure are seen by the outer and by siblings
+def counter()
+  let n = 0
+  let get = function() return n end
+  let mk = function()
+    return function() n = n + 1 return n end
+  end
+  let peek = function()
+    return function() return n end
+  end
+  return get, mk, peek
+end
+let get, mk, peek = counter()
+let inc1 = mk()
+let inc2 = mk()
+let pk = peek()
+print("3a", inc1(), inc2(), inc1(), get(), pk())
+-- 4. one cell shared across levels: middle and inner write the same variable
+def shared()
+  let s = 1
+  let m = function()
+    s = s * 10
+    return function() s = s + 1 return s end
+  end
+  return m, function() return s end
+end
+let sm, sget = shared()
+let si = sm()
+print("4a", sget(), si(), sget(), sm()(), sget())
+-- 5. per-iteration loop variables captured through a middle function
+let fs = {}
+for i = 1, 3 do
+  fs[#fs + 1] = function()
+    return function() return i * 2 end
+  end
+end
+print("5a", fs[1]()(), fs[2]()(), fs[3]()())
+let ws = {}
+let k = 0
+while k < 3 do
+  k = k + 1
+  let w = k * 100
+  let mf = function() return function() w = w + 1 return w end end
+  ws[#ws + 1] = mf()
+end
+print("5b", ws[1](), ws[1](), ws[2](), ws[3]())
+-- 6. method / function M.x() definitions nested inside a closure
+let M = {}
+def setup(tag)
+  let base = tag
+  def M.make()
+    return function() return base .. "-made" end
+  end
+  def M:tagged(x)
+    return function() return base .. ":" .. x end
+  end
+end
+setup("T")
+print("6a", M.make()(), M:tagged("q")())
+-- 7. recursion through a captured local
+def outer()
+  let depth = 0
+  let wrap = function()
+    let fact
+    fact = function(n)
+      depth = depth + 1
+      if n <= 1 then return 1 end
+      return n * fact(n - 1)
+    end
+    return fact
+  end
+  return wrap(), function() return depth end
+end
+let fact, dget = outer()
+print("7a", fact(5), dget())
+-- 8. chained call on a returned function: argc belongs to the result, not to z
+def z() return function(b, c) return b .. c end end
+print("8a", z()(5, 6), (z())("p", "q"))
+def y(q) return function(b) return b + q end end
+print("8b", y(1)(5))

@@ -1,0 +1,77 @@
+-- vyrn: 12 strict
+-- Matrix: early bind / late bind / call-before-bind / paren / late FuncId under strict
+def pair()
+  return 1, 2
+end
+
+def wrapped()
+  yield 3, 4
+end
+
+def accept(n: number) -> number
+  return n + 1
+end
+
+def early_make()
+  let w = coroutine.wrap(wrapped)
+  def run()
+    print("early", w())
+  end
+  run()
+end
+early_make()
+
+def late_make()
+  let w = 0
+  def bind()
+    w = coroutine.wrap(wrapped)
+  end
+  def run()
+    print("late", w())
+  end
+  bind()
+  run()
+end
+late_make()
+
+def before_make()
+  let w = 0
+  def run()
+    print("before", w())
+  end
+  def bind()
+    w = coroutine.wrap(wrapped)
+  end
+  bind()
+  run()
+end
+before_make()
+
+def paren_make()
+  let w = 0
+  def run()
+    print("paren", (w)())
+  end
+  def bind()
+    w = coroutine.wrap(wrapped)
+  end
+  bind()
+  run()
+end
+paren_make()
+
+-- late FuncId: call as call-arg (statement-position no-meta is strict-hard-error)
+def strict_late()
+  let cb = 0
+  def run(p: number)
+    print("strict", cb(p))
+  end
+  def bind()
+    cb = accept
+  end
+  bind()
+  run(10)
+end
+strict_late()
+
+print("user", pair())

@@ -1,0 +1,50 @@
+-- @compile-safe
+-- vyrn: 12 unlimited
+-- 1.6.71: coroutine snapshots grow with the VM. A yield at call depth
+-- 1000 resumes with the whole frame chain intact (rt used to keep only
+-- 256 frames / 4096 values), and a yield inside a nested function keeps
+-- the flat-call return fields (callBase / ret mode) of every frame.
+def f(n)
+    if n == 0 then
+        coroutine.yield("bottom")
+        return 0
+    end
+    return 1 + f(n - 1)
+end
+let co = coroutine.create(def() return f(1000) end)
+print(coroutine.resume(co))
+print(coroutine.resume(co))
+
+let co2 = coroutine.create(def(x)
+    def inner(k)
+        let r = coroutine.yield(k)
+        return r * 2
+    end
+    let v = inner(x)
+    let w = inner(v + 1)
+    return v + w
+end)
+let a, b = coroutine.resume(co2, 7)
+print("r1", a, b)
+let c, d = coroutine.resume(co2, 9)
+print("r2", c, d)
+let e, g = coroutine.resume(co2, 4)
+print("r3", e, g)
+
+def outer()
+    def mid(n)
+        if n == 0 then return coroutine.yield("deep") end
+        return mid(n - 1) + 1
+    end
+    let s = 0
+    for i = 1, 3 do
+        s = s + mid(300)
+    end
+    return s
+end
+let co3 = coroutine.create(outer)
+print(coroutine.resume(co3))
+print(coroutine.resume(co3, 10))
+print(coroutine.resume(co3, 20))
+print(coroutine.resume(co3, 30))
+print(coroutine.status(co3))

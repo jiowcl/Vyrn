@@ -1,0 +1,7 @@
+-- vyrn: 12 strict
+def checked() -> bool, number, string
+  return true, 8, "assert"
+end
+
+; assert forwards callee returns 1:1 (no leading status bool).
+let av: bool, an: string, astr: string = assert(checked())

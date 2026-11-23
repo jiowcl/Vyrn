@@ -1,0 +1,103 @@
+-- @compile-safe
+-- vyrn: 12
+-- path.normalize / abspath / chdir / size / mtime / copy (1.6.125; both runtimes)
+
+let home = path.cwd()
+let d = path.join(home, "_cs_path_extra_tmp")
+path.mkdirs(d)
+let f = path.join(d, "data.txt")
+let fh = io.open(f, "w")
+fh:write("hello")
+fh:close()
+
+print(path.size(f))
+if path.size(d) == nil then
+  print("size-dir-nil")
+end
+if path.size(path.join(d, "missing.txt")) == nil then
+  print("size-missing-nil")
+end
+if path.size() == nil then
+  print("size-arg-nil")
+end
+
+let mt = path.mtime(f)
+print(type(mt))
+if type(mt) == "number" and math.abs(mt - os.time()) < 120 then
+  print("mtime-fresh")
+end
+if path.mtime(path.join(d, "missing.txt")) == nil then
+  print("mtime-missing-nil")
+end
+print(type(path.mtime(d)))
+if path.mtime() == nil then
+  print("mtime-arg-nil")
+end
+
+let dst = path.join(d, "copy.txt")
+if path.copy(f, dst) then
+  print("copy-ok")
+end
+print(path.size(dst))
+let r = io.open(dst, "r")
+print(r:read("*a"))
+r:close()
+if path.copy(path.join(d, "missing.txt"), dst) == false then
+  print("copy-missing-false")
+end
+if path.copy(d, path.join(d, "nope")) == false then
+  print("copy-dir-false")
+end
+if path.copy() == false then
+  print("copy-arg-false")
+end
+
+let n = path.normalize("a/b")
+if n == "a/b" or n == "a\\b" then
+  print("normalize-ok")
+end
+let n2 = path.normalize("a/b\\c")
+if n2 == "a/b/c" or n2 == "a\\b\\c" then
+  print("normalize-mixed-ok")
+end
+if path.normalize() == nil then
+  print("normalize-arg-nil")
+end
+
+if path.abspath(".") == path.cwd() then
+  print("abspath-dot")
+end
+if path.abspath("") == path.cwd() then
+  print("abspath-empty")
+end
+let rel = path.abspath("foo_rel_xyz")
+let want = path.normalize(path.join(path.cwd(), "foo_rel_xyz"))
+if rel == want or rel == path.join(path.cwd(), "foo_rel_xyz") then
+  print("abspath-rel")
+end
+if path.abspath() == nil then
+  print("abspath-arg-nil")
+end
+
+if path.chdir(d) then
+  -- cwd may gain a trailing separator (PB GetCurrentDirectory); prove the move by a relative lookup.
+  if path.isfile("data.txt") and path.size("data.txt") == 5 then
+    print("chdir-ok")
+  end
+end
+if path.chdir(home) then
+  print("chdir-home")
+end
+if path.chdir(path.join(d, "missing_dir")) == false then
+  print("chdir-missing-false")
+end
+if path.chdir() == false then
+  print("chdir-arg-false")
+end
+if path.chdir(".") then
+  print("chdir-dot")
+end
+
+path.chdir(home)
+path.rmdir(d)
+print("done")
