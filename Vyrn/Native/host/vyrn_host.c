@@ -27,7 +27,7 @@
 #include <string.h>
 
 #define VYRN_STATIC
-#include "../../include/vyrn.h"
+#include "../../Native/include/vyrn.h"
 
 static void host_print_version(void)
 {

@@ -34,7 +34,7 @@ extern "C" {
 
 #define VYRN_ABI_VERSION 9
 /* Product stamp — keep in sync with root VERSION (ci_version_check). Frozen with dialect 12 / VYBC v2-v6 / VYBX 1 for 1.7.x. */
-#define VYRN_VERSION_STRING "1.7.1"
+#define VYRN_VERSION_STRING "1.7.2"
 #define VYRN_DIALECT_VERSION 12
 #define VYRN_VYBC_MIN 2
 #define VYRN_VYBC_MAX 6
