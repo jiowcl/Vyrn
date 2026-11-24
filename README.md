@@ -6,6 +6,7 @@
 
 ![GitHub](https://img.shields.io/github/license/jiowcl/Vyrn.svg)
 ![PureBasic](https://img.shields.io/badge/language-PureBasic-blue.svg)
+![C](https://img.shields.io/badge/language-c-blue.svg)
 
 ## Features  
 
@@ -22,7 +23,7 @@
 - Windows 10/11 above (recommend)  
 - PureBasic 6.41/6.5 above (recommend)  
 - CMake 4.4.3 bove (recommend)  
-- Visual Studio 2026 (or MinGW-w64)  
+- Visual Studio 2026 (recommend)  
 
 ## How to Build  
 
@@ -93,8 +94,6 @@ vyrn compile app.vyrn -o build\app --exe --batch
 # or portable / linux-x64 target
 vyrn compile app.vyrn -o out --target linux-x64 --batch
 ```
-
-Not all VM features on Windows can be compiled into C.  
 
 ## Language Snapshot  
 
