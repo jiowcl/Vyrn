@@ -1,0 +1,434 @@
+-- vyrn: 12
+-- Glob matching and directory walk (lib 1.11.0).
+-- Not part of the product stdlib. Load with require("fs.glob").
+-- Patterns use / as the separator (a backslash in a path or pattern is also a separator,
+-- not an escape). * and ? do not cross slashes. ** as a whole segment matches zero or
+-- more directories. [abc], [a-z], [!abc] and [^abc] are character classes; a literal
+-- * ? [ is written inside a class, e.g. [*].
+-- Windows (OS=Windows_NT) matching is case-insensitive by default; Linux is case-sensitive.
+-- Override with opts.case_sensitive. Walk results use / and are sorted.
+-- Recursive walk needs path.listdir(dir, true) (1.7.6). path.glob remains a shallow,
+-- files-only builtin and is a different API.
+
+const SEP: string = "/"
+
+@doc("True when this process looks like Windows")
+def is_windows() -> bool
+  let osname = os.getenv("OS")
+  if type(osname) == "string" and osname == "Windows_NT" then
+    return true
+  end
+  return false
+end
+
+@doc("Options bag; nil becomes empty")
+def as_opts(opts) -> table
+  if opts == nil then
+    return {}
+  end
+  if type(opts) ~= "table" then
+    error("fs.glob: options table expected")
+  end
+  return opts
+end
+
+@doc("Fold case when matching is case-insensitive")
+def fold_on(opts) -> bool
+  let cs = opts.case_sensitive
+  if cs == nil then
+    if is_windows() then
+      return true
+    end
+    return false
+  end
+  if cs then
+    return false
+  end
+  return true
+end
+
+@doc("Lower-case a single ASCII character; other bytes unchanged")
+def lower_ch(ch) -> string
+  let b = string.byte(ch)
+  if b >= 65 and b <= 90 then
+    return string.char(b + 32)
+  end
+  return ch
+end
+
+@doc("Compare two single characters, optionally case-insensitive")
+def chars_eq(a, b, fold) -> bool
+  if fold then
+    return lower_ch(a) == lower_ch(b)
+  end
+  return a == b
+end
+
+@doc("Compare two bytes for a class range, optionally case-insensitive")
+def byte_in_range(c, lo, hi, fold) -> bool
+  if lo > hi then
+    let tmp = lo
+    lo = hi
+    hi = tmp
+  end
+  if fold then
+    if c >= 65 and c <= 90 then
+      c = c + 32
+    end
+    if lo >= 65 and lo <= 90 then
+      lo = lo + 32
+    end
+    if hi >= 65 and hi <= 90 then
+      hi = hi + 32
+    end
+  end
+  return c >= lo and c <= hi
+end
+
+@doc("Replace backslashes with slashes and drop a trailing slash")
+def normalize_path(s) -> string
+  if type(s) ~= "string" then
+    error("fs.glob: path string expected")
+  end
+  let out = ""
+  let i = 1
+  while i <= #s do
+    let ch = string.sub(s, i, i)
+    if ch == "\\" then
+      out = out .. SEP
+    else
+      out = out .. ch
+    end
+    i = i + 1
+  end
+  while #out > 1 and string.sub(out, #out, #out) == SEP do
+    out = string.sub(out, 1, #out - 1)
+  end
+  return out
+end
+
+@doc("Split a normalized path into segments, dropping empty parts")
+def split_segs(s)
+  let t = normalize_path(s)
+  let parts = {}
+  let start = 1
+  let i = 1
+  while i <= #t + 1 do
+    let ch = ""
+    if i <= #t then
+      ch = string.sub(t, i, i)
+    end
+    if i > #t or ch == SEP then
+      if i > start then
+        table.insert(parts, string.sub(t, start, i - 1))
+      end
+      start = i + 1
+    end
+    i = i + 1
+  end
+  return parts
+end
+
+@doc("Join two path parts with a slash")
+def join_parts(a, b) -> string
+  if a == "" or a == "." then
+    return b
+  end
+  if b == "" then
+    return a
+  end
+  if string.sub(a, #a, #a) == SEP then
+    return a .. b
+  end
+  return a .. SEP .. b
+end
+
+@doc("Match one character against a [...] class; returns ok, next index")
+def class_match(ch, pat, pi, fold)
+  if string.sub(pat, pi, pi) ~= "[" then
+    return false, pi
+  end
+  let n = #pat
+  let i = pi + 1
+  if i > n then
+    error("fs.glob: unterminated character class")
+  end
+  let neg = false
+  let first = string.sub(pat, i, i)
+  if first == "!" or first == "^" then
+    neg = true
+    i = i + 1
+  end
+  if i > n then
+    error("fs.glob: unterminated character class")
+  end
+  let matched = false
+  let started = false
+  while i <= n do
+    let pc = string.sub(pat, i, i)
+    if pc == "]" and started then
+      if neg then
+        return not matched, i + 1
+      end
+      return matched, i + 1
+    end
+    started = true
+    if i + 2 <= n and string.sub(pat, i + 1, i + 1) == "-" and string.sub(pat, i + 2, i + 2) ~= "]" then
+      let lo = string.byte(pc)
+      let hi = string.byte(pat, i + 2)
+      if byte_in_range(string.byte(ch), lo, hi, fold) then
+        matched = true
+      end
+      i = i + 3
+      continue
+    end
+    if chars_eq(ch, pc, fold) then
+      matched = true
+    end
+    i = i + 1
+  end
+  error("fs.glob: unterminated character class")
+end
+
+@doc("Match a single path segment against a non-** pattern segment")
+def match_seg_at(name, ni, pat, pi, fold) -> bool
+  let pn = #pat
+  let nn = #name
+  while pi <= pn do
+    let pc = string.sub(pat, pi, pi)
+    if pc == "*" then
+      while pi <= pn and string.sub(pat, pi, pi) == "*" do
+        pi = pi + 1
+      end
+      if pi > pn then
+        return true
+      end
+      let k = ni
+      while k <= nn + 1 do
+        if match_seg_at(name, k, pat, pi, fold) then
+          return true
+        end
+        k = k + 1
+      end
+      return false
+    end
+    if pc == "?" then
+      if ni > nn then
+        return false
+      end
+      ni = ni + 1
+      pi = pi + 1
+      continue
+    end
+    if pc == "[" then
+      if ni > nn then
+        return false
+      end
+      let ok, nextpi = class_match(string.sub(name, ni, ni), pat, pi, fold)
+      if not ok then
+        return false
+      end
+      ni = ni + 1
+      pi = nextpi
+      continue
+    end
+    if ni > nn then
+      return false
+    end
+    if not chars_eq(string.sub(name, ni, ni), pc, fold) then
+      return false
+    end
+    ni = ni + 1
+    pi = pi + 1
+  end
+  return ni > nn
+end
+
+@doc("Match one filename against a pattern segment (not **)")
+def match_seg(name, pat, fold) -> bool
+  return match_seg_at(name, 1, pat, 1, fold)
+end
+
+@doc("Match path segments against pattern segments, including **")
+def match_segs_at(path_segs, pat_segs, si, pi, fold) -> bool
+  if pi > #pat_segs then
+    return si > #path_segs
+  end
+  let p = pat_segs[pi]
+  if p == "**" then
+    if match_segs_at(path_segs, pat_segs, si, pi + 1, fold) then
+      return true
+    end
+    if si <= #path_segs then
+      return match_segs_at(path_segs, pat_segs, si + 1, pi, fold)
+    end
+    return false
+  end
+  if si > #path_segs then
+    return false
+  end
+  if not match_seg(path_segs[si], p, fold) then
+    return false
+  end
+  return match_segs_at(path_segs, pat_segs, si + 1, pi + 1, fold)
+end
+
+@doc("True when path matches pattern (*, ?, [..], **); opts.case_sensitive overrides the OS default")
+def matches(path: string, pattern: string, opts) -> bool
+  if type(path) ~= "string" then
+    error("fs.glob.matches: path string expected")
+  end
+  if type(pattern) ~= "string" then
+    error("fs.glob.matches: pattern string expected")
+  end
+  opts = as_opts(opts)
+  let fold = fold_on(opts)
+  let pth = split_segs(path)
+  let pat = split_segs(pattern)
+  if #pth == 0 and #pat == 0 then
+    return true
+  end
+  return match_segs_at(pth, pat, 1, 1, fold)
+end
+
+@doc("Directory entries; include subdirectories when wanted (1.7.6 path.listdir)")
+def list_entries(dir, want_dirs)
+  let names = path.listdir(dir, want_dirs)
+  if type(names) ~= "table" then
+    return {}
+  end
+  return names
+end
+
+@doc("Collect files (and optional directories) under dir, recursively")
+def collect_all(dir, acc, include_dirs)
+  let names = list_entries(dir, true)
+  let i = 1
+  while i <= #names do
+    let name = names[i]
+    let p = join_parts(dir, name)
+    if path.isdir(p) then
+      if include_dirs then
+        table.insert(acc, p)
+      end
+      collect_all(p, acc, include_dirs)
+    elseif path.isfile(p) then
+      table.insert(acc, p)
+    end
+    i = i + 1
+  end
+end
+
+@doc("Walk dir matching pattern segments starting at index pi")
+def walk_segs(dir, segs, pi, acc, include_dirs, fold)
+  if pi > #segs then
+    return
+  end
+  let seg = segs[pi]
+  let last = pi == #segs
+  if seg == "**" then
+    if last then
+      collect_all(dir, acc, include_dirs)
+      return
+    end
+    walk_segs(dir, segs, pi + 1, acc, include_dirs, fold)
+    let names = list_entries(dir, true)
+    let i = 1
+    while i <= #names do
+      let p = join_parts(dir, names[i])
+      if path.isdir(p) then
+        walk_segs(p, segs, pi, acc, include_dirs, fold)
+      end
+      i = i + 1
+    end
+    return
+  end
+  let names = list_entries(dir, true)
+  let i = 1
+  while i <= #names do
+    let name = names[i]
+    if match_seg(name, seg, fold) then
+      let p = join_parts(dir, name)
+      if last then
+        if path.isfile(p) then
+          table.insert(acc, p)
+        elseif include_dirs and path.isdir(p) then
+          table.insert(acc, p)
+        end
+      else
+        if path.isdir(p) then
+          walk_segs(p, segs, pi + 1, acc, include_dirs, fold)
+        end
+      end
+    end
+    i = i + 1
+  end
+end
+
+@doc("Strip a root prefix from a walk result")
+def strip_root(root, p) -> string
+  let r = normalize_path(root)
+  let s = normalize_path(p)
+  if r == "" or r == "." then
+    if string.sub(s, 1, 2) == "./" then
+      return string.sub(s, 3)
+    end
+    return s
+  end
+  if s == r then
+    return ""
+  end
+  let prefix = r .. SEP
+  if string.sub(s, 1, #prefix) == prefix then
+    return string.sub(s, #prefix + 1)
+  end
+  return s
+end
+
+@doc("Expand a glob pattern under opts.root (default .) using path.listdir / path.isdir / path.isfile")
+def glob(pattern: string, opts) -> table
+  if type(pattern) ~= "string" then
+    error("fs.glob.glob: pattern string expected")
+  end
+  opts = as_opts(opts)
+  let fold = fold_on(opts)
+  let include_dirs = false
+  if opts.include_dirs then
+    include_dirs = true
+  end
+  let root = opts.root
+  if root == nil or root == "" then
+    root = "."
+  end
+  if type(root) ~= "string" then
+    error("fs.glob.glob: root must be a string")
+  end
+  root = normalize_path(root)
+  let segs = split_segs(pattern)
+  let acc = {}
+  if #segs == 0 then
+    return acc
+  end
+  walk_segs(root, segs, 1, acc, include_dirs, fold)
+  let out = {}
+  let seen = {}
+  let i = 1
+  while i <= #acc do
+    let rel = strip_root(root, acc[i])
+    if rel ~= "" and seen[rel] == nil then
+      seen[rel] = true
+      table.insert(out, rel)
+    end
+    i = i + 1
+  end
+  table.sort(out)
+  return out
+end
+
+let M = {}
+M.matches = matches
+M.glob = glob
+M.walk = glob
+M.is_windows = is_windows
+M.normalize_path = normalize_path
+return M

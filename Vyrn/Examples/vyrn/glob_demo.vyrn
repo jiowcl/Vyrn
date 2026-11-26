@@ -1,0 +1,10 @@
+-- @compile-safe
+-- vyrn: 12
+-- Offline demo for require("fs.glob") (lib 1.11.0).
+-- Matching is case-insensitive on Windows by default; this demo forces case-sensitive.
+let G = require("fs.glob")
+const CS = { case_sensitive = true }
+print(G.matches("src/app.vyrn", "**/*.vyrn", CS))
+print(G.matches("readme.md", "*.md", CS))
+print(G.matches("foo.txt", "foo.vyrn", CS))
+print(G.matches("a/b/c", "a/*/c", CS))
