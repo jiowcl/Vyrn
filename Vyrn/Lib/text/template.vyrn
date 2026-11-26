@@ -1,0 +1,111 @@
+-- vyrn: 12
+-- Simple {{name}} / {{a.b}} templating for tools and http.serve bodies (lib 1.10.0).
+-- Not part of the product stdlib. Load with require("text.template").
+-- Missing keys become an empty string. No expressions, loops, or escape syntax.
+-- A "{{" that is not a valid name followed by "}}" is left unchanged.
+
+@doc("Read a dotted path from a table; nil if any segment is missing")
+def lookup(vars, name: string)
+  if type(vars) ~= "table" or type(name) ~= "string" or #name == 0 then
+    return nil
+  end
+  let cur = vars
+  let start = 1
+  let i = 1
+  while i <= #name + 1 do
+    let ch = ""
+    if i <= #name then
+      ch = string.sub(name, i, i)
+    end
+    if i > #name or ch == "." then
+      let part = string.sub(name, start, i - 1)
+      if #part == 0 or type(cur) ~= "table" then
+        return nil
+      end
+      cur = cur[part]
+      start = i + 1
+    end
+    i = i + 1
+  end
+  return cur
+end
+
+@doc("True when s is a dotted identifier path")
+def is_name(s: string) -> bool
+  if type(s) ~= "string" or #s == 0 then
+    return false
+  end
+  let i = 1
+  let need = true
+  while i <= #s do
+    let c = string.byte(s, i)
+    if need then
+      let ok = (c >= 65 and c <= 90) or (c >= 97 and c <= 122) or c == 95
+      if not ok then
+        return false
+      end
+      need = false
+    else
+      if c == 46 then
+        need = true
+      else
+        let ok = (c >= 65 and c <= 90) or (c >= 97 and c <= 122) or (c >= 48 and c <= 57) or c == 95
+        if not ok then
+          return false
+        end
+      end
+    end
+    i = i + 1
+  end
+  if need then
+    return false
+  end
+  return true
+end
+
+@doc("Replace double-brace name placeholders in tmpl using vars (dotted paths allowed)")
+def render(tmpl: string, vars: table) -> string
+  if type(tmpl) ~= "string" then
+    error("text.template.render: template string expected")
+  end
+  if vars == nil then
+    vars = {}
+  end
+  if type(vars) ~= "table" then
+    error("text.template.render: vars table expected")
+  end
+  let out = ""
+  let i = 1
+  let n = #tmpl
+  while i <= n do
+    let a, b = string.find(tmpl, string.char(123, 123), i, true)
+    if not a then
+      out = out .. string.sub(tmpl, i)
+      break
+    end
+    out = out .. string.sub(tmpl, i, a - 1)
+    let c, d = string.find(tmpl, string.char(125, 125), b + 1, true)
+    if not c then
+      out = out .. string.sub(tmpl, a)
+      break
+    end
+    let inner = string.match(string.sub(tmpl, b + 1, c - 1), "^%s*(.-)%s*$")
+    if is_name(inner) then
+      let v = lookup(vars, inner)
+      if v == nil then
+        out = out .. ""
+      else
+        out = out .. tostring(v)
+      end
+    else
+      out = out .. string.sub(tmpl, a, d)
+    end
+    i = d + 1
+  end
+  return out
+end
+
+let M = {}
+M.render = render
+M.lookup = lookup
+return M

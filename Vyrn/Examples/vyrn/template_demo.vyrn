@@ -1,0 +1,14 @@
+-- @compile-safe
+-- vyrn: 12
+-- Offline demo for require("text.template") (lib 1.10.0).
+-- Placeholders are built with string.char because "{" starts interpolation.
+def ph(name)
+  return string.char(123, 123) .. name .. string.char(125, 125)
+end
+
+let T = require("text.template")
+let html = T.render(
+  "<h1>" .. ph("title") .. "</h1>\n<p>Hello, " .. ph("user.name") .. ".</p>",
+  { title = "Vyrn", user = { name = "world" } }
+)
+print(html)
