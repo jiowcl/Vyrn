@@ -52,7 +52,6 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   Global Ide_JobShipEntry.s = ""
   Global Ide_JobShipOutDir.s = ""
   Global Ide_JobShipBuildExe.i = #False
-  Global Ide_LastShipPsCmd.s = ""
   Global Ide_JobCompilePath.s = ""
   Global Ide_JobCompileOut.s = ""
   Global Ide_JobCheckOut.s = ""
@@ -282,6 +281,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   ; <summary>
   ; True while Ide_Runner_Thread / Ide_Runner_JobThread is on the call stack.
   ; </summary>
+  ; <returns>integer</returns>
   Procedure.i Ide_Runner_InBackgroundThread()
     ProcedureReturn Ide_InBackgroundThread
   EndProcedure
@@ -893,6 +893,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   ; Reload Vyrn.dll from the search path (exe dir / Runtime / VYRN_DLL).
   ; Use after scripts\sync_ide_runtime.ps1 or build_ide.ps1 updates the DLL beside the IDE.
   ; </summary>
+  ; <returns>integer</returns>
   Procedure.i Ide_Runner_SyncRuntime()
     Protected ok.i, stSync.s
     If Ide_Runner_IsBusy()
@@ -954,6 +955,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   ; <summary>
   ; Basename of a script path without extension (e.g. hello.vyrn -> hello).
   ; </summary>
+  ; <param name="path">string</param>
+  ; <returns>string</returns>
   Procedure.s Ide_Runner_ScriptBase(path.s)
     Protected base.s = GetFilePart(path)
     Protected dot.i = FindString(base, ".", 1, #PB_String_NoCase)
@@ -971,7 +974,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     Protected ps1.s, args.s, prog.i, code.i, q.s = Chr(34)
     Protected host.s, base.s, exePath.s, vySave.s, vySet.i = #False
     If root = ""
-      Ide_Runner_Enqueue(#Ide_OutKind_Error, "ship: cannot find repo root (scripts\ship_standalone.ps1)")
+      Ide_Runner_Enqueue(#Ide_OutKind_Error, "[error] " + Ide_I18n_Pick("ship: cannot find repo root (scripts\\ship_standalone.ps1)", "out.ship_no_root"))
+      Ide_Runner_Enqueue(#Ide_OutKind_Error, "[error] " + Ide_I18n_Pick("publish: run from publish root (VERSION + scripts\\) or dev repo", "out.ship_publish_root"))
       Ide_JobOk = #False
       ProcedureReturn
     EndIf
@@ -980,19 +984,25 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     EndIf
     ps1 = root + "scripts\" + Ide_JobShipScript
     If FileSize(ps1) < 0
-      Ide_Runner_Enqueue(#Ide_OutKind_Error, "ship: missing " + ps1)
+      Ide_Runner_Enqueue(#Ide_OutKind_Error, "[error] " + Ide_I18n_Fmt1("ship: missing {path}", "out.ship_missing", "{path}", ps1))
       Ide_JobOk = #False
       ProcedureReturn
+    EndIf
+    Ide_RunConfig_BeginShipEnv()
+    If Ide_JobShipScript = "ship_compile.ps1"
+      Ide_Runner_Enqueue(#Ide_OutKind_Info, "[ship] " + Ide_I18n_Pick("Compile uses --target prebuilt in publish layout", "out.ship_compile_prebuilt"))
     EndIf
     If Ide_JobShipBuildExe And Ide_JobShipScript = "ship_standalone.ps1"
       host = Ide_Runner_FindVyrnHost(root)
       vySave = GetEnvironmentVariable("VYRN_HOST")
-      If vySave = "" And host <> ""
+      If vySave <> ""
+        Ide_Runner_Enqueue(#Ide_OutKind_Info, "[ship] VYRN_HOST=" + vySave)
+      ElseIf host <> ""
         SetEnvironmentVariable("VYRN_HOST", host)
         vySet = #True
         Ide_Runner_Enqueue(#Ide_OutKind_Info, "[ship] VYRN_HOST=" + host)
-      ElseIf vySave = "" And host = ""
-        Ide_Runner_Enqueue(#Ide_OutKind_Warn, "[warn] ship: VyrnHost.exe not found under repo; run scripts\\build_vyrn_host.ps1")
+      Else
+        Ide_Runner_Enqueue(#Ide_OutKind_Warn, "[warn] " + Ide_I18n_Pick("ship: VyrnHost.exe not found; set Run Configuration VYRN_HOST or scripts\\build_vyrn_host.ps1", "out.ship_no_host"))
       EndIf
     EndIf
     args = "-NoProfile -ExecutionPolicy Bypass -File " + Ide_Runner_QuoteCmdArg(ps1) + " " + Ide_Runner_QuoteCmdArg(Ide_JobShipEntry)
@@ -1005,7 +1015,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     Ide_Runner_Enqueue(#Ide_OutKind_Info, "[ship] out: " + Ide_JobShipOutDir)
     prog = RunProgram("powershell.exe", args, root, #PB_Program_Open | #PB_Program_Read | #PB_Program_Error | #PB_Program_Hide)
     If prog = 0
-      Ide_Runner_Enqueue(#Ide_OutKind_Error, "ship: failed to start powershell")
+      Ide_RunConfig_EndShipEnv()
+      Ide_Runner_Enqueue(#Ide_OutKind_Error, "[error] " + Ide_I18n_Pick("ship: failed to start powershell", "out.ship_ps_fail"))
       Ide_JobOk = #False
       ProcedureReturn
     EndIf
@@ -1024,8 +1035,12 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
         SetEnvironmentVariable("VYRN_HOST", vySave)
       EndIf
     EndIf
+    Ide_RunConfig_EndShipEnv()
     If code <> 0
-      Ide_Runner_Enqueue(#Ide_OutKind_Error, "ship exited " + Str(code))
+      Ide_Runner_Enqueue(#Ide_OutKind_Error, "[error] " + Ide_I18n_Fmt1("ship exited {code}", "out.ship_exit", "{code}", Str(code)))
+      If Ide_JobShipScript = "ship_compile.ps1"
+        Ide_Runner_Enqueue(#Ide_OutKind_Error, "[error] " + Ide_I18n_Pick("Compile: need cmake + MSVC on PATH (Run Configuration -> cmake folder)", "out.ship_compile_cmake"))
+      EndIf
       Ide_JobOk = #False
       ProcedureReturn
     EndIf
@@ -1039,9 +1054,10 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
       If FileSize(exePath) < 0
         Ide_Runner_Enqueue(#Ide_OutKind_Error, "[error] ship: expected exe missing: " + exePath)
         If Ide_JobShipScript = "ship_compile.ps1"
-          Ide_Runner_Enqueue(#Ide_OutKind_Error, "[error] Compile EXE: cmake did not produce <base>.exe (see output). If you see 'pass --exe', update/rebuild VyrnIDE.exe (ship path quoting). Otherwise ensure cmake is on PATH (Visual Studio or CMake install).")
+          Ide_Runner_Enqueue(#Ide_OutKind_Error, "[error] " + Ide_I18n_Pick("Compile EXE: cmake did not produce <base>.exe (see output above)", "out.ship_compile_no_exe"))
+          Ide_Runner_Enqueue(#Ide_OutKind_Error, "[error] " + Ide_I18n_Pick("Ensure cli\\native\\rt\\prebuilt exists (publish pack) and cmake/MSVC in Run Configuration", "out.ship_compile_cmake"))
         Else
-          Ide_Runner_Enqueue(#Ide_OutKind_Error, "[error] Standalone EXE needs bin\\VyrnHost.exe  -  scripts\\build_vyrn_host.ps1")
+          Ide_Runner_Enqueue(#Ide_OutKind_Error, "[error] " + Ide_I18n_Pick("Standalone EXE: set VYRN_HOST / cli\\VyrnHost.exe", "out.ship_no_host"))
         EndIf
         Ide_JobOk = #False
         ProcedureReturn
@@ -1156,19 +1172,24 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     EndIf
 
     If Ide_JobKind = #Ide_Job_Ship
-    If Ide_JobOk
       If Ide_JobShipScript = "ship_standalone.ps1"
         Ide_ShipLastStandalone = Ide_JobShipOutDir
       Else
         Ide_ShipLastCompile = Ide_JobShipOutDir
       EndIf
-      Ide_Editor_SavePrefs()
-      Ide_Ui_OutputAppend("[info] " + Ide_I18n_Pick("ship output:", "out.ship_dir") + " " + Ide_JobShipOutDir)
-      Ide_Ui_OutputAppend("[info] " + Ide_I18n_Pick("Click the status bar to open ship output, or use Developer -> Open last ship", "out.ship_click"))
       Ide_StatusShipDir = Ide_JobShipOutDir
-      Ide_Ui_SetStatus(Ide_I18n_Fmt1("Ship OK  -  click status bar to open | {dir}", "status.ship_ok_click", "{dir}", Ide_JobShipOutDir))
+      Ide_Editor_SavePrefs()
+      If Ide_JobOk
+        Ide_Ui_OutputAppend("[info] " + Ide_I18n_Pick("ship output:", "out.ship_dir") + " " + Ide_JobShipOutDir)
+        Ide_Ui_OutputAppend("[info] " + Ide_I18n_Pick("Click status bar to open ship output; Ship menu -> Open last ship output", "out.ship_click"))
+        Ide_Ui_SetStatus(Ide_I18n_Fmt1("Ship OK  -  click status bar to open | {dir}", "status.ship_ok_click", "{dir}", Ide_JobShipOutDir))
       Else
-        Ide_Ui_SetStatus(Ide_I18n_Pick("Ship failed", "status.ship_fail"))
+        Ide_Ui_OutputAppend("[info] " + Ide_I18n_Pick("ship output (partial):", "out.ship_dir_partial") + " " + Ide_JobShipOutDir)
+        Ide_Ui_OutputAppend("[info] " + Ide_I18n_Pick("Status bar: open folder / copy path / copy PowerShell command", "out.ship_fail_actions"))
+        If Ide_LastShipPsCmd <> ""
+          Ide_Ui_OutputAppend("[info] " + Ide_I18n_Pick("Ship menu or Developer -> Copy last ship command", "out.ship_copy_cmd_hint"))
+        EndIf
+        Ide_Ui_SetStatus(Ide_I18n_Fmt1("Ship failed — click status bar | {dir}", "status.ship_fail_click", "{dir}", Ide_JobShipOutDir))
         Ide_Ui_OutputScrollToLastError()
       EndIf
       Ide_Extensions_OnShipFinish(Ide_JobOk)
@@ -1179,6 +1200,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     If Ide_JobKind = #Ide_Job_CompileVyrnc
       If Ide_JobOk = #False
         Ide_Ui_SetStatus(Ide_I18n_Pick("Compile failed", "status.compile_fail"))
+        Ide_Ui_OutputScrollToLastError()
         Ide_JobKind = #Ide_Job_None
         ProcedureReturn
       EndIf
@@ -1227,6 +1249,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   ; <summary>
   ; Save the active file if needed for CLI jobs; returns usable script path or empty.
   ; </summary>
+  ; <returns>string</returns>
   Procedure.s Ide_Runner_EnsureSavedPath()
     If Ide_FilePath = ""
       ProcedureReturn ""
@@ -1241,8 +1264,6 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
 
   ; <summary>
   ; Compile-only syntax check (F8): --compile-vyrnc to a temp .vyrnc, then delete on success.
-  ; </summary>
-  ; <summary>
   ; Debounced live syntax check (no output-pane clear).
   ; </summary>
   Procedure Ide_Runner_CheckSyntaxLive()
@@ -1345,6 +1366,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   ; <summary>
   ; Locate prebuilt VyrnHost.exe (env VYRN_HOST, repo bin, IDE folder, parent walk).
   ; </summary>
+  ; <param name="root">string</param>
+  ; <returns>string</returns>
   Procedure.s Ide_Runner_FindVyrnHost(root.s)
     Protected env.s = GetEnvironmentVariable("VYRN_HOST")
     Protected dir.s, cand.s, i.i
@@ -1591,8 +1614,8 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
 CompilerEndIf
 
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 1295
-; FirstLine = 1261
+; CursorPosition = 283
+; FirstLine = 232
 ; Folding = --------
 ; Optimizer
 ; EnableAsm

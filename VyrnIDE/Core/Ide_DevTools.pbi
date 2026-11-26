@@ -53,11 +53,14 @@ CompilerIf Defined(Ide_DevTools, #PB_Constant) = #False
   ; Open last Standalone Or Compile ship output directory from prefs.
   ; </summary>
   Procedure Ide_Dev_OpenLastShipOut()
-    Protected dir.s = Ide_ShipLastStandalone
+    Protected dir.s = Ide_StatusShipDir
+    If dir = ""
+      dir = Ide_ShipLastStandalone
+    EndIf
     If dir = ""
       dir = Ide_ShipLastCompile
     EndIf
-    If dir = "" Or FileSize(dir) < 0
+    If dir = ""
       MessageRequester(Ide_I18n_AppTitle(), Ide_I18n_Pick("No ship output folder saved yet.", "dev.no_ship_out"), #PB_MessageRequester_Info)
       ProcedureReturn
     EndIf

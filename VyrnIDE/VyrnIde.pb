@@ -239,7 +239,6 @@ Ide_Runner_Shutdown()
 End
 ; IDE Options = PureBasic 6.41 (Windows - x64)
 ; CursorPosition = 21
-; FirstLine = 17
 ; Folding = -
 ; Optimizer
 ; EnableAsm
@@ -249,7 +248,6 @@ End
 ; DllProtection
 ; EnableOnError
 ; UseIcon = vyrn.ico
-; Executable = Output\VyrnIDE.exe
 ; DisableDebugger
 ; CompileSourceDirectory
 ; Compiler = PureBasic 6.41 - C Backend (Windows - x64)

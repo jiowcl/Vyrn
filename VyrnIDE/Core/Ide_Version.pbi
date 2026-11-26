@@ -12,6 +12,7 @@ CompilerIf Defined(Ide_Version, #PB_Constant) = #False
   ; <summary>
   ; Read the first line of VERSION next to the IDE or repo root.
   ; </summary>
+  ; <returns>string</returns>
   Procedure.s Ide_App_ReadVersion()
     Protected dir.s = GetPathPart(ProgramFilename())
     Protected root.s, path.s, fn.i, line.s
@@ -51,3 +52,11 @@ CompilerIf Defined(Ide_Version, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 14
+; Folding = -
+; Optimizer
+; EnableThread
+; EnableOnError
+; CompileSourceDirectory
+; Compiler = PureBasic 6.40 - C Backend (Windows - x64)

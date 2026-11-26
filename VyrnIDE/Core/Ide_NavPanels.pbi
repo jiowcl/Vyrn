@@ -28,6 +28,7 @@ CompilerIf Defined(Ide_NavPanels, #PB_Constant) = #False
   ; <param name="bodys">see signature</param>
   ; <param name="paths">see signature</param>
   ; <param name="lni">see signature</param>
+  ; <returns>string</returns>
   Procedure.s Ide_Nav_ErrorsDisplay(body.s, path.s, ln.i)
     Protected cap.s, rest.s
     If path <> ""
@@ -51,13 +52,18 @@ CompilerIf Defined(Ide_NavPanels, #PB_Constant) = #False
   ; <summary>
   ; IDE: Nav ErrorsRefreshGadget.
   ; </summary>
+  ; <param name="gadgetRow">integer</param>
+  ; <returns>integer</returns>
   Procedure.i Ide_Nav_ErrorsListIndex(gadgetRow.i)
     If gadgetRow < 0 Or gadgetRow >= #Ide_ErrMax
       ProcedureReturn -1
     EndIf
     ProcedureReturn Ide_ErrListMap(gadgetRow)
   EndProcedure
-
+  
+  ; <summary>
+  ; IDE: Nav ErrorsRefreshGadget.
+  ; </summary>
   Procedure Ide_Nav_ErrorsRefreshGadget()
     Protected i.i, cap.s, row.i = 0, f.s, code.s
     If IsGadget(#GAD_ERRLIST) = #False
@@ -204,7 +210,9 @@ CompilerIf Defined(Ide_NavPanels, #PB_Constant) = #False
     EndIf
   EndProcedure
 
-  ; <summary>Clear soft lint rows only (keeps compile/run errors).</summary>
+  ; <summary>
+  ; Clear soft lint rows only (keeps compile/run errors).
+  ; </summary>
   Procedure Ide_Nav_LintClear()
     Protected i.i, j.i
     j = 0
@@ -522,8 +530,7 @@ CompilerIf Defined(Ide_NavPanels, #PB_Constant) = #False
 CompilerEndIf
 
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 472
-; FirstLine = 437
+; CursorPosition = 30
 ; Folding = -----
 ; Optimizer
 ; EnableThread

@@ -39,6 +39,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
 
   Global Ide_StatusBase.s = ""
   Global Ide_StatusShipDir.s = ""
+  Global Ide_LastShipPsCmd.s = ""
 
   ; REPL bar lives above the output editor (#Ide_ReplBarH pixels when Ide_ReplVisible).
   #Ide_ReplBarH = 26
@@ -106,6 +107,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     #POP_STATUS = 565
     #POP_STATUS_SHIP_OPEN
     #POP_STATUS_SHIP_COPY
+    #POP_STATUS_SHIP_COPY_CMD
     #POP_STATUS_SYNC
   EndEnumeration
 
@@ -161,6 +163,8 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     #MNU_SHIP_STANDALONE_EXE
     #MNU_SHIP_COMPILE
     #MNU_SHIP_COMPILE_EXE
+    #MNU_SHIP_OPEN_LAST
+    #MNU_SHIP_COPY_CMD
     #MNU_COMPILE_VYRNC
     #MNU_RUN_VYRNC
     #MNU_GOTO_LIGHT
@@ -478,6 +482,8 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     SetMenuItemText(#MENU_MAIN, #MNU_SHIP_STANDALONE_EXE, Ide_I18n_Pick("Build Windows EXE (Standalone)...", "mnu.ship_standalone_exe"))
     SetMenuItemText(#MENU_MAIN, #MNU_SHIP_COMPILE, Ide_I18n_Pick("Compile Folder...", "mnu.ship_compile"))
     SetMenuItemText(#MENU_MAIN, #MNU_SHIP_COMPILE_EXE, Ide_I18n_Pick("Compile + Build EXE...", "mnu.ship_compile_exe"))
+    SetMenuItemText(#MENU_MAIN, #MNU_SHIP_OPEN_LAST, Ide_I18n_Pick("Open Last Ship Output...", "mnu.ship_open_last"))
+    SetMenuItemText(#MENU_MAIN, #MNU_SHIP_COPY_CMD, Ide_I18n_Pick("Copy Last Ship Command", "mnu.ship_copy_cmd"))
     SetMenuItemText(#MENU_MAIN, #MNU_LIVE_CHECK, Ide_I18n_Pick("Live Syntax Check", "mnu.live_check"))
     SetMenuItemText(#MENU_MAIN, #MNU_AUTOSAVE, Ide_I18n_Pick("Auto-save (30s)", "mnu.autosave"))
     SetMenuItemText(#MENU_MAIN, #MNU_OUTPUT_CLEAR, Ide_I18n_Pick("Clear Output", "mnu.output_clear"))
@@ -524,6 +530,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   ; <summary>
   ; Set UI language, refresh chrome, and persist prefs.
   ; </summary>
+  ; <param name="lang">integer</param>
   Procedure Ide_Ui_SetLanguage(lang.i)
     If lang = #Ide_Lang_Zh
       Ide_UiLang = #Ide_Lang_Zh
@@ -645,6 +652,9 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     MenuBar()
     MenuItem(#MNU_SHIP_COMPILE, "Compile Folder...")
     MenuItem(#MNU_SHIP_COMPILE_EXE, "Compile + Build EXE...")
+    MenuBar()
+    MenuItem(#MNU_SHIP_OPEN_LAST, "Open Last Ship Output...")
+    MenuItem(#MNU_SHIP_COPY_CMD, "Copy Last Ship Command")
     MenuTitle("Tools")
     MenuItem(#MNU_LIVE_CHECK, "Live Syntax Check")
     MenuItem(#MNU_AUTOSAVE, "Auto-save (30s)")
@@ -764,6 +774,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     EndIf
     MenuItem(#POP_STATUS_SHIP_OPEN, "Open ship output")
     MenuItem(#POP_STATUS_SHIP_COPY, "Copy ship path")
+    MenuItem(#POP_STATUS_SHIP_COPY_CMD, "Copy ship PowerShell command")
     MenuBar()
     MenuItem(#POP_STATUS_SYNC, "Sync runtime DLL")
   EndProcedure
@@ -789,6 +800,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     If IsMenu(#POP_STATUS)
       SetMenuItemText(#POP_STATUS, #POP_STATUS_SHIP_OPEN, Ide_I18n_Pick("Open ship output", "pop.ship_open"))
       SetMenuItemText(#POP_STATUS, #POP_STATUS_SHIP_COPY, Ide_I18n_Pick("Copy ship path", "pop.ship_copy"))
+      SetMenuItemText(#POP_STATUS, #POP_STATUS_SHIP_COPY_CMD, Ide_I18n_Pick("Copy ship PowerShell command", "pop.ship_copy_cmd"))
       SetMenuItemText(#POP_STATUS, #POP_STATUS_SYNC, Ide_I18n_Pick("Sync runtime DLL", "pop.sync"))
     EndIf
     If IsMenu(#POP_ERRORS)
@@ -845,6 +857,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   ; <summary>
   ; Drawable client height below the menu bar (PB WindowHeight includes menu area on Windows).
   ; </summary>
+  ; <returns>integer</returns>
   Procedure.i Ide_Ui_ClientHeight()
     Protected h.i
     If IsWindow(#WIN_IDE) = 0
@@ -935,6 +948,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   ; <summary>
   ; Minimum height of the output stack (REPL + error List + output editor).
   ; </summary>
+  ; <returns>integer</returns>
   Procedure.i Ide_Ui_MinOutputBucket()
     Protected need.i = 40
     need + Ide_Ui_ReplBarH()
@@ -950,6 +964,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   ; <summary>
   ; Split client height between editor And output; always reserves status bar.
   ; </summary>
+  ; <param name="wh">integer</param>
   Procedure Ide_Ui_ComputeEditorOutHeights(wh.i)
     Protected top.i = #Ide_ToolbarH
     Protected findH.i = Ide_Ui_FindBarH()
@@ -1430,6 +1445,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   ; </summary>
   ; <param name="msg">Status message to display.</param>
   ; <summary>Runtime suffix for the status bar (ABI + DLL sync hint).</summary>
+  ; <returns>string</returns>
   Procedure.s Ide_Ui_RuntimeTag()
     Protected tag.s, ver.s, abi.s
     If Vyrn_IsReady() = 0
@@ -1489,6 +1505,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   ; <summary>
   ; Update the status bar gadget caption (Not localized by itself).
   ; </summary>
+  ; <param name="msg">string</param>
   Procedure Ide_Ui_SetStatus(msg.s)
     Ide_StatusBase = msg
     Ide_Ui_RefreshStatusBar()
@@ -1514,7 +1531,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   Procedure Ide_Ui_HandleStatusPopup(menuId.i)
     Select menuId
       Case #POP_STATUS_SHIP_OPEN
-        If Ide_StatusShipDir <> "" And FileSize(Ide_StatusShipDir) >= 0
+        If Ide_StatusShipDir <> ""
           RunProgram("explorer.exe", Ide_StatusShipDir, GetPathPart(ProgramFilename()))
           Ide_Ui_SetStatus(Ide_I18n_Fmt1("Opened {dir}", "status.opened_dir", "{dir}", Ide_StatusShipDir))
         EndIf
@@ -1522,6 +1539,11 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
         If Ide_StatusShipDir <> ""
           SetClipboardText(Ide_StatusShipDir)
           Ide_Ui_SetStatus(Ide_I18n_Pick("Ship path copied", "status.ship_copied"))
+        EndIf
+      Case #POP_STATUS_SHIP_COPY_CMD
+        If Ide_LastShipPsCmd <> ""
+          SetClipboardText(Ide_LastShipPsCmd)
+          Ide_Ui_SetStatus(Ide_I18n_Pick("Ship command copied", "status.ship_cmd_copied"))
         EndIf
       Case #POP_STATUS_SYNC
         Ide_Runner_SyncRuntime()
@@ -1768,8 +1790,8 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
 CompilerEndIf
 
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 719
-; FirstLine = 502
+; CursorPosition = 532
+; FirstLine = 496
 ; Folding = -----------
 ; Optimizer
 ; EnableAsm

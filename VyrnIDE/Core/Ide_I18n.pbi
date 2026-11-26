@@ -22,6 +22,7 @@ CompilerIf Defined(Ide_I18n, #PB_Constant) = #False
   ; <summary>
   ; Locate ide\i18n\zh-Hant.ini beside the IDE exe or dev tree.
   ; </summary>
+  ; <returns>string.</returns>
   Procedure.s Ide_I18n_FindIniPath()
     Protected dir.s = GetPathPart(ProgramFilename())
     Protected cand.s
@@ -43,6 +44,8 @@ CompilerIf Defined(Ide_I18n, #PB_Constant) = #False
   ; <summary>
   ; Replace escape sequences (\t \n \\) in ini values.
   ; </summary>
+  ; <param name="s">string</param>
+  ; <returns>string.</returns>
   Procedure.s Ide_I18n_Unescape(s.s)
     Protected t.s = s
     t = ReplaceString(t, "\\", Chr(1))
@@ -91,6 +94,7 @@ CompilerIf Defined(Ide_I18n, #PB_Constant) = #False
   ; <summary>
   ; First-run UI language: VYRN_IDE_LANG wins; else Windows UI language (Chinese → zh); else English.
   ; </summary>
+  ; <returns>integer.</returns>
   Procedure.i Ide_I18n_DetectSystemLang()
     Protected env.s = Trim(GetEnvironmentVariable("VYRN_IDE_LANG"))
     Protected k32.i, langFn.l, langId.i
@@ -142,16 +146,33 @@ CompilerIf Defined(Ide_I18n, #PB_Constant) = #False
   ; <summary>
   ; IDE: I18n AppTitle.
   ; </summary>
+  ; <returns>string</returns>
   Procedure.s Ide_I18n_AppTitle()
     ProcedureReturn Ide_I18n_Pick("Vyrn IDE", "app.title")
   EndProcedure
 
-  ; <summary>Localized template with one {token} replacement.</summary>
+  ; <summary>
+  ; Localized template With one {token} replacement.
+  ; </summary>
+  ; <param name="en">string</param>
+  ; <param name="key">string</param>
+  ; <param name="token">string</param>
+  ; <param name="value">string</param>
+  ; <returns>string</returns>
   Procedure.s Ide_I18n_Fmt1(en.s, key.s, token.s, value.s)
     ProcedureReturn ReplaceString(Ide_I18n_Pick(en, key), token, value)
   EndProcedure
 
-  ; <summary>Localized template with two token replacements (order: t1, t2).</summary>
+  ; <summary>
+  ; Localized template With two token replacements (order: t1, t2).
+  ; </summary>
+  ; <param name="en">string</param>
+  ; <param name="key">string</param>
+  ; <param name="t1">string</param>
+  ; <param name="v1">string</param>
+  ; <param name="t2">string</param>
+  ; <param name="v2">string</param>
+  ; <returns>string</returns>
   Procedure.s Ide_I18n_Fmt2(en.s, key.s, t1.s, v1.s, t2.s, v2.s)
     Protected s.s = Ide_I18n_Pick(en, key)
     s = ReplaceString(s, t1, v1)
@@ -159,3 +180,13 @@ CompilerIf Defined(Ide_I18n, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 173
+; FirstLine = 134
+; Folding = --
+; Optimizer
+; EnableThread
+; EnableOnError
+; CompileSourceDirectory
+; Compiler = PureBasic 6.40 - C Backend (Windows - x64)

@@ -22,6 +22,7 @@ CompilerIf Defined(Ide_Search, #PB_Constant) = #False
   ; <summary>
   ; Build Scintilla search flags from the find bar gadgets.
   ; </summary>
+  ; <returns>integer</returns>
   Procedure.i Ide_Search_Flags()
     Protected flags.i = 0
     If IsGadget(#GAD_FIND_CASE) And GetGadgetState(#GAD_FIND_CASE)
@@ -36,6 +37,7 @@ CompilerIf Defined(Ide_Search, #PB_Constant) = #False
   ; <summary>
   ; Target range for search: whole doc or current selection when "In selection" is checked.
   ; </summary>
+  ; <param name="g">integer</param>
   Procedure Ide_Search_SetTarget(g.i)
     Protected start.i, selEnd.i, len.i
     len = ScintillaSendMessage(g, #SCI_GETLENGTH)
@@ -57,6 +59,7 @@ CompilerIf Defined(Ide_Search, #PB_Constant) = #False
   ; Read the current selection from a Scintilla as a PureBasic string.
   ; </summary>
   ; <param name="g">Scintilla gadget number.</param>
+  ; <returns>string</returns>
   Procedure.s Ide_Editor_GetSelText(g.i)
     Protected len.i, *buf, result.s
     If g = 0
@@ -80,6 +83,9 @@ CompilerIf Defined(Ide_Search, #PB_Constant) = #False
   ; <summary>
   ; True when the selected text equals the find needle (respects Match case).
   ; </summary>
+  ; <param name="sel">string</param>
+  ; <param name="needle">string</param>
+  ; <returns>integer</returns>
   Procedure.i Ide_Editor_SelMatches(sel.s, needle.s)
     If sel = "" Or needle = ""
       ProcedureReturn #False
@@ -93,6 +99,7 @@ CompilerIf Defined(Ide_Search, #PB_Constant) = #False
   ; <summary>
   ; Find next in the active tab (wraps within target range).
   ; </summary>
+  ; <returns>integer</returns>
   Procedure.i Ide_Editor_FindNext()
     Protected g.i = Ide_Editor_CurrentGadget()
     Protected needle.s, *utf8, nlen.i, pos.i, found.i, rangeStart.i, rangeEnd.i
@@ -104,7 +111,7 @@ CompilerIf Defined(Ide_Search, #PB_Constant) = #False
       ProcedureReturn #False
     EndIf
     rangeStart = ScintillaSendMessage(g, #SCI_GETCURRENTPOS)
-  If IsGadget(#GAD_FIND_INSEL) And GetGadgetState(#GAD_FIND_INSEL)
+    If IsGadget(#GAD_FIND_INSEL) And GetGadgetState(#GAD_FIND_INSEL)
       rangeStart = ScintillaSendMessage(g, #SCI_GETSELECTIONSTART)
       rangeEnd = ScintillaSendMessage(g, #SCI_GETSELECTIONEND)
       If rangeEnd <= rangeStart
@@ -234,3 +241,12 @@ CompilerIf Defined(Ide_Search, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 113
+; FirstLine = 84
+; Folding = ---
+; Optimizer
+; EnableThread
+; EnableOnError
+; CompileSourceDirectory
+; Compiler = PureBasic 6.40 - C Backend (Windows - x64)

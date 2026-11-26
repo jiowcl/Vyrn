@@ -18,6 +18,7 @@ CompilerIf Defined(Ide_Samples, #PB_Constant) = #False
   ; <summary>
   ; Resolve examples\vyrn relative to the IDE exe or repo root.
   ; </summary>
+  ; <returns>string</returns>
   Procedure.s Ide_Samples_Root()
     Protected dir.s = GetPathPart(ProgramFilename())
     Protected root.s, cand.s
@@ -42,6 +43,8 @@ CompilerIf Defined(Ide_Samples, #PB_Constant) = #False
   ; <summary>
   ; Register one sample path with a menu caption (ignore when the slot table is full).
   ; </summary>
+  ; <param name="caption">string</param>
+  ; <param name="path">string</param>
   Procedure Ide_Samples_Register(caption.s, path.s)
     If Ide_SampleCount >= #Ide_SampleMax
       ProcedureReturn
@@ -113,6 +116,7 @@ CompilerIf Defined(Ide_Samples, #PB_Constant) = #False
   ; <summary>
   ; Open sample path at index (0..#Ide_SampleMax-1).
   ; </summary>
+  ; <param name="idx">integer</param>
   Procedure Ide_Samples_OpenIndex(idx.i)
     If idx < 0 Or idx >= Ide_SampleCount
       ProcedureReturn
@@ -123,3 +127,12 @@ CompilerIf Defined(Ide_Samples, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 118
+; FirstLine = 79
+; Folding = --
+; Optimizer
+; EnableThread
+; EnableOnError
+; CompileSourceDirectory
+; Compiler = PureBasic 6.40 - C Backend (Windows - x64)

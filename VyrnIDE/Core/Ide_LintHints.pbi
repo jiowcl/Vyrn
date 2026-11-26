@@ -16,6 +16,7 @@ CompilerIf Defined(Ide_LintHints, #PB_Constant) = #False
   ; <summary>
   ; Schedule a soft lint pass after edits (saved Or unsaved buffer).
   ; </summary>
+  ; <param name="path">string</param>
   Procedure Ide_LintHints_Schedule(path.s)
     If Ide_LiveCheckEnabled = #False
       ProcedureReturn
@@ -30,6 +31,9 @@ CompilerIf Defined(Ide_LintHints, #PB_Constant) = #False
   ; <summary>
   ; Count keyword tokens on a Line (whole-word, lowercase).
   ; </summary>
+  ; <param name="line">string</param>
+  ; <param name="word">string</param>
+  ; <returns>integer</returns>
   Procedure.i Ide_LintHints_CountWord(line.s, word.s)
     Protected low.s = LCase(Trim(line))
     Protected w.s = LCase(word)
@@ -60,6 +64,7 @@ CompilerIf Defined(Ide_LintHints, #PB_Constant) = #False
   ; <summary>
   ; Scan buffer; push hints to the error list only (no output spam).
   ; </summary>
+  ; <param name="text">string</param>
   Procedure Ide_LintHints_Run(text.s)
     Protected lines.s, line.s, i.i, nLines.i
     Protected openBlocks.i = 0, closeEnd.i = 0
@@ -122,8 +127,7 @@ CompilerIf Defined(Ide_LintHints, #PB_Constant) = #False
 
 CompilerEndIf
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 99
-; FirstLine = 73
+; CursorPosition = 18
 ; Folding = -
 ; Optimizer
 ; EnableThread

@@ -12,6 +12,7 @@ CompilerIf Defined(Ide_Snippets, #PB_Constant) = #False
   ; <summary>
   ; Insert UTF-8 text at the current Scintilla caret.
   ; </summary>
+  ; <param name="text">string</param>
   Procedure Ide_Snippets_Insert(text.s)
     Protected g.i = Ide_Editor_CurrentGadget()
     Protected *utf
@@ -41,6 +42,7 @@ CompilerIf Defined(Ide_Snippets, #PB_Constant) = #False
   ; <summary>
   ; Dispatch built-in snippet templates.
   ; </summary>
+  ; <param name="kind">integer</param>
   Procedure Ide_Snippets_InsertKind(kind.i)
     Select kind
       Case #MNU_SNIPPET_FUNC
@@ -61,3 +63,12 @@ CompilerIf Defined(Ide_Snippets, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 44
+; FirstLine = 16
+; Folding = -
+; Optimizer
+; EnableThread
+; EnableOnError
+; CompileSourceDirectory
+; Compiler = PureBasic 6.40 - C Backend (Windows - x64)

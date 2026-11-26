@@ -15,6 +15,9 @@ CompilerIf Defined(Ide_Diag, #PB_Constant) = #False
   ; <summary>
   ; Extract a JSON string field (no escape handling; CLI diagnostics only).
   ; </summary>
+  ; <param name="json">string</param>
+  ; <param name="key">string</param>
+  ; <returns>string</returns>
   Procedure.s Ide_Diag_JsonStringField(json.s, key.s)
     Protected needle.s = Chr(34) + key + Chr(34) + ":"
     Protected p.i, q.i, ch.i
@@ -44,6 +47,9 @@ CompilerIf Defined(Ide_Diag, #PB_Constant) = #False
   ; <summary>
   ; Turn one NDJSON diagnostics line INTO a human error line For the error List.
   ; </summary>
+  ; <param name="json">string</param>
+  ; <param name="key">string</param>
+  ; <returns>integer</returns>
   Procedure.i Ide_Diag_JsonNumberField(json.s, key.s)
     Protected needle.s = Chr(34) + key + Chr(34) + ":"
     Protected p.i, digits.s = "", ch.i, c.s
@@ -224,12 +230,11 @@ CompilerIf Defined(Ide_Diag, #PB_Constant) = #False
 
   ; <summary>
   ; Jump the editor to the line encoded in a diagnostic message, if parseable.
+  ; Also accept path(line): msg and (line N) forms used by some host/tooling paths.
   ; </summary>
   ; <param name="msg">Diagnostic or output line containing a source location.</param>
   ; <param name="isWarn">#True to mark as warning; #False for error markers.</param>
-  ; <summary>
-  ; Also accept path(line): msg and (line N) forms used by some host/tooling paths.
-  ; </summary>
+  ; <returns>integer</returns>
   Procedure.i Ide_Diag_ParseLineExtra(msg.s)
     Protected s.s = Ide_Diag_StripPrefix(msg)
     Protected i.i, j.i, n.i, c.i
@@ -260,6 +265,7 @@ CompilerIf Defined(Ide_Diag, #PB_Constant) = #False
   ; Parse line from CLI-like diagnostics; tries primary then extra forms.
   ; </summary>
   ; <param name="msg">Diagnostic or output line containing a source location.</param>
+  ; <returns>integer</returns>
   Procedure.i Ide_Diag_ParseLineAny(msg.s)
     Protected line.i = Ide_Diag_ParseLine(msg)
     If line > 0
@@ -367,8 +373,7 @@ CompilerIf Defined(Ide_Diag, #PB_Constant) = #False
 CompilerEndIf
 
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 274
-; FirstLine = 318
+; CursorPosition = 19
 ; Folding = ---
 ; Optimizer
 ; EnableAsm

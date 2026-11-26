@@ -226,6 +226,10 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
         Ide_Runner_Ship(2)
       Case #MNU_SHIP_COMPILE_EXE
         Ide_Runner_Ship(3)
+      Case #MNU_SHIP_OPEN_LAST
+        Ide_Dev_OpenLastShipOut()
+      Case #MNU_SHIP_COPY_CMD
+        Ide_Dev_CopyLastShipCmd()
       Case #MNU_COMPILE_VYRNC
         Ide_Runner_CompileVyrnc(#False)
       Case #MNU_RUN_VYRNC
@@ -296,7 +300,7 @@ CompilerIf Defined(Ide_Commands, #PB_Constant) = #False
         Ide_Ui_HandleOutputPopup(menuId)
       Case #POP_ERR_COPY_LOC, #POP_ERR_COPY_CODE, #POP_ERR_SET_FILTER, #POP_ERR_CLEAR_FILTER
         Ide_Nav_ErrorsHandlePopup(menuId)
-      Case #POP_STATUS_SHIP_OPEN, #POP_STATUS_SHIP_COPY, #POP_STATUS_SYNC
+      Case #POP_STATUS_SHIP_OPEN, #POP_STATUS_SHIP_COPY, #POP_STATUS_SHIP_COPY_CMD, #POP_STATUS_SYNC
         Ide_Ui_HandleStatusPopup(menuId)
       Case #MNU_TAB_WIDTH_2
         Ide_Editor_SetTabWidth(2)

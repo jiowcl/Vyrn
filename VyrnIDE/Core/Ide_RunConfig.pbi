@@ -25,9 +25,19 @@ CompilerIf Defined(Ide_RunConfig, #PB_Constant) = #False
   Global Ide_RunCfg_JsonDiag.i = #True
   Global Ide_RunCfg_TimeoutSecs.i = 0
   Global Ide_RunCfg_RunViaVyrnc.i = #False
+  ; Ship / Compile toolchain (persisted; applied during Ship jobs only).
+  Global Ide_RunCfg_VyrnHost.s = ""
+  Global Ide_RunCfg_Cmake.s = ""
+  Global Ide_RunCfg_ShipPathExtra.s = ""
+  Global Ide_RunEnv_PathSave.s = ""
+  Global Ide_RunEnv_VyrnHostSave.s = ""
+  Global Ide_RunEnv_VyrnHostTouched.i = #False
+  Global Ide_RunEnv_PathTouched.i = #False
   #Ide_RunBenchMax = 2000000000
 
   Declare Ide_Editor_SavePrefs()
+  Declare Ide_RunConfig_BeginShipEnv()
+  Declare Ide_RunConfig_EndShipEnv()
 
   ; <summary>
   ; Apply run configuration to the loaded VM (call after Vyrn_Ensure).
@@ -66,7 +76,68 @@ CompilerIf Defined(Ide_RunConfig, #PB_Constant) = #False
 
   ; <summary>
   ; Working directory for the run thread (script folder when unset).
+  ; Snapshot PATH / VYRN_HOST and apply Run Configuration toolchain for Ship (cmake on PATH, host exe).
   ; </summary>
+  Procedure Ide_RunConfig_BeginShipEnv()
+    Protected cmake.s, pathExtra.s, p.s
+    Ide_RunEnv_PathSave = GetEnvironmentVariable("PATH")
+    Ide_RunEnv_VyrnHostSave = GetEnvironmentVariable("VYRN_HOST")
+    Ide_RunEnv_VyrnHostTouched = #False
+    Ide_RunEnv_PathTouched = #False
+    pathExtra = Trim(Ide_RunCfg_ShipPathExtra)
+    cmake = Trim(Ide_RunCfg_Cmake)
+    If cmake <> ""
+      If Right(LCase(cmake), 10) = "cmake.exe"
+        p = GetPathPart(cmake)
+      ElseIf FileSize(cmake + "cmake.exe") >= 0
+        p = cmake
+      ElseIf FileSize(cmake) >= 0
+        p = GetPathPart(cmake)
+      EndIf
+      If p <> ""
+        If Right(p, 1) <> "\" And Right(p, 1) <> "/"
+          p = p + "\"
+        EndIf
+        If pathExtra <> ""
+          pathExtra = p + ";" + pathExtra
+        Else
+          pathExtra = p
+        EndIf
+      EndIf
+    EndIf
+    If pathExtra <> ""
+      SetEnvironmentVariable("PATH", pathExtra + ";" + Ide_RunEnv_PathSave)
+      Ide_RunEnv_PathTouched = #True
+    EndIf
+    If Trim(Ide_RunCfg_VyrnHost) <> "" And FileSize(Ide_RunCfg_VyrnHost) >= 0
+      SetEnvironmentVariable("VYRN_HOST", Ide_RunCfg_VyrnHost)
+      Ide_RunEnv_VyrnHostTouched = #True
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; Restore environment after Ship job.
+  ; </summary>
+  Procedure Ide_RunConfig_EndShipEnv()
+    If Ide_RunEnv_PathTouched
+      SetEnvironmentVariable("PATH", Ide_RunEnv_PathSave)
+      Ide_RunEnv_PathTouched = #False
+    EndIf
+    If Ide_RunEnv_VyrnHostTouched
+      If Ide_RunEnv_VyrnHostSave = ""
+        RemoveEnvironmentVariable("VYRN_HOST")
+      Else
+        SetEnvironmentVariable("VYRN_HOST", Ide_RunEnv_VyrnHostSave)
+      EndIf
+      Ide_RunEnv_VyrnHostTouched = #False
+    EndIf
+  EndProcedure
+  
+  ; <summary>
+  ; Ide_RunConfig_RunDirectory
+  ; </summary>
+  ; <param name="scriptPath">string</param>
+  ; <returns>string</returns>
   Procedure.s Ide_RunConfig_RunDirectory(scriptPath.s)
     If Ide_RunCfg_WorkDir <> ""
       If ExamineDirectory(2, Ide_RunCfg_WorkDir, "*")
@@ -98,11 +169,13 @@ CompilerIf Defined(Ide_RunConfig, #PB_Constant) = #False
     Protected gLoops.i, gCalls.i, gIns.i, gNet.i, gProc.i, gAllow.i, gCwd.i, gArgs.i, gOk.i, gCancel.i
     ; Wider layout for zh-Hant labels (e.g. runcfg.loops).
     Protected dlgW.i = 540
-    Protected dlgH.i = 572
+    Protected dlgH.i = 748
+    Protected btnY.i = 698
     Protected capStrict.i = Bool(Ide_RunCfg_Strict <> 0)
     Protected capBench.i = Bool(Ide_RunCfg_Bench <> 0)
     Protected capUnlim.i = Bool(Ide_RunCfg_Unlimited <> 0)
     Protected gStrict.i, gBench.i, gUnlim.i, gJson.i, gVyrnc.i, gTimeout.i, gLintPanel.i
+    Protected gVyrnHost.i, gCmake.i, gShipPath.i
     Protected capJson.i = Bool(Ide_RunCfg_JsonDiag <> 0)
     Protected capVyrnc.i = Bool(Ide_RunCfg_RunViaVyrnc <> 0)
     Protected m.i = 20
@@ -143,8 +216,14 @@ CompilerIf Defined(Ide_RunConfig, #PB_Constant) = #False
       SetGadgetState(gUnlim, capUnlim)
       gLintPanel = CheckBoxGadget(#PB_Any, m, 492, fullW, 22, Ide_I18n_Pick("Live lint only when Error List is open", "runcfg.lint_panel"))
       SetGadgetState(gLintPanel, Bool(Ide_LiveLintPanelOnly <> 0))
-      gOk = ButtonGadget(#PB_Any, dlgW / 2 - 100, 530, 88, 28, Ide_I18n_Pick("OK", "runcfg.ok"))
-      gCancel = ButtonGadget(#PB_Any, dlgW / 2 + 12, 530, 88, 28, Ide_I18n_Pick("Cancel", "runcfg.cancel"))
+      TextGadget(#PB_Any, m, 520, fullW, 32, Ide_I18n_Pick("Ship: VYRN_HOST (empty=auto, Compile+Standalone EXE):", "runcfg.vyrn_host"))
+      gVyrnHost = StringGadget(#PB_Any, m, 548, fullW, 22, Ide_RunCfg_VyrnHost)
+      TextGadget(#PB_Any, m, 576, fullW, 32, Ide_I18n_Pick("Ship: cmake.exe or its folder (prepend PATH):", "runcfg.cmake"))
+      gCmake = StringGadget(#PB_Any, m, 604, fullW, 22, Ide_RunCfg_Cmake)
+      TextGadget(#PB_Any, m, 632, fullW, 32, Ide_I18n_Pick("Ship: extra PATH (semicolons, tools/clang/gcc):", "runcfg.ship_path"))
+      gShipPath = StringGadget(#PB_Any, m, 660, fullW, 22, Ide_RunCfg_ShipPathExtra)
+      gOk = ButtonGadget(#PB_Any, dlgW / 2 - 100, btnY, 88, 28, Ide_I18n_Pick("OK", "runcfg.ok"))
+      gCancel = ButtonGadget(#PB_Any, dlgW / 2 + 12, btnY, 88, 28, Ide_I18n_Pick("Cancel", "runcfg.cancel"))
       Repeat
         Select WaitWindowEvent()
           Case #PB_Event_CloseWindow
@@ -178,6 +257,9 @@ CompilerIf Defined(Ide_RunConfig, #PB_Constant) = #False
                   Ide_RunCfg_Bench = #False
                 EndIf
                 Ide_LiveLintPanelOnly = GetGadgetState(gLintPanel)
+                Ide_RunCfg_VyrnHost = Trim(GetGadgetText(gVyrnHost))
+                Ide_RunCfg_Cmake = Trim(GetGadgetText(gCmake))
+                Ide_RunCfg_ShipPathExtra = Trim(GetGadgetText(gShipPath))
                 Ide_Editor_SavePrefs()
                 ok = #True
                 done = #True
@@ -194,3 +276,12 @@ CompilerIf Defined(Ide_RunConfig, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 139
+; FirstLine = 104
+; Folding = --
+; Optimizer
+; EnableThread
+; EnableOnError
+; CompileSourceDirectory
+; Compiler = PureBasic 6.40 - C Backend (Windows - x64)

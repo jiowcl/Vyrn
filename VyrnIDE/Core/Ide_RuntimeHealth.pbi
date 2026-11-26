@@ -12,6 +12,7 @@ CompilerIf Defined(Ide_RuntimeHealth, #PB_Constant) = #False
   ; <summary>
   ; Path To Vyrn.dll Next To the IDE exe.
   ; </summary>
+  ; <returns>string</returns>
   Procedure.s Ide_RuntimeHealth_IdeDllPath()
     Protected dir.s = GetPathPart(ProgramFilename())
     Protected p.s = dir + "Vyrn.dll"
@@ -28,6 +29,7 @@ CompilerIf Defined(Ide_RuntimeHealth, #PB_Constant) = #False
   ; <summary>
   ; Canonical native\Vyrn.dll under repo root when developing from source.
   ; </summary>
+  ; <returns>string</returns>
   Procedure.s Ide_RuntimeHealth_NativeDllPath()
     Protected root.s = Ide_Runner_FindRepoRoot()
     Protected p.s
@@ -44,6 +46,8 @@ CompilerIf Defined(Ide_RuntimeHealth, #PB_Constant) = #False
   ; <summary>
   ; Human-readable size + modification stamp For About / output.
   ; </summary>
+  ; <param name="path">string</param>
+  ; <returns>string</returns>
   Procedure.s Ide_RuntimeHealth_FormatStamp(path.s)
     Protected sz.q
     If path = "" Or FileSize(path) < 0
@@ -56,6 +60,7 @@ CompilerIf Defined(Ide_RuntimeHealth, #PB_Constant) = #False
   ; <summary>
   ; #True when ide\Output Vyrn.dll differs from native\Vyrn.dll (size).
   ; </summary>
+  ; <returns>integer</returns>
   Procedure.i Ide_RuntimeHealth_NeedsSync()
     Protected ide.s = Ide_RuntimeHealth_IdeDllPath()
     Protected nat.s = Ide_RuntimeHealth_NativeDllPath()
@@ -74,6 +79,7 @@ CompilerIf Defined(Ide_RuntimeHealth, #PB_Constant) = #False
   ; <summary>
   ; One-line status For About dialog.
   ; </summary>
+  ; <returns>string</returns>
   Procedure.s Ide_RuntimeHealth_AboutLine()
     Protected ide.s = Ide_RuntimeHealth_IdeDllPath()
     Protected nat.s = Ide_RuntimeHealth_NativeDllPath()
@@ -106,8 +112,7 @@ CompilerIf Defined(Ide_RuntimeHealth, #PB_Constant) = #False
 
 CompilerEndIf
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 98
-; FirstLine = 56
+; CursorPosition = 14
 ; Folding = --
 ; Optimizer
 ; EnableThread

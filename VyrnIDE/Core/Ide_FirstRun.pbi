@@ -12,6 +12,7 @@ CompilerIf Defined(Ide_FirstRun, #PB_Constant) = #False
   ; <summary>
   ; Build localized first-run checklist text.
   ; </summary>
+  ; <returns>string</returns>
   Procedure.s Ide_FirstRun_Message()
     Protected s.s
     If Vyrn_IsReady()
@@ -43,7 +44,7 @@ CompilerIf Defined(Ide_FirstRun, #PB_Constant) = #False
 
 CompilerEndIf
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 33
+; CursorPosition = 14
 ; Folding = -
 ; Optimizer
 ; EnableThread

@@ -122,6 +122,9 @@ CompilerIf Defined(Ide_EditorPrefs, #PB_Constant) = #False
       Ide_RunCfg_JsonDiag = ReadPreferenceInteger("jsonDiag", 1)
       Ide_RunCfg_TimeoutSecs = ReadPreferenceInteger("timeoutSecs", 0)
       Ide_RunCfg_RunViaVyrnc = ReadPreferenceInteger("runViaVyrnc", 0)
+      Ide_RunCfg_VyrnHost = ReadPreferenceString("vyrnHost", "")
+      Ide_RunCfg_Cmake = ReadPreferenceString("cmakePath", "")
+      Ide_RunCfg_ShipPathExtra = ReadPreferenceString("shipPathExtra", "")
       Ide_ProjectEntry = ReadPreferenceString("entryScript", "")
       Ide_ProjectEntryRoot = ReadPreferenceString("entryRoot", "")
       Ide_ShipLastStandalone = ReadPreferenceString("shipLastStandalone", "")
@@ -209,6 +212,9 @@ CompilerIf Defined(Ide_EditorPrefs, #PB_Constant) = #False
       WritePreferenceInteger("jsonDiag", Ide_RunCfg_JsonDiag)
       WritePreferenceInteger("timeoutSecs", Ide_RunCfg_TimeoutSecs)
       WritePreferenceInteger("runViaVyrnc", Ide_RunCfg_RunViaVyrnc)
+      WritePreferenceString("vyrnHost", Ide_RunCfg_VyrnHost)
+      WritePreferenceString("cmakePath", Ide_RunCfg_Cmake)
+      WritePreferenceString("shipPathExtra", Ide_RunCfg_ShipPathExtra)
       WritePreferenceString("entryScript", Ide_ProjectEntry)
       WritePreferenceString("entryRoot", Ide_ProjectEntryRoot)
       WritePreferenceString("shipLastStandalone", Ide_ShipLastStandalone)
@@ -226,6 +232,8 @@ CompilerIf Defined(Ide_EditorPrefs, #PB_Constant) = #False
   ; <summary>
   ; Byte length of a null-terminated UTF-8 C string.
   ; </summary>
+  ; <param name="*p">pointer</param>
+  ; <returns>integer</returns>
   Procedure.i Ide_Utf8Bytes(*p)
     Protected n.i = 0
     If *p = 0
@@ -240,6 +248,8 @@ CompilerIf Defined(Ide_EditorPrefs, #PB_Constant) = #False
   ; <summary>
   ; Whether a path looks like a Vyrn/Lua script we should open in the editor.
   ; </summary>
+  ; <param name="path">string</param>
+  ; <returns>integer</returns>
   Procedure.i Ide_Editor_IsScriptPath(path.s)
     Protected ext.s = LCase(GetExtensionPart(path))
     ProcedureReturn Bool(ext = "vyrn" Or ext = "lua")
@@ -365,3 +375,13 @@ CompilerIf Defined(Ide_EditorPrefs, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 251
+; FirstLine = 236
+; Folding = ---
+; Optimizer
+; EnableThread
+; EnableOnError
+; CompileSourceDirectory
+; Compiler = PureBasic 6.40 - C Backend (Windows - x64)

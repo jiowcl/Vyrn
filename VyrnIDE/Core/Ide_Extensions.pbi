@@ -23,6 +23,7 @@ CompilerIf Defined(Ide_Extensions, #PB_Constant) = #False
   ; <summary>
   ; Folder scanned for extension scripts (exe-dir\extensions or repo\ide\extensions).
   ; </summary>
+  ; <returns>string</returns>
   Procedure.s Ide_Extensions_Folder()
     Protected dir.s = GetPathPart(ProgramFilename())
     Protected root.s, cand.s
@@ -317,8 +318,7 @@ CompilerIf Defined(Ide_Extensions, #PB_Constant) = #False
 CompilerEndIf
 
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 207
-; FirstLine = 189
+; CursorPosition = 25
 ; Folding = ---
 ; Optimizer
 ; EnableThread

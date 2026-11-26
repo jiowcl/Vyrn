@@ -690,6 +690,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   ; <summary>
   ; Replace active buffer text, clear undo, mark clean, and restyle.
   ; </summary>
+  ; <param name="g">integer</param>
   ; <param name="text">UTF-8 source to load into the active Scintilla.</param>
   Procedure Ide_Editor_SetTextOn(g.i, text.s)
     Protected *utf
@@ -777,6 +778,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   ; <summary>
   ; Jump to a 1-based line, place error/warn markers, and select the line.
   ; </summary>
+  ; <param name="path">string</param>
   ; <param name="lineNo">1-based source line.</param>
   ; <param name="isWarn">#True for warning markers; #False for error.</param>
   Procedure Ide_Editor_GotoDiagnosticPath(path.s, lineNo.i, isWarn.i = #False)
@@ -847,6 +849,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   ; <summary>
   ; Move caret To 1-based column on the current line.
   ; </summary>
+  ; <param name="col1">integer</param>
   Procedure Ide_Editor_GotoColumn(col1.i)
     Protected g.i = Ide_Editor_CurrentGadget()
     Protected pos.i, line0.i
@@ -862,6 +865,9 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   ; <summary>
   ; Return 1-based line of `def tok` IN a script file, Or 0.
   ; </summary>
+  ; <param name="path">string</param>
+  ; <param name="tok">string</param>
+  ; <returns>integer</returns>
   Procedure.i Ide_EditorAssist_FindDefLineInFile(path.s, tok.s)
     Protected fh.i, text.s, n.i, i.i, line.s, low.s
     If path = "" Or tok = "" Or FileSize(path) < 0
@@ -893,6 +899,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   ; <summary>
   ; Scan project panel scripts (cap 80) For `def tok`.
   ; </summary>
+  ; <param name="tok">string</param>
   Procedure Ide_EditorAssist_GotoTokenInProject(tok.s)
     Protected i.i, n.i, path.s, ln.i, scanned.i = 0
     If tok = "" Or Ide_ProjectRoot = ""
@@ -941,7 +948,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
     If lineText = "" Or col1 < 1
       ProcedureReturn
     EndIf
-  startCol = col1
+    startCol = col1
     While startCol > 1
       ch = Asc(Mid(lineText, startCol - 1, 1))
       If (ch >= Asc("a") And ch <= Asc("z")) Or (ch >= Asc("A") And ch <= Asc("Z")) Or (ch >= Asc("0") And ch <= Asc("9")) Or ch = Asc("_") Or ch = Asc(".")
@@ -972,7 +979,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
     EndIf
     text = Ide_Editor_GetTextFrom(g)
     n = CountString(text, Chr(10)) + 1
-  For i = 1 To n
+    For i = 1 To n
       line = Trim(StringField(text, i, Chr(10)))
       low = LCase(line)
       If FindString(low, "def " + LCase(tok), 1) Or FindString(low, "def\t" + LCase(tok), 1)
@@ -1205,6 +1212,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   ; <summary>
   ; Open path in a new tab, or activate an existing tab for that path.
   ; </summary>
+  ; <param name="idx">integer</param>
   ; <param name="path">File to load.</param>
   ; <returns>#True on success.</returns>
   Procedure Ide_Editor_LoadIntoTab(idx.i, path.s)
@@ -1241,6 +1249,7 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
   ; IDE: Editor LoadFile.
   ; </summary>
   ; <param name="paths">see signature</param>
+  ; <returns>integer</returns>
   Procedure.i Ide_Editor_LoadFile(path.s)
     Protected src.s = ""
     Protected f.i, line.s, idx.i
@@ -1412,8 +1421,8 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
 CompilerEndIf
 
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 927
-; FirstLine = 906
+; CursorPosition = 692
+; FirstLine = 628
 ; Folding = --------------------
 ; Optimizer
 ; EnableAsm

@@ -21,6 +21,7 @@ CompilerIf Defined(Ide_LiveCheck, #PB_Constant) = #False
   ; <summary>
   ; Schedule a syntax check after edits to a saved on-disk path.
   ; </summary>
+  ; <param name="path">string</param>
   Procedure Ide_LiveCheck_Schedule(path.s)
     If Ide_LiveCheckEnabled = #False Or path = ""
       ProcedureReturn
@@ -58,3 +59,11 @@ CompilerIf Defined(Ide_LiveCheck, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 23
+; Folding = -
+; Optimizer
+; EnableThread
+; EnableOnError
+; CompileSourceDirectory
+; Compiler = PureBasic 6.40 - C Backend (Windows - x64)

@@ -95,6 +95,7 @@ CompilerIf Defined(Ide_EditorAssist, #PB_Constant) = #False
   ; <summary>
   ; Highlight matching (), [], {} using indicator 0; clears when no match.
   ; </summary>
+  ; <param name="g">integer</param>
   Procedure Ide_EditorAssist_BraceHighlight(g.i)
     Protected pos.i, match.i, len.i, fore.i
     If g = 0
@@ -132,6 +133,7 @@ CompilerIf Defined(Ide_EditorAssist, #PB_Constant) = #False
   ; <summary>
   ; Apply Ide_TabWidth to one Scintilla.
   ; </summary>
+  ; <param name="g">integer</param>
   Procedure Ide_EditorAssist_ApplyTabWidth(g.i)
     If g = 0
       ProcedureReturn
@@ -159,3 +161,12 @@ CompilerIf Defined(Ide_EditorAssist, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 135
+; FirstLine = 91
+; Folding = ---
+; Optimizer
+; EnableThread
+; EnableOnError
+; CompileSourceDirectory
+; Compiler = PureBasic 6.40 - C Backend (Windows - x64)

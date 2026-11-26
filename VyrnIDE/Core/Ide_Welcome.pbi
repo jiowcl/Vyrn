@@ -12,6 +12,7 @@ CompilerIf Defined(Ide_Welcome, #PB_Constant) = #False
   ; <summary>
   ; Vyrn IDE - startup welcome hints (empty untitled buffer; text from welcome.* i18n keys).
   ; </summary>
+  ; <returns>string</returns>
   Procedure.s Ide_Welcome_Text()
     Protected s.s
     s = Ide_I18n_Pick("Welcome to Vyrn IDE", "welcome.title") + Chr(10) + Chr(10)
@@ -49,3 +50,12 @@ CompilerIf Defined(Ide_Welcome, #PB_Constant) = #False
   EndProcedure
 
 CompilerEndIf
+
+; IDE Options = PureBasic 6.41 (Windows - x64)
+; CursorPosition = 14
+; Folding = -
+; Optimizer
+; EnableThread
+; EnableOnError
+; CompileSourceDirectory
+; Compiler = PureBasic 6.40 - C Backend (Windows - x64)

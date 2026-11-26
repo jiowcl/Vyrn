@@ -34,6 +34,7 @@ CompilerIf Defined(Ide_Project, #PB_Constant) = #False
   ; <summary>
   ; Horizontal offset of the editor area when the project panel is shown.
   ; </summary>
+  ; <returns>integer</returns>
   Procedure.i Ide_Project_ClientLeft()
     If (Ide_ProjectVisible And Ide_ProjectRoot <> "") Or Ide_OutlineVisible
       If IsGadget(#GAD_PROJECT) Or IsGadget(#GAD_OUTLINE)
@@ -46,6 +47,10 @@ CompilerIf Defined(Ide_Project, #PB_Constant) = #False
   ; <summary>
   ; Show/hide and position the project list during main window layout.
   ; </summary>
+  ; <param name="top">integer</param>
+  ; <param name="findH">integer</param>
+  ; <param name="left">integer</param>
+  ; <param name="editorH">integer</param>
   Procedure Ide_Project_LayoutPanel(top.i, findH.i, left.i, editorH.i)
     Protected ph.i, oh.i, y0.i = top + findH
     ph = editorH
@@ -88,6 +93,7 @@ CompilerIf Defined(Ide_Project, #PB_Constant) = #False
   ; <summary>
   ; Record one script path during scan (sorted when filling the list).
   ; </summary>
+  ; <param name="fullPath">string</param>
   Procedure Ide_Project_AddScriptPath(fullPath.s)
     If Ide_ProjectScanCnt >= #Ide_ProjectScanMax
       ProcedureReturn
@@ -377,6 +383,7 @@ CompilerIf Defined(Ide_Project, #PB_Constant) = #False
   ; <summary>
   ; IDE: Project SelectedPath.
   ; </summary>
+  ; <returns>string</returns>
   Procedure.s Ide_Project_SelectedPath()
     Protected idx.i, path.s
     If IsGadget(#GAD_PROJECT) = #False
@@ -496,8 +503,8 @@ CompilerIf Defined(Ide_Project, #PB_Constant) = #False
 CompilerEndIf
 
 ; IDE Options = PureBasic 6.41 (Windows - x64)
-; CursorPosition = 478
-; FirstLine = 445
+; CursorPosition = 36
+; FirstLine = 4
 ; Folding = ----
 ; Optimizer
 ; EnableThread
