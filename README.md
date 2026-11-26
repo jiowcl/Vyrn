@@ -48,11 +48,11 @@ def calculate_bonus(score: number) -> number
 end
 
 print(greet("Vyrn"))
-print(calculate_bonus(100))
+print("Calculate = {calculate_bonus(100)}")
 
 -- Output:
 -- Hello, Vyrn!
--- 110
+-- Calculate = 110.0
 ```
 
 ```lua
@@ -68,11 +68,11 @@ function calculate_bonus(score)
 end
 
 print(greet("Vyrn"))
-print(calculate_bonus(100))
+print("Calculate = " .. calculate_bonus(100))
 
 -- Output:
 -- Hello, Vyrn!
--- 110
+-- Calculate = 110.0
 ```
 
 More examples are in `examples/vyrn/`.  
