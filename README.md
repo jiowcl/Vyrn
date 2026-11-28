@@ -30,6 +30,20 @@
 Building requires PureBasic Compiler and test under Windows 11.  
 Module features require PureBasic 5.20 and above.  
 
+## Language Snapshot  
+
+| Feature | Notes |
+| --- | --- |
+| `def` / `let` / `elif` / `const` / `continue` | Modern keywords (legacy `function` / `local` / `elseif` still accepted) |
+| Optional types | `def f(x: number) -> string`, multi-return, typed destructuring |
+| `struct` / `enum` | Typed constructors, methods, optional fields |
+| `match` | Pattern matching (desugars to `if`/`elif`) |
+| String interpolation | `"Hello, {name}!"` |
+| Closures & upvalues | Full lexical capture, shared upvalues |
+| Varargs | `def f(a, ...)`, `select`, `table.pack` / `unpack` |
+| Protected calls | `pcall`, `xpcall`, `error`, `assert` |
+| Coroutines | Full subset + `yield` statement |
+
 ## Example  
 
 Vyrn supports both Lua and Vyrn's own syntax.  
@@ -94,20 +108,6 @@ vyrn compile app.vyrn -o build\app --exe --batch
 # or portable / linux-x64 target
 vyrn compile app.vyrn -o out --target linux-x64 --batch
 ```
-
-## Language Snapshot  
-
-| Feature | Notes |
-| --- | --- |
-| `def` / `let` / `elif` / `const` / `continue` | Modern keywords (legacy `function` / `local` / `elseif` still accepted) |
-| Optional types | `def f(x: number) -> string`, multi-return, typed destructuring |
-| `struct` / `enum` | Typed constructors, methods, optional fields |
-| `match` | Pattern matching (desugars to `if`/`elif`) |
-| String interpolation | `"Hello, {name}!"` |
-| Closures & upvalues | Full lexical capture, shared upvalues |
-| Varargs | `def f(a, ...)`, `select`, `table.pack` / `unpack` |
-| Protected calls | `pcall`, `xpcall`, `error`, `assert` |
-| Coroutines | Full subset + `yield` statement |
 
 ## History  
 

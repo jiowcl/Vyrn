@@ -248,6 +248,22 @@ print(p._fielddocs.x)   -- "x coordinate"
 - Each instance gets a **`_fielddocs`** table mapping field names to doc strings.
 - `--dump` on the struct constructor shows `; field name doc "..."` lines.  
 
+## Loop variables, error values and arithmetic edge cases (1.6.78–1.6.80)  
+
+- Each iteration of a numeric `for`, generic `for`, `for-in`, `while` or `repeat ... until` loop has fresh locals: a closure made in the body keeps that iteration's value (Lua semantics). In `repeat ... until cond`, `cond` can read the body's locals (1.6.79). `continue` and `break` close the current iteration's captured locals in every loop kind, including `repeat` (1.6.80); `continue` in `repeat` restarts the body without testing `cond`.  
+- `error(v)` with a non-string value passes `v` unchanged to `pcall` / `xpcall` / `coroutine.resume`; only strings get a `file:line: ` prefix. `pcall(error, msg)` and `xpcall(error, h, msg)` add none.
+- `/` is IEEE: `1/0 = inf`, `-1/0 = -inf`, `0/0 = nan` (printed `inf`, `-inf`, `nan`). Integer `n % 0` raises `attempt to perform 'n%0'`; float `x % 0` is `nan`.  
+- `%` is Lua floored modulo in every dialect (1.6.79): `a % b = a - floor(a/b)*b`, the result has the sign of `b` (`-7 % 3 = 2`, `7 % -3 = -2`, `-7.5 % 2 = 0.5`). Before 1.6.79 `%` truncated toward zero; results differ only when the operands have different signs. `math.fmod` still truncates (as in Lua).  
+- `//` is floor division (1.6.79), same precedence as `*`, `/`, `%`: `7 // 2 = 3`, `-7 // 2 = -4`, `7.5 // 2 = 3`. Integer `n // 0` raises `attempt to perform 'n//0'`; float `x // 0` gives `inf`, `-inf` or `nan`. `--` is the only line comment, so `//` never starts a comment.  
+- `x += 1` / `x -= 1` equal `x = x ± 1`: numeric strings coerce, other non-numbers raise `attempt to perform arithmetic on a ... value`.  
+- Compound assignment (1.6.80): `target op= e` with `op` in `+ - * / // % ..` means `target = target op (e)`. `target` is a name (local, upvalue, global) or a field `p.name` / `p[k]` of any postfix expression; `p` and `k` are evaluated once. Statement only, one target (`a, b += 1` is a syntax error, 1.6.86). `%=` / `//=` are floored; errors are those of the binary operator. No `^=`. Each form lexes as two tokens (`//` `=`), so `~=`, `!=`, `==` are unaffected.  
+- Multiple assignment (1.6.86): `t1, ..., tn = e1, ..., em` (statement only). Each target is a name (local, upvalue, global) or a field / index of any postfix expression (`o.k`, `o[k]`, `f(x).y`, `a.b[c]`). Order: (1) each target's prefix object and key, left to right; (2) all RHS expressions left to right, adjusted to `n` values (non-last call or `...` gives one value, the last expands, extras are evaluated and discarded, missing values are `nil`); (3) stores left to right. `a, b = b, a` swaps; `i, t[i] = i + 1, 20` indexes with the old `i`. If an RHS expression raises, no target is assigned. Const, strict struct-field and nil-index errors are those of single assignment. Compound assignment stays single-target: `a, b += 1` is a syntax error. Aliased targets (`t[1], t[1] = 1, 2`) keep the last value (Lua leaves this unspecified).  
+- Runtime errors inside bundled modules report the module file and line on both runtimes (VXT1 v2 line map in bundled `.vyrnc`; older runtimes reject such files).  
+
+## Memory and garbage collection (1.6.93–1.6.104)  
+
+Tables, closures and upvalue cells that can no longer be reached are reclaimed. On the PB VM a tracing collector marks from globals, the value stack, frames, coroutine snapshots, open upvalue cells, host scratch values and (1.6.104) temporary native/embed roots; **1.6.104** frees unreachable tables and reuses their ids and dense/hash storage (FIFO free list), marks only the **live** table list (not every id ever allocated), and makes `collectgarbage("count")` reflect live table metadata, dense/hash regions, strings held in tables, plus closures and cells (see [Builtins.md](Builtins.md)). Stale table ids raise `stale table reference` in script or `stale table id` across the native ABI; table ids held by a host are not pinned unless it calls `vyrn_table_pin` (ABI 6, **1.6.105**; pinned tables are GC roots);  Open upvalue cells are never freed while still open. On libvyrnrt (**1.6.107**) one tracing collector frees unreachable tables, closures and closed cells, reuses table ids FIFO, raises the same `stale table reference` error and supports `VYRN_GC_VERIFY=1`; roots are the VM stack, frames, globals, the running and suspended coroutines, coroutine snapshots, builtin return buffers, C temp roots and open cells. Everything left is freed when the VM closes. Collection is automatic (closure and table allocation thresholds); `collectgarbage()` forces one pass. Values are not finalized and there are no weak tables. Bytecode is unchanged.  
+
 ## Numeric `for` (1.6.106)  
 
 `for i = a, b [, step] do ... end` follows Lua: `a`, `b` and `step` (default `1`) are evaluated once before the loop. A positive step runs while `i <= b`, a negative step while `i >= b`, so `for i = 5, 1, -1` gives `5 4 3 2 1` and `for i = 1, 5, -1` runs zero times. Float steps work the same way (`for i = 1, 0, -0.25`). A step whose sign is not known at compile time (a variable, parameter or expression) picks the direction once when the loop starts. A zero step raises `'for' step is zero` when the loop starts (catchable with `pcall`); a non-number step raises a comparison error. Before 1.6.106 the compiler always tested `i <= b`, so a negative-step loop never ran. A literal positive (or omitted) step compiles to the same bytecode as before; this is a compiler change only (no new opcode), so it holds on the PB VM and libvyrnrt (`.vyrnc`, Standalone, Compile). Vyrn has no `goto`: since 1.6.112 `goto name` is a compile error (`file:line: goto is not supported (Vyrn has no labels; use break or continue)`) and `::name::` is a compile error (`labels ('::name::') are not supported ...`); `goto` alone stays usable as a variable name. Use `break` / `continue`.  
@@ -256,7 +272,49 @@ print(p._fielddocs.x)   -- "x coordinate"
 
 `for v1, v2, ... in explist do ... end` follows Lua: `explist` is evaluated once and adjusted to three values `f, s, c` (a trailing call expands). Each iteration calls `f(s, c)`; the loop ends when the first result is `nil`, otherwise it is assigned to `c`. `pairs`, `ipairs`, `next`, `string.gmatch` and user closures all work. For compatibility, if `f` is a **table** the loop walks its array part (`for v in t` gives elements, `for i, v in t` gives index and element). Loop variables are local to the loop body. Known gap: closures created in the body share one slot per variable (not a fresh binding per iteration as in Lua 5.4).
 
+## Numbers, `^` and `string.format` (1.6.113)  
 
+- **Numerals** follow Lua 5.4 on both runtimes (shared compiler): `3`, `3.0`, `.5`, `5.`, `1e20`, `1.5e-3`, `2.E+1`, hex integers `0xff` / `0XA` (more than 64 bits wrap, so `0xffffffffffffffff` is `-1`) and hex floats `0x1.8p1`, `0x.1p4`, `0x1P-2`. A numeral followed by letters or a second `.` (`3e`, `1.2.3`, `0x`, `0xg`, `5x`) is a compile error `malformed number near '...'`. `1 .. 2` concatenates; Vyrn also accepts `1..2` (Lua rejects it).  
+- **String to number** (`tonumber(s)` and arithmetic on strings) accepts the same numerals with surrounding whitespace and an optional sign; anything else (`"1e"`, `"0x"`, `"- 1"`, `"inf"`, `"nan"`, `"1 2"`, `""`) is not a number (`tonumber` gives `nil`, arithmetic raises `attempt to perform arithmetic on a string value`). `tonumber(s, base)` with `base` 2..36 trims whitespace, allows a leading `-` and returns `nil` for bad digits or a base outside 2..36 (Lua raises `base out of range`).  
+- **`^`** is exponentiation (opcode `POW`): right-associative, above unary minus and below nothing else (`2 ^ 3 ^ 2` is `512`, `-2 ^ 2` is `-4`, `2 ^ -1` is `0.5`), computed with C `pow` (`2 ^ 1024` is `inf`). Numeric strings coerce; other operands raise `attempt to perform arithmetic on a T value`. There is no `^=`. Bitwise operators arrived in 1.6.115 (next section).  
+- **`string.format`** implements Lua 5.4 `str_format` (see [Builtins.md](Builtins.md)): conversions `%d %i %u %c %o %x %X %e %E %f %g %G %a %A %q %s %%`, flags `-+ #0`, width and precision of up to 2 digits, and Lua's errors for unknown conversions, bad flags, long specs, missing or wrong arguments.  
+- **One number type.** Vyrn has no integer / float subtype, so some Lua output differs: an integral value always prints as an integer (`1e15` and `2 ^ 53` print `1000000000000000` and `9007199254740992`; Lua prints `1e+15` and `9.007199254741e+15`), `%q` writes integral floats as integers, `%d` accepts any integral number that fits in 64 bits, and `0x7fffffffffffffff + 0` is not exact. Other `string.format` differences: `%p` is an invalid conversion; NUL bytes are not supported on the PB VM (`%c` of `0`), so there is no `string contains zeros` check.  
+
+## Bitwise operators and string escapes (1.6.115)  
+
+- **Operators** follow Lua 5.4: binary `&` (and), `|` (or), `~` (xor), `<<`, `>>` and unary `~` (not), on 64-bit two's-complement integers. Precedence from low to high: `or`, `and`, comparison, `|`, `~`, `&`, `<<` `>>`, `..`, `+` `-`, `*` `/` `//` `%`, unary (`not` `#` `-` `~`), `^`. So `1 | 2 ~ 3 & 4` is `1 | (2 ~ (3 & 4))`, `1 + 2 << 1` is `6`, `"a" .. 1 << 2` is an error (`..` binds tighter) and `3 | 4 == 7` is `true` (comparison is lowest). `~=` stays "not equal"; `~` followed by anything else is xor or not.  
+- **Shifts** are logical: `-1 >> 60` is `15`; a count of 64 or more gives `0`; a negative count shifts the other way (`1 << -1` is `0`, `2 >> -1` is `4`).  
+- **Operands** must be numbers with an exact integer value in the 64-bit range (`3.0 & 1` is `1`). Anything else raises an error catchable with `pcall`: a number that is not integral (`1.5`, `0/0`, `2 ^ 63`) gives `number has no integer representation`; any other type gives `attempt to perform bitwise operation on a T value` (T of the first operand that is not a number). Strings do **not** convert, as in Lua 5.4 (`"3" & 1` raises).  
+- **Compound assignment:** `&=`, `|=`, `<<=`, `>>=` work like the other `op=` forms. There is no xor-assign because `~=` is "not equal".
+- **Opcodes** `BAND` 94, `BOR` 95, `BXOR` 96, `SHL` 97, `SHR` 98, `BNOT` 99 (both runtimes); see [VyrnBytecode.md](VyrnBytecode.md).  
+- **Number subtypes (1.6.116):** integers are int64 and floats are IEEE doubles, as in Lua 5.4 (`3` vs `3.0`, wrapping integer arithmetic, exact mixed comparisons). Bitwise ops use the integer representation. Error messages still do not name the variable (Lua: `number (local 'a') has no integer representation`). As of 1.6.117 integer table keys hash and compare by int64 (no collisions above 2^53); float keys with an exact integer value normalize to that int; a NaN key raises `table index is NaN`.  
+- **String escapes** (Lua 5.4, single- and double-quoted strings): `\a \b \f \n \r \t \v \\ \" \'`, `\xXX` (exactly two hex digits), `\ddd` (one to three decimal digits, up to `255`), `\u{XXX}` (code point up to `7FFFFFFF`, written as UTF-8), `\z` (skips the following whitespace, including newlines) and a backslash before a newline (a newline in the string). Dialect 12 interpolating strings also keep `\{` and `\}`. Escaped bytes are decoded as UTF-8, so `"\xE4\xB8\xAD"` equals `"\u{4E2D}"` (`中`, `#` is `3`).  
+- **Malformed escapes are compile errors** with `file:line`: `invalid escape sequence '\q'`, `hexadecimal digit expected in escape '\x' ...`, `decimal escape too large '\256' (limit 255)`, `missing '{'` / `missing '}' in escape '\u{XXX}'`, `UTF-8 value too large in escape '\u{XXX}' (limit 7FFFFFFF)`. Before 1.6.115 an unknown escape kept the character (`"\q"` was `q`) and `\x` / `\ddd` / `\u{}` / `\z` were not escapes.  
+- **NUL bytes:** `\0`, `\x00` and `\u{0}` are compile errors (`... is a NUL byte, which Vyrn strings cannot hold`), because both runtimes store strings NUL-terminated. On the PB VM a run of escaped bytes that is not valid UTF-8 (`"\xFF"`) or a code point above `10FFFF` is decoded lossily; libvyrnrt keeps the bytes as written into the `.vyrnc`.  
+
+## Http (1.6.120–1.6.123)  
+
+Capability-gated HTTP(S) client. See [Builtins.md](Builtins.md#http). Network is disabled unless `--allow-net` / `VYRN_CAP_NET`. Optional `--allow-net=hosts` / `vyrn_set_net_allowlist` (ABI 9). `opts.timeout` honored on both runtimes. Disallowed host raises `network access to host X is not allowed`. With an allowlist, Windows PB and libvyrnrt disable auto-follow and re-check each hop (max 5) **before sending**; non-Windows PB still auto-follows then validates the Location chain. Linux libvyrnrt uses libcurl when available.  
+
+## Json (1.6.123)  
+
+`json.encode` / `json.decode` / `json.null` on both runtimes (no capability flag). Encode raises on circular values, unsupported types, and NaN/Inf; decode returns `nil, err`. Integers and floats round-trip via JSON number spelling (`1` vs `1.0`).   
+
+## Metatables and metamethods (1.6.138–1.6.140)  
+
+`setmetatable(t, mt|nil)` and `getmetatable` follow Lua 5.4, including `__metatable` protection. Since 1.6.139, `getmetatable` of a string returns the shared string type metatable (`getmetatable("").__index == string`). `setmetatable` still requires a table; there is no `debug.setmetatable`.  
+
+Metamethods implemented on both official runtimes: `__index` / `__newindex`, `__tostring` (`print` / `tostring` only), arithmetic `__add` / `__sub` / `__mul` / `__div` / `__mod` / `__pow` / `__idiv`, `__eq` (tables only; identity / `rawequal` first), `__lt` / `__le` (`__le` may fall back to `not (b < a)`), `__len`, `__call`, `__concat`, `__unm`, and (1.6.140) `__pairs` (`pairs(t)` calls `mt.__pairs(t)` when present; `next()` stays raw; non-tables still error at the call) plus `__name` as a display-only fallback in type-error messages after an empty struct `_typename`.  
+
+`ipairs` respects `__index` (Lua 5.4; no `__ipairs`).  
+`rawlen` returns the raw table border or string byte length and never calls `__len`.  
+Fast paths (no metatable, numbers, strings, ordinary function calls, packed no-mt `ipairs` hits) stay cheap.  
+
+`--strict` does not type-check metamethod dispatch. Calling an upvalue with no known function identity in statement or `return` position is still a hard error (1.6.134).  
+
+## Process (1.6.144)  
+
+Capability-gated argv spawn. See [Builtins.md](Builtins.md#process). Process creation is disabled unless `--allow-process` / `VYRN_CAP_PROCESS` (bit 2 on the existing capabilities mask; no ABI bump). `process.run(argv [, opts])` takes an argument array (no shell). Official PB VM: Windows `CreateProcessW` only (hidden window). libvyrnrt: `CreateProcessW` on Windows and `fork`+`exec` with `poll` on Linux. A non-Windows PB build raises an unsupported-platform error (not an official runtime).  
 
 ## Added in v0.1.1  
 
@@ -851,6 +909,7 @@ Canonical hard caps for the PB compiler / VM and VYBC load (libvyrnrt shares the
 | `--timeout SEC` | Wall-clock limit (sampled every `#LuaLite_GCInterval` steps) |
 | `--max-loops N` | Override max back-edge / instruction-step loop guard |
 | `--max-ins N` | Override max executed instructions |
+| `--deps` | List `require` / `import` module paths (no execution) |
 | `build` | Run declarative `build.vyrn` targets (`[build]` / `[skip]`) |
 | `bundle` | Merge entry + dependencies; optional `--tree-shake`, `--source-map` |
 | `serve` | WebSocket server; optional `on_ws_*` / `on_tick` / `ws.*` in script |
