@@ -14,6 +14,10 @@ CompilerIf Defined(Ide_Project, #PB_Constant) = #False
   Global Ide_ProjectEntryRoot.s = ""
   Global Ide_ProjectVisible.i = #False
   Global Ide_ProjectWidth.i = 220
+  Global Ide_ProjSplitDragging.i = #False
+  Global Ide_ProjLayW.i = -1
+  Global Ide_ProjLayH.i = -1
+  Global Ide_ProjLayY0.i = -1
   Global Ide_ProjectScanCnt.i = 0
   #Ide_ProjectScanMax = 500
   Global Dim Ide_ProjectScanBuf.s(499)
@@ -24,6 +28,7 @@ CompilerIf Defined(Ide_Project, #PB_Constant) = #False
   Global Dim Ide_ProjMruPath.s(4)
   Global Dim Ide_ProjEntryPath.s(4)
   Declare.i Ide_Editor_LoadFile(path.s)
+  Declare Ide_Project_ListSetRedraw(enableRedraw.i)
   Declare Ide_Project_MruRefreshMenu()
   Declare Ide_Project_MruPush(path.s)
   Declare Ide_Runner_Run()
@@ -38,10 +43,186 @@ CompilerIf Defined(Ide_Project, #PB_Constant) = #False
   Procedure.i Ide_Project_ClientLeft()
     If (Ide_ProjectVisible And Ide_ProjectRoot <> "") Or Ide_OutlineVisible
       If IsGadget(#GAD_PROJECT) Or IsGadget(#GAD_OUTLINE)
-        ProcedureReturn Ide_ProjectWidth
+        ProcedureReturn Ide_ProjectWidth + #Ide_SplitVW
       EndIf
     EndIf
     ProcedureReturn 0
+  EndProcedure
+
+  ; <summary>
+  ; True when the left project/outline column is shown (vertical split active).
+  ; </summary>
+  ; <returns>integer</returns>
+  Procedure.i Ide_Project_SideColumnActive()
+    If (Ide_ProjectVisible And Ide_ProjectRoot <> "") Or Ide_OutlineVisible
+      If IsGadget(#GAD_PROJECT) Or IsGadget(#GAD_OUTLINE)
+        ProcedureReturn #True
+      EndIf
+    EndIf
+    ProcedureReturn #False
+  EndProcedure
+
+  ; <summary>
+  ; Mouse is over the vertical split band (project vs editor).
+  ; </summary>
+  ; <returns>integer</returns>
+  Procedure.i Ide_Project_PointerOnWidthSplit()
+    Protected mx.i, my.i, gx.i, gy.i, gw.i, gh.i
+    If Ide_SplitDragging
+      ProcedureReturn #False
+    EndIf
+    If Ide_Project_SideColumnActive() = #False Or IsGadget(#GAD_SPLIT_V) = 0
+      ProcedureReturn #False
+    EndIf
+    If GadgetHeight(#GAD_SPLIT_V) < 4
+      ProcedureReturn #False
+    EndIf
+    mx = WindowMouseX(#WIN_IDE)
+    my = WindowMouseY(#WIN_IDE)
+    If my >= Ide_Ui_SplitterClientY() - 2
+      ProcedureReturn #False
+    EndIf
+    gx = GadgetX(#GAD_SPLIT_V, #PB_Gadget_WindowCoordinate)
+    gy = GadgetY(#GAD_SPLIT_V, #PB_Gadget_WindowCoordinate)
+    gw = GadgetWidth(#GAD_SPLIT_V)
+    gh = GadgetHeight(#GAD_SPLIT_V)
+    If mx >= gx - #Ide_SplitVHit And mx <= gx + gw + #Ide_SplitVHit
+      If my >= gy - 2 And my < gy + gh + 2
+        ProcedureReturn #True
+      EndIf
+    EndIf
+    ProcedureReturn #False
+  EndProcedure
+
+  ; <summary>
+  ; Keep project column width within min/max and editor minimum width.
+  ; </summary>
+  ; <param name="ww">Main window client width.</param>
+  Procedure Ide_Project_ClampWidth(ww.i)
+    Protected maxW.i
+    If Ide_Project_SideColumnActive() = #False
+      ProcedureReturn
+    EndIf
+    maxW = ww - 200 - #Ide_SplitVW
+    If maxW > #Ide_MaxProjectW
+      maxW = #Ide_MaxProjectW
+    EndIf
+    If maxW < #Ide_MinProjectW
+      maxW = #Ide_MinProjectW
+    EndIf
+    If Ide_ProjectWidth > maxW
+      Ide_ProjectWidth = maxW
+    EndIf
+    If Ide_ProjectWidth < #Ide_MinProjectW
+      Ide_ProjectWidth = #Ide_MinProjectW
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; Begin dragging the project/outline vertical split.
+  ; </summary>
+  Procedure.i Ide_Project_WidthDragging()
+    ProcedureReturn Ide_ProjSplitDragging
+  EndProcedure
+
+  ; <summary>
+  ; Ide_Project_BeginWidthDrag
+  ; </summary>
+  Procedure Ide_Project_BeginWidthDrag()
+    Ide_ProjSplitDragging = #True
+    Ide_SplitVHover = #False
+    Ide_SplitHHover = #False
+    If IsGadget(#GAD_SPLIT)
+      HideGadget(#GAD_SPLIT, #True)
+      DisableGadget(#GAD_SPLIT, #True)
+    EndIf
+    Ide_Project_WidthDragTo(WindowMouseX(#WIN_IDE))
+  EndProcedure
+
+  ; <summary>
+  ; End vertical split drag and persist width.
+  ; </summary>
+  Procedure Ide_Project_EndWidthDrag()
+    If Ide_ProjSplitDragging = 0
+      ProcedureReturn
+    EndIf
+    Ide_ProjSplitDragging = #False
+    If IsGadget(#GAD_SPLIT)
+      DisableGadget(#GAD_SPLIT, #False)
+    EndIf
+    Ide_ProjLayW = -1
+    Ide_ProjLayH = -1
+    Ide_ProjLayY0 = -1
+    Ide_Editor_SavePrefs()
+    Ide_Ui_Layout()
+    Ide_Editor_ResizeEditors()
+    Ide_Project_ListSetRedraw(#True)
+  EndProcedure
+
+  ; <summary>
+  ; Resize project column while dragging the vertical split (mouse X in client coords).
+  ; </summary>
+  ; <param name="clientX">integer</param>
+  Procedure Ide_Project_WidthDragTo(clientX.i)
+    Protected ww.i, maxW.i, w.i
+    If Ide_ProjSplitDragging = 0
+      ProcedureReturn
+    EndIf
+    ww = WindowWidth(#WIN_IDE)
+    maxW = ww - 200 - #Ide_SplitVW
+    If maxW > #Ide_MaxProjectW
+      maxW = #Ide_MaxProjectW
+    EndIf
+    If maxW < #Ide_MinProjectW
+      maxW = #Ide_MinProjectW
+    EndIf
+    w = clientX
+    If w > maxW
+      w = maxW
+    EndIf
+    If w < #Ide_MinProjectW
+      w = #Ide_MinProjectW
+    EndIf
+    If w = Ide_ProjectWidth
+      ProcedureReturn
+    EndIf
+    Ide_ProjectWidth = w
+    Ide_Ui_Layout()
+    Ide_Editor_ResizeEditors()
+    Ide_Ui_InvalidateEditorColumn()
+  EndProcedure
+
+  ; <summary>
+  ; Suppress ListIcon full repaints while the project column width is dragged (Windows).
+  ; </summary>
+  ; <param name="enableRedraw">#True to resume painting and refresh once.</param>
+  Procedure Ide_Project_ListSetRedraw(enableRedraw.i)
+    Protected hwnd.i, u32.i, fnMsg.i, fnInv.i
+    CompilerIf #PB_Compiler_OS = #PB_OS_Windows
+      If IsGadget(#GAD_PROJECT) = #False
+        ProcedureReturn
+      EndIf
+      hwnd = GadgetID(#GAD_PROJECT)
+      If hwnd = 0
+        ProcedureReturn
+      EndIf
+      u32 = OpenLibrary(#PB_Any, "user32.dll")
+      If u32 = 0
+        ProcedureReturn
+      EndIf
+      fnMsg = GetFunction(u32, "SendMessageW")
+      If fnMsg = 0
+        fnMsg = GetFunction(u32, "SendMessageA")
+      EndIf
+      fnInv = GetFunction(u32, "InvalidateRect")
+      If fnMsg
+        CallFunctionFast(fnMsg, hwnd, 11, enableRedraw, 0)
+      EndIf
+      If enableRedraw And fnInv
+        CallFunctionFast(fnInv, hwnd, 0, 0)
+      EndIf
+      CloseLibrary(u32)
+    CompilerEndIf
   EndProcedure
 
   ; <summary>
@@ -49,33 +230,66 @@ CompilerIf Defined(Ide_Project, #PB_Constant) = #False
   ; </summary>
   ; <param name="top">integer</param>
   ; <param name="findH">integer</param>
-  ; <param name="left">integer</param>
   ; <param name="editorH">integer</param>
-  Procedure Ide_Project_LayoutPanel(top.i, findH.i, left.i, editorH.i)
+  Procedure Ide_Project_LayoutPanel(top.i, findH.i, editorH.i)
     Protected ph.i, oh.i, y0.i = top + findH
-    ph = editorH
+    Protected projOn.i = #False
+    Protected freezeList.i = #False
+    If Ide_ProjectVisible And Ide_ProjectRoot <> ""
+      projOn = #True
+    EndIf
+    ph = 0
     oh = 0
     If Ide_OutlineVisible And IsGadget(#GAD_OUTLINE)
-      oh = #Ide_SideSplit
-      If oh > editorH / 2
-        oh = editorH / 2
+      If projOn
+        ; Project + Outline: split column (project top, symbol outline ~#Ide_SideSplit at bottom).
+        oh = #Ide_SideSplit
+        If oh > editorH / 2
+          oh = editorH / 2
+        EndIf
+        ph = editorH - oh
+        If ph < 80
+          ph = 80
+          oh = editorH - ph
+        EndIf
+      Else
+        ; Outline only: full editor-column height.
+        oh = editorH
+        ph = 0
       EndIf
-      ph = editorH - oh
-      If ph < 80
-        ph = 80
-        oh = editorH - ph
-      EndIf
+    ElseIf projOn
+      ph = editorH
     EndIf
     If IsGadget(#GAD_PROJECT)
-      HideGadget(#GAD_PROJECT, Bool(Ide_ProjectVisible = 0 Or Ide_ProjectRoot = ""))
+      If Ide_Project_WidthDragging() = 0
+        HideGadget(#GAD_PROJECT, Bool(Ide_ProjectVisible = 0 Or Ide_ProjectRoot = ""))
+      EndIf
       If Ide_ProjectVisible And Ide_ProjectRoot <> ""
-        ResizeGadget(#GAD_PROJECT, 0, y0, left, ph)
+        If Ide_ProjectWidth <> Ide_ProjLayW Or ph <> Ide_ProjLayH Or y0 <> Ide_ProjLayY0
+          If Ide_Project_WidthDragging()
+            freezeList = #True
+            Ide_Project_ListSetRedraw(#False)
+          EndIf
+          ResizeGadget(#GAD_PROJECT, 0, y0, Ide_ProjectWidth, ph)
+          Ide_ProjLayW = Ide_ProjectWidth
+          Ide_ProjLayH = ph
+          Ide_ProjLayY0 = y0
+          If freezeList
+            Ide_Project_ListSetRedraw(#True)
+          EndIf
+        EndIf
+      Else
+        Ide_ProjLayW = -1
+        Ide_ProjLayH = -1
+        Ide_ProjLayY0 = -1
       EndIf
     EndIf
     If IsGadget(#GAD_OUTLINE)
-      HideGadget(#GAD_OUTLINE, Bool(Ide_OutlineVisible = 0))
+      If Ide_Project_WidthDragging() = 0
+        HideGadget(#GAD_OUTLINE, Bool(Ide_OutlineVisible = 0))
+      EndIf
       If Ide_OutlineVisible
-        ResizeGadget(#GAD_OUTLINE, 0, y0 + ph, left, oh)
+        ResizeGadget(#GAD_OUTLINE, 0, y0 + ph, Ide_ProjectWidth, oh)
       EndIf
     EndIf
   EndProcedure

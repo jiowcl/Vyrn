@@ -1,0 +1,18 @@
+# Git-0 recipe: rename to git_status.ps1 (Tools -> Automation -> Extensions).
+# Requires git on PATH. Repo root from VYRN_IDE_ROOT when the IDE found the repo.
+$ErrorActionPreference = "Stop"
+$root = $env:VYRN_IDE_ROOT
+if (-not $root -or -not (Test-Path -LiteralPath $root)) {
+    Write-Error "[error] VYRN_IDE_ROOT is empty or missing"
+    exit 1
+}
+if (-not (Test-Path -LiteralPath (Join-Path $root ".git"))) {
+    Write-Output "[warn] Not a git repository: $root"
+    exit 0
+}
+Push-Location $root
+try {
+    git status -sb
+} finally {
+    Pop-Location
+}

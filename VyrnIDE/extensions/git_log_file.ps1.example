@@ -1,0 +1,19 @@
+# Git-0 recipe: rename to git_log_file.ps1. Logs last 3 commits touching the active file.
+$ErrorActionPreference = "Stop"
+$file = $env:VYRN_IDE_FILE
+$root = $env:VYRN_IDE_ROOT
+if (-not $file -or -not (Test-Path -LiteralPath $file)) {
+    Write-Output "[warn] Save the script first (VYRN_IDE_FILE is empty)"
+    exit 0
+}
+if (-not $root) { $root = Split-Path -Parent $file }
+if (-not (Test-Path -LiteralPath (Join-Path $root ".git"))) {
+    Write-Output "[warn] Not a git repository: $root"
+    exit 0
+}
+Push-Location $root
+try {
+    git log -3 --oneline -- $file
+} finally {
+    Pop-Location
+}

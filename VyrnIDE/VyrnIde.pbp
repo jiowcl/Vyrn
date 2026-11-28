@@ -8,16 +8,16 @@
   <section name="data">
     <explorer view="C:\ProgramData\PureBasic\Examples\" pattern="0"/>
     <log show="1"/>
-    <lastopen date="2026-11-26 20:09" user="Fred" host="DESKTOP-AMI620D"/>
+    <lastopen date="2026-11-28 11:33" user="使用者" host="DESKTOP-K1RBCTS"/>
   </section>
   <section name="files">
     <file name="Core\Ide_Ui.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="f748f6a6be815a2abb5f12bb335a683b"/>
+      <fingerprint md5="91ef0be49f5fa90003148e762c4995c6"/>
     </file>
     <file name="VyrnIde.pb">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="+"/>
-      <fingerprint md5="8ccebc4f41fc4578c4602b95af24ece3"/>
+      <fingerprint md5="84c7a2fd83b235d7e4322194aea07709"/>
     </file>
     <file name="Core\Ide_Commands.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
@@ -29,7 +29,7 @@
     </file>
     <file name="Core\Ide_Editor.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="4f1830eb9f7d7cfb317f04a41c54ffbe"/>
+      <fingerprint md5="213a5dc8e68140860b85fa488bb09de0"/>
     </file>
     <file name="Core\Ide_Highlight.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
@@ -37,11 +37,11 @@
     </file>
     <file name="Core\Ide_Runner.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="85504f21eeead16f1686c36e451e92ba"/>
+      <fingerprint md5="cf68bb7cf387f389f55c0e41b9e2ace4"/>
     </file>
     <file name="..\Vyrn\Native\include\vyrn.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="4105cd80d45be6c36771c6f28222f1ff"/>
+      <fingerprint md5="c59e46434af5bcb65c3b8bc4cc42c457"/>
     </file>
     <file name="Core\Ide_EditorAssist.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
@@ -49,7 +49,7 @@
     </file>
     <file name="Core\Ide_EditorPrefs.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="223617587dc780398864e33318a23e32"/>
+      <fingerprint md5="ee953cd5998e76a57b98d954c8a6a1f4"/>
     </file>
     <file name="Core\Ide_Extensions.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
@@ -69,7 +69,7 @@
     </file>
     <file name="Core\Ide_Project.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="4d7595e3442373c4057e09540a6ac49e"/>
+      <fingerprint md5="88fbe31133fd1f27f78960bafa2cee2c"/>
     </file>
     <file name="Core\Ide_Repl.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
@@ -81,7 +81,7 @@
     </file>
     <file name="Core\Ide_Samples.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="110c3619f7aa3aa987971aac506a41cf"/>
+      <fingerprint md5="4354a2777cd9f79f05398b12828ab8f2"/>
     </file>
     <file name="Core\Ide_Search.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
@@ -113,7 +113,11 @@
     </file>
     <file name="Core\Ide_DevTools.pbi">
       <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
-      <fingerprint md5="6f8ab0d3ba50a61c87e335ce59ef8f42"/>
+      <fingerprint md5="848ccdb5091dd535f1e62cd3619d5e36"/>
+    </file>
+    <file name="Core\Ide_FirstRun.pbi">
+      <config load="0" scan="1" panel="1" warn="1" lastopen="0" sortindex="999" panelstate="++"/>
+      <fingerprint md5="5c95171b21a160bc2a22e472da915549"/>
     </file>
   </section>
   <section name="targets">
@@ -126,8 +130,8 @@
       <temporaryexe value="source"/>
       <icon enable="1">vyrn.ico</icon>
       <versioninfo enable="1">
-        <field0 value="1.2.0.0"/>
-        <field1 value="1.2.0.0"/>
+        <field0 value="1.2.7.0"/>
+        <field1 value="1.2.7.0"/>
         <field2 value="Inwazy Technology"/>
         <field3 value="Vyrn IDE"/>
         <field4 value="1.2"/>

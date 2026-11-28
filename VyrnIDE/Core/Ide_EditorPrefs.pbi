@@ -76,6 +76,13 @@ CompilerIf Defined(Ide_EditorPrefs, #PB_Constant) = #False
       Ide_ReplVisible = ReadPreferenceInteger("replVisible", 1)
       Ide_OutlineVisible = ReadPreferenceInteger("outline", 0)
       Ide_ErrorsVisible = ReadPreferenceInteger("errorsPanel", 0)
+      Ide_ErrPanelH = ReadPreferenceInteger("errorsPanelH", #Ide_DefaultErrPanelH)
+      If Ide_ErrPanelH < #Ide_MinErrPanelH
+        Ide_ErrPanelH = #Ide_MinErrPanelH
+      EndIf
+      If Ide_ErrPanelH > #Ide_MaxErrPanelH
+        Ide_ErrPanelH = #Ide_MaxErrPanelH
+      EndIf
       Ide_ErrShowHints = ReadPreferenceInteger("errShowHints", 1)
       Ide_LiveLintPanelOnly = ReadPreferenceInteger("lintPanelOnly", 1)
       Ide_ErrCodeFilter = ReadPreferenceString("errCodeFilter", "")
@@ -106,6 +113,9 @@ CompilerIf Defined(Ide_EditorPrefs, #PB_Constant) = #False
       Ide_ProjectWidth = ReadPreferenceInteger("width", 220)
       If Ide_ProjectWidth < #Ide_MinProjectW
         Ide_ProjectWidth = 220
+      EndIf
+      If Ide_ProjectWidth > #Ide_MaxProjectW
+        Ide_ProjectWidth = #Ide_MaxProjectW
       EndIf
       PreferenceGroup("run")
       Ide_RunCfg_MaxLoops = ReadPreferenceInteger("maxLoops", 0)
@@ -181,6 +191,7 @@ CompilerIf Defined(Ide_EditorPrefs, #PB_Constant) = #False
       WritePreferenceInteger("replVisible", Ide_ReplVisible)
       WritePreferenceInteger("outline", Ide_OutlineVisible)
       WritePreferenceInteger("errorsPanel", Ide_ErrorsVisible)
+      WritePreferenceInteger("errorsPanelH", Ide_ErrPanelH)
       WritePreferenceInteger("errShowHints", Ide_ErrShowHints)
       WritePreferenceInteger("lintPanelOnly", Ide_LiveLintPanelOnly)
       WritePreferenceString("errCodeFilter", Ide_ErrCodeFilter)

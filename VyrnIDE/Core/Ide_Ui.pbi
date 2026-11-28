@@ -4,7 +4,7 @@
 ;--------------------------------------------------------------------------------------------
 
 ; Vyrn IDE - window layout, gadget IDs, menus, output pane, status bar
-; Menu title indices (#Ide_MnuTitle_*) must match MenuTitle() order in Ide_Ui_CreateMenus.
+; Menu title indices (#Ide_MnuTitle_*) must match MenuTitle() order in Ide_Ui_CreateMenus (top-level only; Examples/Automation/Developer are OpenSubMenu under Tools).
 ; PureBasic 6.41
 
 CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
@@ -17,7 +17,41 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   Declare Ide_Ui_OutputInitUnicode()
   Declare Ide_Ui_ApplyListColumnLabels()
   Declare.i Ide_Project_ClientLeft()
-  Declare Ide_Project_LayoutPanel(top.i, findH.i, left.i, editorH.i)
+  Declare Ide_Project_LayoutPanel(top.i, findH.i, editorH.i)
+  Declare.i Ide_Project_SideColumnActive()
+  Declare Ide_Project_ClampWidth(ww.i)
+  Declare Ide_Project_BeginWidthDrag()
+  Declare Ide_Project_WidthDragTo(clientX.i)
+  Declare Ide_Project_ListSetRedraw(enableRedraw.i)
+  Declare.i Ide_Project_PointerOnWidthSplit()
+  Declare.i Ide_Project_WidthDragging()
+  Declare Ide_Ui_PaintSplitV(h.i)
+  Declare Ide_Ui_PaintSplitVColors(h.i, hoverSplit.i)
+  Declare Ide_Ui_RedrawClientRect(x0.i, y0.i, x1.i, y1.i, allChildren.i = #True)
+  Declare.i Ide_Ui_HorizSplitDragging()
+  Declare Ide_Ui_BeginSplitDrag(clientY.i)
+  Declare Ide_Ui_SplitDragTo(clientY.i)
+  Declare Ide_Ui_LayoutHorizDrag()
+  Declare Ide_Ui_OutputClipClient()
+  Declare Ide_Ui_ResizeDockInterior(pw.i, panelH.i, dragStep.i)
+  Declare Ide_Ui_ReflowBottomDock(dragStep.i)
+  Declare Ide_Ui_BeginErrSplitDrag(clientY.i)
+  Declare Ide_Ui_ErrSplitDragTo(clientY.i)
+  Declare Ide_Ui_EndErrSplitDrag()
+  Declare.i Ide_Ui_PointerOnErrSplit()
+  Declare.i Ide_Ui_PointerOnHorizSplit()
+  Declare Ide_Ui_PaintSplitH(ww.i)
+  Declare Ide_Ui_UpdateHorizSplitHover()
+  Declare Ide_Ui_UpdateProjSplitHover()
+  Declare Ide_Ui_InvalidateEditorColumn()
+  Declare Ide_Ui_InvalidateEditorAndDock()
+  Declare Ide_Ui_RedrawClientBand(y0.i, y1.i, allChildren.i = #True)
+  Declare Ide_Ui_SetMainRedraw(enable.i)
+  Declare Ide_Ui_CaptureClientSize()
+  Declare Ide_Ui_OnSizeWindow()
+  Declare Ide_Ui_Layout()
+  Declare Ide_Ui_GadgetSetRedraw(gadget.i, enableRedraw.i)
+  Declare.i Ide_Ui_ClampPanelAboveStatus(yBase.i, ww.i, panelH.i, statusTop.i)
   Declare Ide_Project_MruRefreshMenu()
   Declare Ide_Editor_UpdateTitle()
   Declare Ide_Samples_InitMenu()
@@ -26,6 +60,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   Declare Ide_Extensions_RefreshMenuLabels()
   Declare Ide_Snippets_RefreshMenuLabels()
   Declare Ide_Ui_RefreshThemeMenuLabel()
+  Declare Ide_Ui_RefreshStatusBar()
   Declare Ide_Runner_SyncRuntime()
   Declare.i Ide_RuntimeHealth_NeedsSync()
   Declare Ide_Cmd_Dispatch(menuId.i)
@@ -67,12 +102,16 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     #GAD_FIND_INSEL
     #GAD_PROJECT
     #GAD_OUTLINE
+    #GAD_BOTTOM
+    #GAD_STATUS_FRAME
     #GAD_ERRLIST
+    #GAD_SPLIT_ERR
     #GAD_REPL_INPUT
     #GAD_REPL_RUN
     #GAD_OUTPUT
     #GAD_STATUS
     #GAD_SPLIT
+    #GAD_SPLIT_V
   EndEnumeration
 
   #Ide_MarkError = 1
@@ -130,10 +169,12 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   #Ide_MnuTitle_Run = 5
   #Ide_MnuTitle_Ship = 6
   #Ide_MnuTitle_Tools = 7
-  #Ide_MnuTitle_Examples = 8
-  #Ide_MnuTitle_Automation = 9
-  #Ide_MnuTitle_Developer = 10
-  #Ide_MnuTitle_Help = 11
+  #Ide_MnuTitle_Help = 8
+
+  ; OpenSubMenu handles (Windows): localized via SetMenuItemText in Ide_Ui_ApplyMenuLabels.
+  Global Ide_MnuSub_Examples.i = 0
+  Global Ide_MnuSub_Automation.i = 0
+  Global Ide_MnuSub_Developer.i = 0
 
   Enumeration
     #MNU_NEW = 0
@@ -286,6 +327,13 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   CompilerIf Defined(WM_SIZE, #PB_Constant) = #False
     #WM_SIZE = 5
   CompilerEndIf
+  CompilerIf Defined(WM_SETREDRAW, #PB_Constant) = #False
+    #WM_SETREDRAW = 11
+  CompilerEndIf
+  #Ide_RDW_INVALIDATE = 1
+  #Ide_RDW_ERASE = 4
+  #Ide_RDW_ALLCHILDREN = $80
+  #Ide_RDW_UPDATENOW = $100
   Structure Ide_Rect
     left.l
     top.l
@@ -330,9 +378,24 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   Global Ide_LiveLintPanelOnly.i = #True
   Global Ide_ErrCodeFilter.s = ""
   Global Ide_SplitDragging.i = #False
-  #Ide_ErrPanelH = 88
+  Global Ide_SplitVHover.i = #False
+  Global Ide_SplitHHover.i = #False
+  #Ide_DefaultErrPanelH = 88
+  #Ide_MinErrPanelH = 56
+  #Ide_MaxErrPanelH = 360
+  #Ide_SplitErrH = 4
+  Global Ide_ErrPanelH.i = #Ide_DefaultErrPanelH
+  Global Ide_ErrSplitDragging.i = #False
+  Global Ide_ErrSplitAnchorY.i = 0
+  Global Ide_ErrSplitAnchorPanelH.i = 0
+  Global Ide_ErrSplitHHover.i = #False
+  ; Tab strip on #GAD_BOTTOM (Console dock); deducted from panel height in layout.
+  #Ide_PanelTabH = 30
   #Ide_SideSplit = 120
   Global Ide_SplitDragAnchorY.i = 0
+  Global Ide_SplitDragAnchorSplitY.i = 0
+  Global Ide_SplitDragPrevEdH.i = 0
+  Global Ide_SplitDragPrevPanelH.i = -1
   Global Ide_PrefWinW.i = 960
   Global Ide_PrefWinH.i = 640
   Global Ide_PrefWinX.i = -1
@@ -346,7 +409,11 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   #Ide_StatusGap = 4
   ; Small pad above status (RichEdit occasional bleed); menu height is handled in Ide_Ui_ClientHeight().
   #Ide_OutputPad = 4
+  ; Bottom of client reserved below the editor/dock split (status strip + margins).
+  #Ide_DockBottomReserve = #Ide_StatusH + #Ide_StatusGap + #Ide_OutputPad + 2
   #Ide_SplitH = 6
+  #Ide_SplitVW = 10
+  #Ide_SplitVHit = 4
   #Ide_DefaultOutH = 160
   #Ide_MinEditorH = 120
   #Ide_MinOutH = 80
@@ -427,10 +494,16 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     SetMenuTitleText(#MENU_MAIN, #Ide_MnuTitle_Run, Ide_I18n_Pick("Run", "mnu.title.run"))
     SetMenuTitleText(#MENU_MAIN, #Ide_MnuTitle_Ship, Ide_I18n_Pick("Ship", "mnu.title.ship"))
     SetMenuTitleText(#MENU_MAIN, #Ide_MnuTitle_Tools, Ide_I18n_Pick("Tools", "mnu.title.tools"))
-    SetMenuTitleText(#MENU_MAIN, #Ide_MnuTitle_Examples, Ide_I18n_Pick("Examples", "mnu.title.examples"))
-    SetMenuTitleText(#MENU_MAIN, #Ide_MnuTitle_Automation, Ide_I18n_Pick("Automation", "mnu.title.automation"))
-    SetMenuTitleText(#MENU_MAIN, #Ide_MnuTitle_Developer, Ide_I18n_Pick("Developer", "mnu.title.developer"))
     SetMenuTitleText(#MENU_MAIN, #Ide_MnuTitle_Help, Ide_I18n_Pick("Help", "mnu.title.help"))
+    If Ide_MnuSub_Examples > 0
+      SetMenuItemText(#MENU_MAIN, Ide_MnuSub_Examples, Ide_I18n_Pick("Examples", "mnu.title.examples"))
+    EndIf
+    If Ide_MnuSub_Automation > 0
+      SetMenuItemText(#MENU_MAIN, Ide_MnuSub_Automation, Ide_I18n_Pick("Automation", "mnu.title.automation"))
+    EndIf
+    If Ide_MnuSub_Developer > 0
+      SetMenuItemText(#MENU_MAIN, Ide_MnuSub_Developer, Ide_I18n_Pick("Developer", "mnu.title.developer"))
+    EndIf
     SetMenuItemText(#MENU_MAIN, #MNU_NEW, Ide_I18n_Pick("New" + Chr(9) + "Ctrl+N", "mnu.new"))
     SetMenuItemText(#MENU_MAIN, #MNU_OPEN, Ide_I18n_Pick("Open..." + Chr(9) + "Ctrl+O", "mnu.open"))
     SetMenuItemText(#MENU_MAIN, #MNU_SAVE, Ide_I18n_Pick("Save" + Chr(9) + "Ctrl+S", "mnu.save"))
@@ -516,6 +589,9 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     Ide_Snippets_RefreshMenuLabels()
     Ide_Ui_ApplyProjectPopupLabels()
     Ide_Ui_ApplyListColumnLabels()
+    If IsGadget(#GAD_BOTTOM) And CountGadgetItems(#GAD_BOTTOM) > 0
+      SetGadgetItemText(#GAD_BOTTOM, 0, Ide_I18n_Pick("Console", "dock.console"))
+    EndIf
     Ide_Editor_RefreshMruMenu()
     Ide_Project_MruRefreshMenu()
   EndProcedure
@@ -592,12 +668,6 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     MenuItem(#MNU_COPY, "Copy" + Chr(9) + "Ctrl+C")
     MenuItem(#MNU_PASTE, "Paste" + Chr(9) + "Ctrl+V")
     MenuBar()
-    MenuItem(#MNU_FIND, "Find..." + Chr(9) + "Ctrl+F")
-    MenuItem(#MNU_FINDNEXT, "Find Next" + Chr(9) + "F3")
-    MenuItem(#MNU_REPLACE, "Replace..." + Chr(9) + "Ctrl+H")
-    MenuBar()
-    MenuItem(#MNU_FIND_ALL_TABS, "Find in All Tabs")
-    MenuBar()
     MenuItem(#MNU_TOGGLE_COMMENT, "Toggle Comment" + Chr(9) + "Ctrl+/")
     MenuBar()
     MenuItem(#MNU_GOTO_LIGHT, "Go to definition (light)" + Chr(9) + "Ctrl+F12")
@@ -615,6 +685,12 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     MenuItem(#MNU_SNIPPET_MATCH_IF, "Insert status if/elif (not match)")
     MenuTitle("View")
     MenuItem(#MNU_FIND_PANEL, "Find Bar")
+    MenuBar()
+    MenuItem(#MNU_FIND, "Find..." + Chr(9) + "Ctrl+F")
+    MenuItem(#MNU_FINDNEXT, "Find Next" + Chr(9) + "F3")
+    MenuItem(#MNU_REPLACE, "Replace..." + Chr(9) + "Ctrl+H")
+    MenuBar()
+    MenuItem(#MNU_FIND_ALL_TABS, "Find in All Tabs")
     MenuBar()
     MenuItem(#MNU_ZOOMIN, "Zoom In" + Chr(9) + "Ctrl++")
     MenuItem(#MNU_ZOOMOUT, "Zoom Out" + Chr(9) + "Ctrl+-")
@@ -670,7 +746,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     MenuItem(#MNU_LANG_EN, "English UI")
     MenuItem(#MNU_LANG_ZH, "Traditional Chinese UI")
     MenuBar()
-    MenuTitle("Examples")
+    Ide_MnuSub_Examples = OpenSubMenu("Examples")
     MenuItem(#MNU_SAMPLE_0, "(loading)")
     MenuItem(#MNU_SAMPLE_1, "")
     MenuItem(#MNU_SAMPLE_2, "")
@@ -695,7 +771,8 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     MenuItem(#MNU_SAMPLE_21, "")
     MenuItem(#MNU_SAMPLE_22, "")
     MenuItem(#MNU_SAMPLE_23, "")
-    MenuTitle("Automation")
+    CloseSubMenu()
+    Ide_MnuSub_Automation = OpenSubMenu("Automation")
     MenuItem(#MNU_CUSTOM_0, "(none)")
     MenuItem(#MNU_CUSTOM_1, "")
     MenuItem(#MNU_CUSTOM_2, "")
@@ -710,7 +787,8 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     MenuItem(#MNU_EXT_5, "")
     MenuItem(#MNU_EXT_6, "")
     MenuItem(#MNU_EXT_7, "")
-    MenuTitle("Developer")
+    CloseSubMenu()
+    Ide_MnuSub_Developer = OpenSubMenu("Developer")
     MenuItem(#MNU_SYNC_RUNTIME, "Sync Runtime DLL" + Chr(9) + "Ctrl+Shift+R")
     MenuItem(#MNU_OPEN_SETTINGS, "Open vyrnide.ini")
     MenuItem(#MNU_OPEN_CONFIG_FOLDER, "Open IDE config folder")
@@ -718,6 +796,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     MenuItem(#MNU_OPEN_LAST_SHIP, "Open last ship output")
     MenuItem(#MNU_COPY_SHIP_CMD, "Copy last ship command")
     MenuItem(#MNU_DUMP_BYTECODE, "Dump bytecode (CLI --dump)")
+    CloseSubMenu()
     MenuTitle("Help")
     MenuItem(#MNU_SHORTCUTS, "Keyboard Shortcuts")
     MenuItem(#MNU_WELCOME, "Show Welcome Hints")
@@ -855,15 +934,19 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   EndProcedure
 
   ; <summary>
-  ; Drawable client height below the menu bar (PB WindowHeight includes menu area on Windows).
+  ; Drawable client height for gadget layout (PureBasic inner coordinates).
   ; </summary>
   ; <returns>integer</returns>
   Procedure.i Ide_Ui_ClientHeight()
-    Protected h.i
+    Protected h.i, mh.i
     If IsWindow(#WIN_IDE) = 0
       ProcedureReturn 0
     EndIf
-    h = WindowHeight(#WIN_IDE) - MenuHeight()
+    h = WindowHeight(#WIN_IDE)
+    mh = MenuHeight()
+    If mh > 0 And mh < h - 48
+      h = h - mh
+    EndIf
     If h < 80
       h = 80
     EndIf
@@ -871,15 +954,56 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   EndProcedure
 
   ; <summary>
-  ; Keep status TextGadget above the output RichEdit (Windows z-order bleed).
+  ; Store client size for Ide_Ui_PollWindowSize (PureBasic inner area).
   ; </summary>
-  Procedure Ide_Ui_EnsureStatusOnTop()
-    Protected u32.i, fnPos.i, fnInv.i, hs.i
+  Procedure Ide_Ui_CaptureClientSize()
+    If IsWindow(#WIN_IDE) = 0
+      ProcedureReturn
+    EndIf
+    Ide_LastLayoutW = WindowWidth(#WIN_IDE)
+    Ide_LastLayoutH = Ide_Ui_ClientHeight()
+  EndProcedure
+
+  ; <summary>
+  ; #PB_Event_SizeWindow: relayout while the frame is being resized (live drag).
+  ; </summary>
+  Procedure Ide_Ui_OnSizeWindow()
+    Protected ww.i, wh.i
+    If EventWindow() <> #WIN_IDE
+      ProcedureReturn
+    EndIf
+    If Ide_SplitDragging
+      Ide_SplitDragging = #False
+      If IsGadget(#GAD_SPLIT)
+        HideGadget(#GAD_SPLIT, #False)
+      EndIf
+      Ide_Project_ListSetRedraw(#True)
+      If IsGadget(#GAD_OUTLINE)
+        Ide_Ui_GadgetSetRedraw(#GAD_OUTLINE, #True)
+      EndIf
+    EndIf
+    Ide_Ui_SetMainRedraw(#True)
+    ww = WindowWidth(#WIN_IDE)
+    wh = Ide_Ui_ClientHeight()
+    If ww <> Ide_LastLayoutW Or wh <> Ide_LastLayoutH
+      Ide_LastLayoutW = ww
+      Ide_LastLayoutH = wh
+      Ide_Ui_Layout()
+      Ide_Editor_ResizeEditors()
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; Keep status TextGadget above the output RichEdit (Windows z-order bleed).
+  ; Raise a gadget HWND so it receives clicks above overlapping siblings (Windows).
+  ; </summary>
+  Procedure Ide_Ui_RaiseGadgetTop(gadget.i)
+    Protected u32.i, fnPos.i, hs.i
     CompilerIf #PB_Compiler_OS = #PB_OS_Windows
-      If IsGadget(#GAD_STATUS) = #False
+      If IsGadget(gadget) = #False
         ProcedureReturn
       EndIf
-      hs = GadgetID(#GAD_STATUS)
+      hs = GadgetID(gadget)
       If hs = 0
         ProcedureReturn
       EndIf
@@ -887,16 +1011,823 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
       If u32
         fnPos = GetFunction(u32, "SetWindowPos")
         If fnPos
-          ; HWND_TOP, SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE
           CallFunctionFast(fnPos, hs, 0, 0, 0, 0, 0, 3 | 1 | $10)
-        EndIf
-        fnInv = GetFunction(u32, "InvalidateRect")
-        If fnInv
-          CallFunctionFast(fnInv, hs, 0, 1)
         EndIf
         CloseLibrary(u32)
       EndIf
     CompilerEndIf
+  EndProcedure
+
+  ; <summary>
+  ; Legacy hook (HWND_TOP on status caused it To paint between editor and dock tabs).
+  ; </summary>
+  Procedure Ide_Ui_EnsureStatusOnTop()
+  EndProcedure
+
+  ; <summary>
+  ; Left mouse down (Windows async key state when PB MouseButton lags during drag).
+  ; </summary>
+  ; <returns>integer</returns>
+  Procedure.i Ide_Ui_LmbDown()
+    CompilerIf #PB_Compiler_OS = #PB_OS_Windows
+      Protected u32.i, fn.i
+      u32 = OpenLibrary(#PB_Any, "user32.dll")
+      If u32
+        fn = GetFunction(u32, "GetAsyncKeyState")
+        If fn
+          If (CallFunctionFast(fn, $01) & $8000)
+            CloseLibrary(u32)
+            ProcedureReturn #True
+          EndIf
+        EndIf
+        CloseLibrary(u32)
+      EndIf
+    CompilerEndIf
+    ProcedureReturn MouseButton(#PB_MouseButton_Left)
+  EndProcedure
+
+  ; <summary>
+  ; BindGadgetEvent handler: start project width drag from the vertical splitter.
+  ; </summary>
+  Procedure Ide_Ui_SplitVGadgetEvent()
+    Protected gh.i
+    If Ide_SplitDragging
+      Ide_SplitVHover = #False
+      ProcedureReturn
+    EndIf
+    Select EventType()
+      Case #PB_EventType_LeftButtonDown, #PB_EventType_LeftClick
+        Ide_Project_BeginWidthDrag()
+      Case #PB_EventType_MouseEnter
+        If Ide_SplitDragging
+          ProcedureReturn
+        EndIf
+        Ide_SplitVHover = #True
+        SetGadgetAttribute(#GAD_SPLIT_V, #PB_Canvas_Cursor, #PB_Cursor_LeftRight)
+        gh = GadgetHeight(#GAD_SPLIT_V)
+        If gh > 0
+          Ide_Ui_PaintSplitV(gh)
+        EndIf
+      Case #PB_EventType_MouseLeave
+        If Ide_SplitDragging
+          ProcedureReturn
+        EndIf
+        Ide_SplitVHover = #False
+        gh = GadgetHeight(#GAD_SPLIT_V)
+        If gh > 0
+          Ide_Ui_PaintSplitV(gh)
+        EndIf
+    EndSelect
+  EndProcedure
+
+  ; <summary>
+  ; Paint the vertical project/editor splitter (highlight when hovered).
+  ; </summary>
+  ; <param name="h">integer</param>
+  ; <param name="hoverSplit">#True to use Ide_SplitVHover palette.</param>
+  Procedure Ide_Ui_PaintSplitVColors(h.i, hoverSplit.i)
+    Protected c.i, hi.i, edge.i
+    If h < 1 Or IsGadget(#GAD_SPLIT_V) = 0
+      ProcedureReturn
+    EndIf
+    If Ide_Theme_Dark
+      If hoverSplit
+        c = RGB(120, 120, 120)
+        hi = RGB(160, 160, 160)
+        edge = RGB(200, 200, 200)
+      Else
+        c = RGB(75, 75, 75)
+        hi = RGB(95, 95, 95)
+        edge = RGB(110, 110, 110)
+      EndIf
+    Else
+      If hoverSplit
+        c = RGB(165, 195, 235)
+        hi = RGB(90, 140, 210)
+        edge = RGB(60, 110, 185)
+      Else
+        c = RGB(200, 200, 200)
+        hi = RGB(170, 170, 170)
+        edge = RGB(140, 140, 140)
+      EndIf
+    EndIf
+    StartDrawing(CanvasOutput(#GAD_SPLIT_V))
+    Box(0, 0, #Ide_SplitVW, h, c)
+    If #Ide_SplitVW >= 2
+      Line(#Ide_SplitVW / 2, 0, #Ide_SplitVW / 2, h, hi)
+      Line(0, 0, 0, h, edge)
+      Line(#Ide_SplitVW - 1, 0, #Ide_SplitVW - 1, h, edge)
+    EndIf
+    StopDrawing()
+  EndProcedure
+
+  ; <summary>
+  ; Ide_Ui_PaintSplitV
+  ; </summary>
+  ; <param name="h">integer</param>
+  Procedure Ide_Ui_PaintSplitV(h.i)
+    If Ide_Project_WidthDragging() Or Ide_SplitDragging
+      ProcedureReturn
+    EndIf
+    Ide_Ui_PaintSplitVColors(h, Ide_SplitVHover)
+  EndProcedure
+
+  ; <summary>
+  ; Paint the horizontal editor/bottom split (highlight when hovered).
+  ; </summary>
+  ; <param name="ww">integer</param>
+  Procedure Ide_Ui_PaintSplitH(ww.i)
+    Protected c.i, hi.i, edge.i
+    If ww < 1 Or IsGadget(#GAD_SPLIT) = 0
+      ProcedureReturn
+    EndIf
+    If Ide_SplitDragging Or Ide_Project_WidthDragging()
+      ProcedureReturn
+    EndIf
+    If Ide_Theme_Dark
+      If Ide_SplitHHover
+        c = RGB(120, 120, 120)
+        hi = RGB(160, 160, 160)
+        edge = RGB(200, 200, 200)
+      Else
+        c = RGB(75, 75, 75)
+        hi = RGB(95, 95, 95)
+        edge = RGB(110, 110, 110)
+      EndIf
+    Else
+      If Ide_SplitHHover
+        c = RGB(165, 195, 235)
+        hi = RGB(90, 140, 210)
+        edge = RGB(60, 110, 185)
+      Else
+        c = RGB(200, 200, 200)
+        hi = RGB(170, 170, 170)
+        edge = RGB(140, 140, 140)
+      EndIf
+    EndIf
+    StartDrawing(CanvasOutput(#GAD_SPLIT))
+    Box(0, 0, ww, #Ide_SplitH, c)
+    If #Ide_SplitH >= 2
+      Line(0, #Ide_SplitH / 2, ww, #Ide_SplitH / 2, hi)
+      Line(0, 0, ww, 0, edge)
+      Line(0, #Ide_SplitH - 1, ww, #Ide_SplitH - 1, edge)
+    EndIf
+    StopDrawing()
+  EndProcedure
+
+  ; <summary>
+  ; Paint the error-list / output split inside the Console dock.
+  ; </summary>
+  ; <param name="ww">integer</param>
+  Procedure Ide_Ui_PaintSplitErr(ww.i)
+    Protected c.i, hi.i, edge.i
+    If ww < 1 Or IsGadget(#GAD_SPLIT_ERR) = 0
+      ProcedureReturn
+    EndIf
+    If Ide_ErrSplitDragging
+      ProcedureReturn
+    EndIf
+    If Ide_Theme_Dark
+      If Ide_ErrSplitHHover
+        c = RGB(120, 120, 120)
+        hi = RGB(160, 160, 160)
+        edge = RGB(200, 200, 200)
+      Else
+        c = RGB(75, 75, 75)
+        hi = RGB(95, 95, 95)
+        edge = RGB(110, 110, 110)
+      EndIf
+    Else
+      If Ide_ErrSplitHHover
+        c = RGB(165, 195, 235)
+        hi = RGB(90, 140, 210)
+        edge = RGB(60, 110, 185)
+      Else
+        c = RGB(200, 200, 200)
+        hi = RGB(170, 170, 170)
+        edge = RGB(140, 140, 140)
+      EndIf
+    EndIf
+    StartDrawing(CanvasOutput(#GAD_SPLIT_ERR))
+    Box(0, 0, ww, #Ide_SplitErrH, c)
+    If #Ide_SplitErrH >= 2
+      Line(0, #Ide_SplitErrH / 2, ww, #Ide_SplitErrH / 2, hi)
+      Line(0, 0, ww, 0, edge)
+      Line(0, #Ide_SplitErrH - 1, ww, #Ide_SplitErrH - 1, edge)
+    EndIf
+    StopDrawing()
+  EndProcedure
+
+  ; <summary>
+  ; BindGadgetEvent handler: start bottom dock height drag from the horizontal splitter.
+  ; </summary>
+  Procedure Ide_Ui_SplitHGadgetEvent()
+    Protected ww.i
+    If Ide_Project_WidthDragging()
+      ProcedureReturn
+    EndIf
+    Select EventType()
+      Case #PB_EventType_LeftButtonDown, #PB_EventType_LeftClick
+        Ide_Ui_BeginSplitDrag(WindowMouseY(#WIN_IDE))
+      Case #PB_EventType_MouseEnter
+        Ide_SplitHHover = #True
+        ww = GadgetWidth(#GAD_SPLIT)
+        If ww > 0
+          Ide_Ui_PaintSplitH(ww)
+        EndIf
+      Case #PB_EventType_MouseLeave
+        Ide_SplitHHover = #False
+        ww = GadgetWidth(#GAD_SPLIT)
+        If ww > 0
+          Ide_Ui_PaintSplitH(ww)
+        EndIf
+    EndSelect
+  EndProcedure
+
+  ; <summary>
+  ; Hover feedback on the horizontal split band.
+  ; </summary>
+  Procedure Ide_Ui_UpdateHorizSplitHover()
+    Protected over.i, ww.i
+    If Ide_SplitDragging Or Ide_Project_WidthDragging() Or Ide_ErrSplitDragging
+      ProcedureReturn
+    EndIf
+    over = Ide_Ui_PointerOnHorizSplit()
+    If over
+      If IsGadget(#GAD_SPLIT)
+        SetGadgetAttribute(#GAD_SPLIT, #PB_Canvas_Cursor, #PB_Cursor_UpDown)
+      EndIf
+    EndIf
+    If over <> Ide_SplitHHover
+      Ide_SplitHHover = over
+      If IsGadget(#GAD_SPLIT)
+        ww = GadgetWidth(#GAD_SPLIT)
+        If ww > 0
+          Ide_Ui_PaintSplitH(ww)
+        EndIf
+      EndIf
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; Error-list / output split: gadget event (start height drag).
+  ; </summary>
+  Procedure Ide_Ui_ErrSplitGadgetEvent()
+    Protected ww.i
+    If Ide_SplitDragging Or Ide_Project_WidthDragging()
+      ProcedureReturn
+    EndIf
+    Select EventType()
+      Case #PB_EventType_LeftButtonDown, #PB_EventType_LeftClick
+        Ide_Ui_BeginErrSplitDrag(WindowMouseY(#WIN_IDE))
+      Case #PB_EventType_MouseEnter
+        Ide_ErrSplitHHover = #True
+        ww = GadgetWidth(#GAD_SPLIT_ERR)
+        If ww > 0
+          Ide_Ui_PaintSplitErr(ww)
+        EndIf
+      Case #PB_EventType_MouseLeave
+        Ide_ErrSplitHHover = #False
+        ww = GadgetWidth(#GAD_SPLIT_ERR)
+        If ww > 0
+          Ide_Ui_PaintSplitErr(ww)
+        EndIf
+    EndSelect
+  EndProcedure
+
+  ; <summary>
+  ; Hover feedback on the error-list / output split.
+  ; </summary>
+  Procedure Ide_Ui_UpdateErrSplitHover()
+    Protected over.i, ww.i
+    If Ide_ErrSplitDragging Or Ide_SplitDragging Or Ide_Project_WidthDragging() Or Ide_ErrorsVisible = 0
+      ProcedureReturn
+    EndIf
+    over = Ide_Ui_PointerOnErrSplit()
+    If over <> Ide_ErrSplitHHover
+      Ide_ErrSplitHHover = over
+      If IsGadget(#GAD_SPLIT_ERR)
+        ww = GadgetWidth(#GAD_SPLIT_ERR)
+        If ww > 0
+          Ide_Ui_PaintSplitErr(ww)
+        EndIf
+      EndIf
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; Win32 SIZEWE cursor over the split hit zone (padding outside the canvas).
+  ; </summary>
+  Procedure Ide_Ui_SetProjSplitCursor()
+    CompilerIf #PB_Compiler_OS = #PB_OS_Windows
+      Protected u32.i, fnLoad.i, fnSet.i, hc.i
+      u32 = OpenLibrary(#PB_Any, "user32.dll")
+      If u32 = 0
+        ProcedureReturn
+      EndIf
+      fnLoad = GetFunction(u32, "LoadCursorW")
+      If fnLoad = 0
+        fnLoad = GetFunction(u32, "LoadCursorA")
+      EndIf
+      fnSet = GetFunction(u32, "SetCursor")
+      If fnLoad And fnSet
+        hc = CallFunctionFast(fnLoad, 0, 32645)
+        If hc
+          CallFunctionFast(fnSet, hc)
+        EndIf
+      EndIf
+      CloseLibrary(u32)
+    CompilerEndIf
+    If IsGadget(#GAD_SPLIT_V)
+      SetGadgetAttribute(#GAD_SPLIT_V, #PB_Canvas_Cursor, #PB_Cursor_LeftRight)
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; Hover feedback (cursor + split stripe) while the pointer is in the split band.
+  ; </summary>
+  Procedure Ide_Ui_UpdateProjSplitHover()
+    Protected over.i, gh.i
+    If Ide_SplitDragging Or Ide_Project_WidthDragging() Or Ide_ErrSplitDragging Or Ide_Project_SideColumnActive() = 0
+      ProcedureReturn
+    EndIf
+    over = Ide_Project_PointerOnWidthSplit()
+    If over
+      Ide_Ui_SetProjSplitCursor()
+    EndIf
+    If over <> Ide_SplitVHover
+      Ide_SplitVHover = over
+      If IsGadget(#GAD_SPLIT_V)
+        gh = GadgetHeight(#GAD_SPLIT_V)
+        If gh > 0
+          Ide_Ui_PaintSplitV(gh)
+        EndIf
+      EndIf
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; Erase and synchronously repaint a client band (splitter drag trail fix).
+  ; </summary>
+  ; <param name="y0">integer</param>
+  ; <param name="y1">integer</param>
+  ; <param name="allChildren">When #False, avoids repainting unrelated chrome above the band.</param>
+  Procedure Ide_Ui_RedrawClientBand(y0.i, y1.i, allChildren.i = #True)
+    Protected rc.Ide_Rect, ww.i, hwnd.i, u32.i, fn.i, flags.i
+    CompilerIf #PB_Compiler_OS = #PB_OS_Windows
+      If IsWindow(#WIN_IDE) = 0
+        ProcedureReturn
+      EndIf
+      ww = WindowWidth(#WIN_IDE)
+      If y1 <= y0
+        y1 = y0 + 40
+      EndIf
+      hwnd = WindowID(#WIN_IDE)
+      rc\left = 0
+      rc\top = y0
+      rc\right = ww
+      rc\bottom = y1
+      u32 = OpenLibrary(#PB_Any, "user32.dll")
+      If u32 = 0
+        ProcedureReturn
+      EndIf
+      fn = GetFunction(u32, "RedrawWindow")
+      flags = #Ide_RDW_INVALIDATE | #Ide_RDW_ERASE | #Ide_RDW_UPDATENOW
+      If allChildren
+        flags | #Ide_RDW_ALLCHILDREN
+      EndIf
+      If fn
+        CallFunctionFast(fn, hwnd, @rc, 0, flags)
+      Else
+        fn = GetFunction(u32, "InvalidateRect")
+        If fn
+          CallFunctionFast(fn, hwnd, @rc, 0)
+        EndIf
+      EndIf
+      CloseLibrary(u32)
+    CompilerEndIf
+  EndProcedure
+
+  ; <summary>
+  ; Synchronously repaint a client rectangle (for localized split-drag erasing).
+  ; </summary>
+  ; <param name="x0">integer</param>
+  ; <param name="y0">integer</param>
+  ; <param name="y1">integer</param>
+  ; <param name="allChildren">integer</param>
+  Procedure Ide_Ui_RedrawClientRect(x0.i, y0.i, x1.i, y1.i, allChildren.i = #True)
+    Protected rc.Ide_Rect, hwnd.i, u32.i, fn.i, flags.i
+    CompilerIf #PB_Compiler_OS = #PB_OS_Windows
+      If IsWindow(#WIN_IDE) = 0
+        ProcedureReturn
+      EndIf
+      If x1 <= x0
+        x1 = x0 + 40
+      EndIf
+      If y1 <= y0
+        y1 = y0 + 40
+      EndIf
+      hwnd = WindowID(#WIN_IDE)
+      rc\left = x0
+      rc\top = y0
+      rc\right = x1
+      rc\bottom = y1
+      u32 = OpenLibrary(#PB_Any, "user32.dll")
+      If u32 = 0
+        ProcedureReturn
+      EndIf
+      fn = GetFunction(u32, "RedrawWindow")
+      flags = #Ide_RDW_INVALIDATE | #Ide_RDW_ERASE | #Ide_RDW_UPDATENOW
+      If allChildren
+        flags | #Ide_RDW_ALLCHILDREN
+      EndIf
+      If fn
+        CallFunctionFast(fn, hwnd, @rc, 0, flags)
+      EndIf
+      CloseLibrary(u32)
+    CompilerEndIf
+  EndProcedure
+
+  ; <summary>
+  ; Repaint editor + bottom dock after the horizontal split moves (Canvas trail fix).
+  ; </summary>
+  Procedure Ide_Ui_InvalidateEditorAndDock()
+    Protected y0.i = #Ide_ToolbarH + Ide_Ui_FindBarH()
+    Protected y1.i = Ide_Ui_ClientHeight()
+    Ide_Ui_RedrawClientBand(y0, y1, #True)
+  EndProcedure
+
+  ; <summary>
+  ; Erase trails while the horizontal split moves (band starts at editor top, not toolbar).
+  ; </summary>
+  ; <param name="prevEdH">Editor height before this drag step.</param>
+  ; <param name="editorH">Editor height after layout.</param>
+  Procedure Ide_Ui_InvalidateHorizSplitDirty(prevEdH.i, editorH.i)
+    Protected y0.i = #Ide_ToolbarH + Ide_Ui_FindBarH()
+    Protected yLo.i, yHi.i, pad.i = #Ide_SplitH + 6
+    Protected ww.i = WindowWidth(#WIN_IDE)
+    Protected x0.i = Ide_Project_ClientLeft()
+    If prevEdH < 1 Or prevEdH = editorH
+      yLo = y0 + editorH - pad
+      yHi = y0 + editorH + pad
+    Else
+      If prevEdH < editorH
+        yLo = y0 + prevEdH - pad
+        yHi = y0 + editorH + pad
+      Else
+        yLo = y0 + editorH - pad
+        yHi = y0 + prevEdH + pad
+      EndIf
+    EndIf
+    If yLo < y0
+      yLo = y0
+    EndIf
+    If yHi < yLo + 8
+      yHi = yLo + 8
+    EndIf
+    If x0 < 0
+      x0 = 0
+    EndIf
+    If x0 >= ww - 40
+      Ide_Ui_RedrawClientBand(yLo, yHi, #True)
+    Else
+      Ide_Ui_RedrawClientRect(x0, yLo, ww, yHi, #True)
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; Return #True While the editor/console horizontal split is dragged.
+  ; </summary>
+  ; <returns>integer</returns>
+  Procedure.i Ide_Ui_HorizSplitDragging()
+    ProcedureReturn Ide_SplitDragging
+  EndProcedure
+
+  ; <summary>
+  ; Suppress or resume painting on the main IDE frame (split drag).
+  ; </summary>
+  ; <param name="enable">integer</param>
+  Procedure Ide_Ui_SetMainRedraw(enable.i)
+    CompilerIf #PB_Compiler_OS = #PB_OS_Windows
+      Protected hwnd.i
+      If IsWindow(#WIN_IDE) = 0
+        ProcedureReturn
+      EndIf
+      hwnd = WindowID(#WIN_IDE)
+      SendMessage_(hwnd, #WM_SETREDRAW, enable, 0)
+      If enable
+        Ide_Ui_RedrawClientBand(0, Ide_Ui_ClientHeight())
+      EndIf
+    CompilerEndIf
+  EndProcedure
+
+  ; <summary>
+  ; Suppress repaints on a gadget HWND while splitters move (Windows).
+  ; </summary>
+  ; <param name="gadget">#PB_Any gadget index</param>
+  ; <param name="enableRedraw">integer</param>
+  Procedure Ide_Ui_GadgetSetRedraw(gadget.i, enableRedraw.i)
+    Protected hwnd.i, u32.i, fnMsg.i, fnInv.i
+    CompilerIf #PB_Compiler_OS = #PB_OS_Windows
+      If IsGadget(gadget) = 0
+        ProcedureReturn
+      EndIf
+      hwnd = GadgetID(gadget)
+      If hwnd = 0
+        ProcedureReturn
+      EndIf
+      u32 = OpenLibrary(#PB_Any, "user32.dll")
+      If u32 = 0
+        ProcedureReturn
+      EndIf
+      fnMsg = GetFunction(u32, "SendMessageW")
+      If fnMsg = 0
+        fnMsg = GetFunction(u32, "SendMessageA")
+      EndIf
+      fnInv = GetFunction(u32, "InvalidateRect")
+      If fnMsg
+        CallFunctionFast(fnMsg, hwnd, #WM_SETREDRAW, enableRedraw, 0)
+      EndIf
+      If enableRedraw And fnInv
+        CallFunctionFast(fnInv, hwnd, 0, 0)
+      EndIf
+      CloseLibrary(u32)
+    CompilerEndIf
+  EndProcedure
+
+  ; <summary>
+  ; Shrink #GAD_BOTTOM if it overlaps the status strip (Panel tab HWND bleed).
+  ; </summary>
+  ; <param name="yBase">integer</param>
+  ; <param name="ww">integer</param>
+  ; <param name="panelH">integer</param>
+  ; <returns>integer</returns>
+  Procedure.i Ide_Ui_ClampPanelAboveStatus(yBase.i, ww.i, panelH.i, statusTop.i)
+    Protected pb.i, gap.i, maxH.i
+    If IsGadget(#GAD_BOTTOM) = 0
+      ProcedureReturn panelH
+    EndIf
+    If statusTop < 1
+      ProcedureReturn panelH
+    EndIf
+    gap = #Ide_StatusGap + #Ide_OutputPad + 2
+    maxH = statusTop - gap - yBase
+    If maxH < 1
+      maxH = 1
+    EndIf
+    If panelH > maxH
+      panelH = maxH
+    EndIf
+    ResizeGadget(#GAD_BOTTOM, 0, yBase, ww, panelH)
+    pb = GadgetY(#GAD_BOTTOM, #PB_Gadget_WindowCoordinate) + GadgetHeight(#GAD_BOTTOM)
+    If pb > statusTop - gap
+      panelH = statusTop - gap - GadgetY(#GAD_BOTTOM, #PB_Gadget_WindowCoordinate)
+      If panelH < 1
+        panelH = 1
+      EndIf
+      ResizeGadget(#GAD_BOTTOM, 0, yBase, ww, panelH)
+    EndIf
+    ProcedureReturn panelH
+  EndProcedure
+
+  ; <summary>
+  ; Erase and repaint the project + editor rows after the vertical split moves (Canvas trail fix).
+  ; </summary>
+  Procedure Ide_Ui_InvalidateEditorColumn()
+    Protected y0.i, y1.i
+    If IsWindow(#WIN_IDE) = 0
+      ProcedureReturn
+    EndIf
+    y0 = #Ide_ToolbarH + Ide_Ui_FindBarH()
+    y1 = y0 + Ide_LayoutEditorH
+    If y1 <= y0
+      y1 = y0 + 40
+    EndIf
+    Ide_Ui_RedrawClientBand(y0, y1)
+  EndProcedure
+
+  ; <summary>
+  ; Erase split-drag trails on the editor/dock boundary without repainting the project column.
+  ; </summary>
+  ; <param name="prevEdH">integer</param>
+  ; <param name="editorH">integer</param>
+  Procedure Ide_Ui_InvalidateHorizSplitStep(prevEdH.i, editorH.i)
+    Protected y0.i = #Ide_ToolbarH + Ide_Ui_FindBarH()
+    Protected yLo.i, yHi.i, pad.i = #Ide_SplitH + 8
+    Protected x0.i = Ide_Project_ClientLeft()
+    Protected ww.i = WindowWidth(#WIN_IDE)
+    If prevEdH < 1 Or prevEdH = editorH
+      yLo = y0 + editorH - pad
+      yHi = y0 + editorH + pad
+    Else
+      If prevEdH < editorH
+        yLo = y0 + prevEdH - pad
+        yHi = y0 + editorH + pad
+      Else
+        yLo = y0 + editorH - pad
+        yHi = y0 + prevEdH + pad
+      EndIf
+    EndIf
+    If yLo < y0
+      yLo = y0
+    EndIf
+    If yHi < yLo + 6
+      yHi = yLo + 6
+    EndIf
+    If x0 < 0
+      x0 = 0
+    EndIf
+    If x0 >= ww - 48
+      Ide_Ui_RedrawClientBand(yLo, yHi, #False)
+    Else
+      Ide_Ui_RedrawClientRect(x0, yLo, ww, yHi, #False)
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; Minimum height of the output stack (REPL + error list + output editor).
+  ; </summary>
+  Procedure.i Ide_Ui_MinOutputBucket()
+    Protected need.i = 40
+    need + #Ide_PanelTabH
+    need + Ide_Ui_ReplBarH()
+    If Ide_ErrorsVisible
+      need + Ide_ErrPanelH + #Ide_SplitErrH
+    EndIf
+    If need < #Ide_MinOutH
+      ProcedureReturn #Ide_MinOutH
+    EndIf
+    ProcedureReturn need
+  EndProcedure
+
+  ; <summary>
+  ; Client area inside #GAD_BOTTOM below tab headers.
+  ; </summary>
+  Procedure.i Ide_Ui_BottomBodyH(panelH.i)
+    Protected h.i = panelH - #Ide_PanelTabH
+    If h < 1
+      h = 1
+    EndIf
+    ProcedureReturn h
+  EndProcedure
+
+  ; <summary>
+  ; Resize REPL, error list, and output inside #GAD_BOTTOM (shared by full layout and horiz drag).
+  ; </summary>
+  ; <param name="pw">Inner client width.</param>
+  ; <param name="panelH">Height of #GAD_BOTTOM.</param>
+  ; <param name="dragStep">#True while dragging the horiz split (skip HideGadget / Output clip).</param>
+  Procedure Ide_Ui_ResizeDockInterior(pw.i, panelH.i, dragStep.i)
+    Protected bodyH.i = Ide_Ui_BottomBodyH(panelH)
+    Protected replH.i = Ide_Ui_ReplBarH()
+    Protected yIn.i = 0
+    Protected yRepl.i
+    Protected errH.i = 0
+    Protected outEditH.i
+
+    If IsGadget(#GAD_REPL_INPUT)
+      If dragStep = 0
+        HideGadget(#GAD_REPL_INPUT, Bool(replH = 0))
+        HideGadget(#GAD_REPL_RUN, Bool(replH = 0))
+      EndIf
+      If replH
+        ResizeGadget(#GAD_REPL_INPUT, 8, yIn + 2, pw - 90, replH - 4)
+        ResizeGadget(#GAD_REPL_RUN, pw - 76, yIn + 2, 68, replH - 4)
+      EndIf
+    EndIf
+    yRepl = yIn + replH
+    If IsGadget(#GAD_ERRLIST)
+      If dragStep = 0
+        HideGadget(#GAD_ERRLIST, Bool(Ide_ErrorsVisible = 0))
+      EndIf
+      If Ide_ErrorsVisible
+        errH = Ide_ErrPanelH
+        If errH < #Ide_MinErrPanelH
+          errH = #Ide_MinErrPanelH
+        EndIf
+        If yRepl + errH + #Ide_SplitErrH + 24 > bodyH
+          errH = bodyH - yRepl - #Ide_SplitErrH - 24
+          If errH < #Ide_MinErrPanelH
+            errH = #Ide_MinErrPanelH
+            If errH > bodyH - yRepl - #Ide_SplitErrH - 8
+              errH = bodyH - yRepl - #Ide_SplitErrH - 8
+            EndIf
+          EndIf
+          If errH < 0
+            errH = 0
+          EndIf
+        EndIf
+        If errH > #Ide_MaxErrPanelH
+          errH = #Ide_MaxErrPanelH
+        EndIf
+        If errH > 0
+          ResizeGadget(#GAD_ERRLIST, 0, yRepl, pw, errH)
+          yRepl = yRepl + errH
+          If IsGadget(#GAD_SPLIT_ERR)
+            HideGadget(#GAD_SPLIT_ERR, #False)
+            ResizeGadget(#GAD_SPLIT_ERR, 0, yRepl, pw, #Ide_SplitErrH)
+            If dragStep = 0 And Ide_ErrSplitDragging = 0
+              Ide_Ui_PaintSplitErr(pw)
+            EndIf
+            SetGadgetAttribute(#GAD_SPLIT_ERR, #PB_Canvas_Cursor, #PB_Cursor_UpDown)
+          EndIf
+          yRepl = yRepl + #Ide_SplitErrH
+        EndIf
+      ElseIf IsGadget(#GAD_SPLIT_ERR)
+        HideGadget(#GAD_SPLIT_ERR, #True)
+      EndIf
+    EndIf
+    outEditH = bodyH - yRepl
+    If outEditH < 0
+      outEditH = 0
+    EndIf
+    If IsGadget(#GAD_OUTPUT)
+      ResizeGadget(#GAD_OUTPUT, 0, yRepl, pw, outEditH)
+      If dragStep = 0
+        Ide_Ui_OutputClipClient()
+      EndIf
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; Lightweight relayout while the editor/console split is dragged (avoids full Ide_Ui_Layout).
+  ; </summary>
+  Procedure Ide_Ui_LayoutHorizDrag()
+    Protected ww.i = WindowWidth(#WIN_IDE)
+    Protected wh.i = Ide_Ui_ClientHeight()
+    Protected top.i = #Ide_ToolbarH
+    Protected findH.i = Ide_Ui_FindBarH()
+    Protected editorH.i
+    Protected left.i
+    Protected cw.i
+    Protected yBase.i
+    Protected statusTop.i
+    Protected panelH.i
+    Protected pw.i
+    Protected gap.i
+    Protected maxH.i
+
+    If Ide_SplitDragging = 0 Or IsWindow(#WIN_IDE) = 0
+      ProcedureReturn
+    EndIf
+    If ww < 200
+      ww = 200
+    EndIf
+    If wh < 240
+      wh = 240
+    EndIf
+
+    editorH = Ide_LayoutEditorH
+    Ide_Project_ClampWidth(ww)
+    left = Ide_Project_ClientLeft()
+
+    Ide_Project_LayoutPanel(top, findH, editorH)
+
+    If IsGadget(#GAD_SPLIT_V)
+      If Ide_Project_SideColumnActive()
+        HideGadget(#GAD_SPLIT_V, #False)
+        ResizeGadget(#GAD_SPLIT_V, left - #Ide_SplitVW, top + findH, #Ide_SplitVW, editorH)
+        DisableGadget(#GAD_SPLIT_V, #True)
+        Ide_SplitVHover = #False
+        Ide_Ui_PaintSplitVColors(editorH, #False)
+      Else
+        HideGadget(#GAD_SPLIT_V, #True)
+      EndIf
+    EndIf
+
+    cw = ww - left
+    If cw < 200
+      cw = 200
+    EndIf
+    If IsGadget(#GAD_TABS)
+      ResizeGadget(#GAD_TABS, left, top + findH, cw, editorH)
+    EndIf
+
+    yBase = top + findH + editorH + #Ide_SplitH
+    statusTop = wh - #Ide_StatusH
+    panelH = statusTop - #Ide_StatusGap - #Ide_OutputPad - yBase
+    If panelH < 1
+      panelH = 1
+    EndIf
+    gap = #Ide_StatusGap + #Ide_OutputPad + 2
+    maxH = statusTop - gap - yBase
+    If maxH < 1
+      maxH = 1
+    EndIf
+    If panelH > maxH
+      panelH = maxH
+    EndIf
+
+    pw = ww
+    If pw < 200
+      pw = 200
+    EndIf
+    If IsGadget(#GAD_BOTTOM)
+      ResizeGadget(#GAD_BOTTOM, 0, yBase, ww, panelH)
+    EndIf
+    Ide_Ui_ResizeDockInterior(pw, panelH, #True)
+    Ide_EditorW = ww
+    Ide_EditorH = editorH
   EndProcedure
 
   ; <summary>
@@ -925,20 +1856,20 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
             rc\left = 0
             rc\top = 0
             rc\right = w
-            rc\bottom = h - 2
+            rc\bottom = h - 4
           EndIf
         Else
           rc\left = 0
           rc\top = 0
           rc\right = w
-          rc\bottom = h - 2
+          rc\bottom = h - 4
         EndIf
         CloseLibrary(u32)
       Else
         rc\left = 0
         rc\top = 0
         rc\right = w
-        rc\bottom = h - 2
+        rc\bottom = h - 4
       EndIf
       SendMessage_(hwnd, #EM_SETRECT, 0, @rc)
       SendMessage_(hwnd, #WM_SIZE, 0, (h << 16) | (w & $FFFF))
@@ -946,23 +1877,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   EndProcedure
 
   ; <summary>
-  ; Minimum height of the output stack (REPL + error List + output editor).
-  ; </summary>
-  ; <returns>integer</returns>
-  Procedure.i Ide_Ui_MinOutputBucket()
-    Protected need.i = 40
-    need + Ide_Ui_ReplBarH()
-    If Ide_ErrorsVisible
-      need + #Ide_ErrPanelH
-    EndIf
-    If need < #Ide_MinOutH
-      ProcedureReturn #Ide_MinOutH
-    EndIf
-    ProcedureReturn need
-  EndProcedure
-
-  ; <summary>
-  ; Split client height between editor And output; always reserves status bar.
+  ; Client height inside #GAD_BOTTOM tab page (below tab headers).
   ; </summary>
   ; <param name="wh">integer</param>
   Procedure Ide_Ui_ComputeEditorOutHeights(wh.i)
@@ -972,7 +1887,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     Protected ed.i, ou.i
     minEd = #Ide_MinEditorH
     minOut = Ide_Ui_MinOutputBucket()
-    avail = wh - top - findH - #Ide_SplitH - #Ide_StatusH - #Ide_StatusGap - #Ide_OutputPad
+    avail = wh - top - findH - #Ide_SplitH - #Ide_DockBottomReserve
     desired = Ide_OutputHeight
     If avail < 80
       avail = 80
@@ -1027,15 +1942,21 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     Protected findH.i = Ide_Ui_FindBarH()
     Protected outH.i
     Protected editorH.i
-    Protected left.i = Ide_Project_ClientLeft()
+    Protected left.i
     Protected cw.i
     Protected replH.i = Ide_Ui_ReplBarH()
     Protected outEditH.i
     Protected yBase.i, yRepl.i, yOut.i
-    Protected statusTop.i, errH.i
+    Protected statusTop.i, errH.i, panelH.i, bodyH.i, pw.i, yIn.i
 
     If IsWindow(#WIN_IDE) = 0
       ProcedureReturn
+    EndIf
+    If Ide_SplitDragging = 0 And Ide_Project_WidthDragging() = 0
+      Ide_Project_ListSetRedraw(#True)
+      If IsGadget(#GAD_OUTLINE)
+        Ide_Ui_GadgetSetRedraw(#GAD_OUTLINE, #True)
+      EndIf
     EndIf
 
     If ww < 200 : ww = 200 : EndIf
@@ -1044,15 +1965,20 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     Ide_Ui_ComputeEditorOutHeights(wh)
     editorH = Ide_LayoutEditorH
     outH = Ide_LayoutOutH
+    Ide_Project_ClampWidth(ww)
+    left = Ide_Project_ClientLeft()
 
-    If IsGadget(#GAD_TOOL_OPEN) : ResizeGadget(#GAD_TOOL_OPEN, 8, 6, 70, 24) : EndIf
-    If IsGadget(#GAD_TOOL_SAVE) : ResizeGadget(#GAD_TOOL_SAVE, 86, 6, 70, 24) : EndIf
-    If IsGadget(#GAD_TOOL_RUN) : ResizeGadget(#GAD_TOOL_RUN, 164, 6, 70, 24) : EndIf
-    If IsGadget(#GAD_TOOL_STOP) : ResizeGadget(#GAD_TOOL_STOP, 242, 6, 70, 24) : EndIf
-    If IsGadget(#GAD_TOOL_RUN_ENTRY) : ResizeGadget(#GAD_TOOL_RUN_ENTRY, 320, 6, 82, 24) : EndIf
-    If IsGadget(#GAD_TOOL_SYNC) : ResizeGadget(#GAD_TOOL_SYNC, 408, 6, 70, 24) : EndIf
+    ; Full Layout every drag frame was repainting disabled Stop etc.; skip toolbar/find while column or dock height is dragged.
+    If Ide_Project_WidthDragging() = 0 And Ide_SplitDragging = 0
+      If IsGadget(#GAD_TOOL_OPEN) : ResizeGadget(#GAD_TOOL_OPEN, 8, 6, 70, 24) : EndIf
+      If IsGadget(#GAD_TOOL_SAVE) : ResizeGadget(#GAD_TOOL_SAVE, 86, 6, 70, 24) : EndIf
+      If IsGadget(#GAD_TOOL_RUN) : ResizeGadget(#GAD_TOOL_RUN, 164, 6, 70, 24) : EndIf
+      If IsGadget(#GAD_TOOL_STOP) : ResizeGadget(#GAD_TOOL_STOP, 242, 6, 70, 24) : EndIf
+      If IsGadget(#GAD_TOOL_RUN_ENTRY) : ResizeGadget(#GAD_TOOL_RUN_ENTRY, 320, 6, 82, 24) : EndIf
+      If IsGadget(#GAD_TOOL_SYNC) : ResizeGadget(#GAD_TOOL_SYNC, 408, 6, 70, 24) : EndIf
+    EndIf
 
-    If IsGadget(#GAD_FIND_STR)
+    If IsGadget(#GAD_FIND_STR) And Ide_Project_WidthDragging() = 0 And Ide_SplitDragging = 0
       HideGadget(#GAD_FIND_STR, Bool(Ide_FindVisible = 0))
       HideGadget(#GAD_FIND_NEXT, Bool(Ide_FindVisible = 0))
       HideGadget(#GAD_REPLACE_STR, Bool(Ide_FindVisible = 0))
@@ -1071,53 +1997,73 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
       ResizeGadget(#GAD_FIND_INSEL, left + 648, top + 3, 78, 22)
     EndIf
 
-    Ide_Project_LayoutPanel(top, findH, left, editorH)
+    Ide_Project_LayoutPanel(top, findH, editorH)
+    If IsGadget(#GAD_SPLIT_V)
+      If Ide_Project_SideColumnActive() = 0
+        HideGadget(#GAD_SPLIT_V, #True)
+      ElseIf Ide_Project_WidthDragging()
+        HideGadget(#GAD_SPLIT_V, #True)
+        Ide_SplitVHover = #False
+      ElseIf Ide_SplitDragging
+        HideGadget(#GAD_SPLIT_V, #False)
+        ResizeGadget(#GAD_SPLIT_V, left - #Ide_SplitVW, top + findH, #Ide_SplitVW, editorH)
+        DisableGadget(#GAD_SPLIT_V, #True)
+        Ide_SplitVHover = #False
+        Ide_Ui_PaintSplitVColors(editorH, #False)
+        SetGadgetAttribute(#GAD_SPLIT_V, #PB_Canvas_Cursor, #PB_Cursor_LeftRight)
+      Else
+        HideGadget(#GAD_SPLIT_V, #False)
+        ResizeGadget(#GAD_SPLIT_V, left - #Ide_SplitVW, top + findH, #Ide_SplitVW, editorH)
+        Ide_Ui_PaintSplitV(editorH)
+        SetGadgetAttribute(#GAD_SPLIT_V, #PB_Canvas_Cursor, #PB_Cursor_LeftRight)
+      EndIf
+    EndIf
     cw = ww - left
     If cw < 200
       cw = 200
     EndIf
     If IsGadget(#GAD_TABS) : ResizeGadget(#GAD_TABS, left, top + findH, cw, editorH) : EndIf
-    If IsGadget(#GAD_SPLIT) : ResizeGadget(#GAD_SPLIT, 0, top + findH + editorH, ww, #Ide_SplitH) : EndIf
+
+    If Ide_Project_WidthDragging()
+      Ide_EditorW = ww
+      Ide_EditorH = editorH
+      ProcedureReturn
+    EndIf
+
     yBase = top + findH + editorH + #Ide_SplitH
     statusTop = wh - #Ide_StatusH
-    errH = 0
-    If IsGadget(#GAD_REPL_INPUT)
-      HideGadget(#GAD_REPL_INPUT, Bool(replH = 0))
-      HideGadget(#GAD_REPL_RUN, Bool(replH = 0))
-      If replH
-        ResizeGadget(#GAD_REPL_INPUT, 8, yBase + 2, ww - 90, replH - 4)
-        ResizeGadget(#GAD_REPL_RUN, ww - 76, yBase + 2, 68, replH - 4)
+    panelH = statusTop - #Ide_StatusGap - #Ide_OutputPad - yBase
+    If panelH < 1
+      panelH = 1
+    EndIf
+    If IsGadget(#GAD_SPLIT)
+      If Ide_SplitDragging
+        HideGadget(#GAD_SPLIT, #True)
+      Else
+        HideGadget(#GAD_SPLIT, #False)
+        ResizeGadget(#GAD_SPLIT, 0, top + findH + editorH, ww, #Ide_SplitH)
+        Ide_Ui_PaintSplitH(ww)
+        SetGadgetAttribute(#GAD_SPLIT, #PB_Canvas_Cursor, #PB_Cursor_UpDown)
       EndIf
     EndIf
-    yRepl = yBase + replH
-    If IsGadget(#GAD_ERRLIST)
-      HideGadget(#GAD_ERRLIST, Bool(Ide_ErrorsVisible = 0))
-      If Ide_ErrorsVisible
-        errH = #Ide_ErrPanelH
-        If yRepl + errH + 24 > statusTop
-          errH = statusTop - yRepl - 24
-          If errH < 0
-            errH = 0
-          EndIf
-        EndIf
-        If errH > 0
-          ResizeGadget(#GAD_ERRLIST, 0, yRepl, ww, errH)
-          yRepl = yRepl + errH
-        EndIf
-      EndIf
+    pw = ww
+    If pw < 200
+      pw = 200
     EndIf
-    outEditH = statusTop - yRepl - #Ide_StatusGap - #Ide_OutputPad
-    If outEditH < 0
-      outEditH = 0
+    panelH = Ide_Ui_ClampPanelAboveStatus(yBase, ww, panelH, statusTop)
+    If IsGadget(#GAD_BOTTOM)
+      HideGadget(#GAD_BOTTOM, #False)
+      ResizeGadget(#GAD_BOTTOM, 0, yBase, ww, panelH)
     EndIf
-    If IsGadget(#GAD_OUTPUT)
-      ResizeGadget(#GAD_OUTPUT, 0, yRepl, ww, outEditH)
-      Ide_Ui_OutputClipClient()
-    EndIf
-    If IsGadget(#GAD_STATUS)
+    Ide_Ui_ResizeDockInterior(pw, panelH, #False)
+    If IsGadget(#GAD_STATUS) And Ide_SplitDragging = 0
+      HideGadget(#GAD_STATUS, #False)
       ResizeGadget(#GAD_STATUS, 0, statusTop, ww, #Ide_StatusH)
+      Ide_Ui_RaiseGadgetTop(#GAD_STATUS)
     EndIf
-    Ide_Ui_EnsureStatusOnTop()
+    If Ide_SplitDragging = 0
+      Ide_Ui_RefreshStatusBar()
+    EndIf
 
     Ide_EditorW = ww
     Ide_EditorH = editorH
@@ -1134,10 +2080,21 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     ww = WindowWidth(#WIN_IDE)
     wh = Ide_Ui_ClientHeight()
     If ww <> Ide_LastLayoutW Or wh <> Ide_LastLayoutH
-      Ide_LastLayoutW = ww
-      Ide_LastLayoutH = wh
+      If Ide_SplitDragging
+        Ide_SplitDragging = #False
+        If IsGadget(#GAD_SPLIT)
+          HideGadget(#GAD_SPLIT, #False)
+        EndIf
+        Ide_Project_ListSetRedraw(#True)
+        If IsGadget(#GAD_OUTLINE)
+          Ide_Ui_GadgetSetRedraw(#GAD_OUTLINE, #True)
+        EndIf
+      EndIf
+      Ide_Ui_SetMainRedraw(#True)
       Ide_Ui_Layout()
       Ide_Editor_ResizeEditors()
+      Ide_LastLayoutW = ww
+      Ide_LastLayoutH = wh
     EndIf
   EndProcedure
 
@@ -1154,12 +2111,49 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   EndProcedure
 
   ; <summary>
+  ; Mouse is over the editor/bottom dock horizontal split band.
+  ; </summary>
+  ; <returns>integer</returns>
+  Procedure.i Ide_Ui_PointerOnHorizSplit()
+    Protected my.i, sy.i
+    If Ide_Project_WidthDragging()
+      ProcedureReturn #False
+    EndIf
+    my = WindowMouseY(#WIN_IDE)
+    sy = Ide_Ui_SplitterClientY()
+    If my >= sy - 3 And my <= sy + #Ide_SplitH + 3
+      ProcedureReturn #True
+    EndIf
+    ProcedureReturn #False
+  EndProcedure
+
+  ; <summary>
   ; Begin dragging the editor/output split (capture anchor Y).
   ; </summary>
   ; <param name="clientY">Mouse Y in window client coordinates.</param>
   Procedure Ide_Ui_BeginSplitDrag(clientY.i)
-    Ide_SplitDragging = #True
+    Protected gh.i
     Ide_SplitDragAnchorY = clientY
+    Ide_SplitDragAnchorSplitY = Ide_Ui_SplitterClientY()
+    Ide_SplitVHover = #False
+    If IsGadget(#GAD_SPLIT_V) And Ide_Project_SideColumnActive()
+      gh = GadgetHeight(#GAD_SPLIT_V)
+      If gh < 4
+        gh = Ide_LayoutEditorH
+      EndIf
+      DisableGadget(#GAD_SPLIT_V, #True)
+      If gh > 0
+        Ide_Ui_PaintSplitVColors(gh, #False)
+      EndIf
+    EndIf
+    Ide_SplitDragging = #True
+    If IsGadget(#GAD_SPLIT)
+      HideGadget(#GAD_SPLIT, #True)
+    EndIf
+    Ide_SplitDragPrevEdH = Ide_LayoutEditorH
+    Ide_SplitDragPrevPanelH = -1
+    Ide_Project_ListSetRedraw(#False)
+    Ide_Ui_SplitDragTo(clientY)
   EndProcedure
 
   ; <summary>
@@ -1170,7 +2164,21 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
       ProcedureReturn
     EndIf
     Ide_SplitDragging = #False
+    If IsGadget(#GAD_SPLIT)
+      HideGadget(#GAD_SPLIT, #False)
+    EndIf
+    If IsGadget(#GAD_SPLIT_V)
+      DisableGadget(#GAD_SPLIT_V, #False)
+    EndIf
+    Ide_SplitVHover = #False
+    Ide_Project_ListSetRedraw(#True)
     Ide_Editor_SavePrefs()
+    Ide_Ui_Layout()
+    Ide_Editor_ResizeEditors()
+    Ide_Ui_InvalidateEditorAndDock()
+    Ide_SplitDragPrevEdH = 0
+    Ide_SplitDragPrevPanelH = -1
+    Ide_SplitDragAnchorSplitY = 0
   EndProcedure
 
   ; <summary>
@@ -1182,13 +2190,32 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     Protected top.i = #Ide_ToolbarH + Ide_Ui_FindBarH()
     Protected outH.i
     Protected maxOut.i
+    Protected editorH.i
+    Protected yBase.i
+    Protected statusTop.i
+    Protected panelH.i
+    Protected gap.i
+    Protected maxH.i
 
     If Ide_SplitDragging = 0
       ProcedureReturn
     EndIf
 
-    outH = wh - clientY - #Ide_SplitH - #Ide_StatusH - #Ide_StatusGap - #Ide_OutputPad
-    maxOut = wh - top - #Ide_StatusH - #Ide_StatusGap - #Ide_OutputPad - #Ide_SplitH - #Ide_MinEditorH
+    Protected splitY.i = Ide_SplitDragAnchorSplitY + (clientY - Ide_SplitDragAnchorY)
+    Protected minSplitY.i = top + #Ide_MinEditorH
+    Protected maxSplitY.i
+    maxSplitY = wh - #Ide_DockBottomReserve - #Ide_MinOutH - #Ide_SplitH
+    If maxSplitY < minSplitY
+      maxSplitY = minSplitY
+    EndIf
+    If splitY < minSplitY
+      splitY = minSplitY
+    EndIf
+    If splitY > maxSplitY
+      splitY = maxSplitY
+    EndIf
+    outH = wh - splitY - #Ide_SplitH - #Ide_DockBottomReserve
+    maxOut = wh - top - #Ide_DockBottomReserve - #Ide_SplitH - #Ide_MinEditorH
     If maxOut < Ide_Ui_MinOutputBucket()
       maxOut = Ide_Ui_MinOutputBucket()
     EndIf
@@ -1199,8 +2226,131 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
       outH = #Ide_MinOutH
     EndIf
     Ide_OutputHeight = outH
-    Ide_Ui_Layout()
+    Ide_Ui_ComputeEditorOutHeights(wh)
+    editorH = Ide_LayoutEditorH
+    statusTop = wh - #Ide_StatusH
+    yBase = top + editorH + #Ide_SplitH
+    panelH = statusTop - #Ide_StatusGap - #Ide_OutputPad - yBase
+    If panelH < 1
+      panelH = 1
+    EndIf
+    gap = #Ide_StatusGap + #Ide_OutputPad + 2
+    maxH = statusTop - gap - yBase
+    If maxH < 1
+      maxH = 1
+    EndIf
+    If panelH > maxH
+      panelH = maxH
+    EndIf
+    If editorH = Ide_SplitDragPrevEdH And panelH = Ide_SplitDragPrevPanelH
+      ProcedureReturn
+    EndIf
+    Ide_SplitVHover = #False
+    Ide_Ui_LayoutHorizDrag()
     Ide_Editor_ResizeEditors()
+    Ide_Ui_InvalidateHorizSplitStep(Ide_SplitDragPrevEdH, editorH)
+    Ide_SplitDragPrevEdH = editorH
+    Ide_SplitDragPrevPanelH = panelH
+  EndProcedure
+
+  ; <summary>
+  ; Client Y hit zone for the error-list / output split (Console dock).
+  ; </summary>
+  ; <returns>integer</returns>
+  Procedure.i Ide_Ui_PointerOnErrSplit()
+    Protected my.i, gy.i
+    If Ide_ErrorsVisible = 0 Or IsGadget(#GAD_SPLIT_ERR) = 0
+      ProcedureReturn #False
+    EndIf
+    If GadgetWidth(#GAD_SPLIT_ERR) < 2
+      ProcedureReturn #False
+    EndIf
+    my = WindowMouseY(#WIN_IDE)
+    gy = GadgetY(#GAD_SPLIT_ERR, #PB_Gadget_WindowCoordinate)
+    If my >= gy - 2 And my <= gy + #Ide_SplitErrH + 2
+      ProcedureReturn #True
+    EndIf
+    ProcedureReturn #False
+  EndProcedure
+
+  ; <summary>
+  ; Relayout only the Console dock interior (error split drag).
+  ; </summary>
+  ; <param name="dragStep">integer</param>
+  Procedure Ide_Ui_ReflowBottomDock(dragStep.i)
+    Protected pw.i, panelH.i
+    If IsGadget(#GAD_BOTTOM) = 0
+      ProcedureReturn
+    EndIf
+    pw = GadgetWidth(#GAD_BOTTOM)
+    panelH = GadgetHeight(#GAD_BOTTOM)
+    If pw < 40
+      pw = 40
+    EndIf
+    If panelH < 20
+      panelH = 20
+    EndIf
+    Ide_Ui_ResizeDockInterior(pw, panelH, dragStep)
+    If dragStep = 0
+      Ide_Ui_OutputClipClient()
+    EndIf
+  EndProcedure
+
+  ; <summary>
+  ; Begin dragging the error-list / output split (client Y anchor).
+  ; </summary>
+  ; <param name="clientY">integer</param>
+  Procedure Ide_Ui_BeginErrSplitDrag(clientY.i)
+    Ide_ErrSplitAnchorY = clientY
+    Ide_ErrSplitAnchorPanelH = Ide_ErrPanelH
+    Ide_ErrSplitHHover = #False
+    Ide_ErrSplitDragging = #True
+    Ide_Ui_ErrSplitDragTo(clientY)
+  EndProcedure
+
+  ; <summary>
+  ; End error-list height drag and persist vyrnide.ini.
+  ; </summary>
+  Procedure Ide_Ui_EndErrSplitDrag()
+    Protected h.i
+    If Ide_ErrSplitDragging = 0
+      ProcedureReturn
+    EndIf
+    Ide_ErrSplitDragging = #False
+    Ide_ErrSplitHHover = #False
+    h = Ide_ErrPanelH
+    If h < #Ide_MinErrPanelH
+      h = #Ide_MinErrPanelH
+    EndIf
+    If h > #Ide_MaxErrPanelH
+      h = #Ide_MaxErrPanelH
+    EndIf
+    Ide_ErrPanelH = h
+    Ide_Editor_SavePrefs()
+    Ide_Ui_ReflowBottomDock(#False)
+  EndProcedure
+
+  ; <summary>
+  ; Resize error list while dragging its bottom split.
+  ; </summary>
+  ; <param name="clientY">integer</param>
+  Procedure Ide_Ui_ErrSplitDragTo(clientY.i)
+    Protected h.i
+    If Ide_ErrSplitDragging = 0
+      ProcedureReturn
+    EndIf
+    h = Ide_ErrSplitAnchorPanelH + (clientY - Ide_ErrSplitAnchorY)
+    If h < #Ide_MinErrPanelH
+      h = #Ide_MinErrPanelH
+    EndIf
+    If h > #Ide_MaxErrPanelH
+      h = #Ide_MaxErrPanelH
+    EndIf
+    If h = Ide_ErrPanelH
+      ProcedureReturn
+    EndIf
+    Ide_ErrPanelH = h
+    Ide_Ui_ReflowBottomDock(#True)
   EndProcedure
 
   ; <summary>
@@ -1283,18 +2433,16 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
   ; Apply light/dark chrome colors to window, splitter, output, status, and theme menu check.
   ; </summary>
   Procedure Ide_Ui_ApplyChrome()
-    Protected bg.i, fg.i, split.i, outBg.i, outFg.i
+    Protected bg.i, fg.i, outBg.i, outFg.i
     
     If Ide_Theme_Dark
       bg = RGB(32, 32, 32)
       fg = RGB(220, 220, 220)
-      split = RGB(70, 70, 70)
       outBg = RGB(24, 24, 24)
       outFg = RGB(210, 210, 210)
     Else
       bg = RGB(240, 240, 240)
       fg = RGB(30, 30, 30)
-      split = RGB(200, 200, 200)
       outBg = RGB(252, 252, 252)
       outFg = RGB(30, 30, 30)
     EndIf
@@ -1303,13 +2451,27 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
       SetWindowColor(#WIN_IDE, bg)
     EndIf
     
-    If IsGadget(#GAD_SPLIT)
-      SetGadgetColor(#GAD_SPLIT, #PB_Gadget_BackColor, split)
+    If IsGadget(#GAD_SPLIT) And Ide_SplitDragging = 0 And Ide_Project_WidthDragging() = 0
+      Ide_Ui_PaintSplitH(GadgetWidth(#GAD_SPLIT))
+      SetGadgetAttribute(#GAD_SPLIT, #PB_Canvas_Cursor, #PB_Cursor_UpDown)
+    EndIf
+    If IsGadget(#GAD_SPLIT_ERR) And Ide_ErrorsVisible And Ide_ErrSplitDragging = 0
+      Ide_Ui_PaintSplitErr(GadgetWidth(#GAD_SPLIT_ERR))
+      SetGadgetAttribute(#GAD_SPLIT_ERR, #PB_Canvas_Cursor, #PB_Cursor_UpDown)
+    EndIf
+    
+    If IsGadget(#GAD_SPLIT_V) And Ide_Project_SideColumnActive() And Ide_SplitDragging = 0 And Ide_Project_WidthDragging() = 0
+      Ide_Ui_PaintSplitV(GadgetHeight(#GAD_SPLIT_V))
+      SetGadgetAttribute(#GAD_SPLIT_V, #PB_Canvas_Cursor, #PB_Cursor_LeftRight)
     EndIf
     
     If IsGadget(#GAD_OUTPUT)
       SetGadgetColor(#GAD_OUTPUT, #PB_Gadget_BackColor, outBg)
       SetGadgetColor(#GAD_OUTPUT, #PB_Gadget_FrontColor, outFg)
+    EndIf
+
+    If IsGadget(#GAD_BOTTOM) And CountGadgetItems(#GAD_BOTTOM) > 0
+      SetGadgetItemText(#GAD_BOTTOM, 0, Ide_I18n_Pick("Console", "dock.console"))
     EndIf
     
     If IsGadget(#GAD_STATUS)
@@ -1348,6 +2510,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     If OpenWindow(#WIN_IDE, wx, wy, ww, wh, "Vyrn IDE", flags) = 0
       ProcedureReturn #False
     EndIf
+    BindEvent(#PB_Event_SizeWindow, @Ide_Ui_OnSizeWindow())
 
     EnableWindowDrop(#WIN_IDE, #PB_Drop_Files, #PB_Drag_Copy)
 
@@ -1378,10 +2541,6 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     ListIconGadget(#GAD_OUTLINE, 0, #Ide_ToolbarH, 200, 100, Ide_I18n_Pick("Symbol", "col.symbol"), 180, #PB_ListIcon_AlwaysShowSelection)
     AddGadgetColumn(#GAD_OUTLINE, 1, Ide_I18n_Pick("Line", "col.line"), 48)
     HideGadget(#GAD_OUTLINE, #True)
-    ListIconGadget(#GAD_ERRLIST, 0, 0, 10, #Ide_ErrPanelH, Ide_I18n_Pick("Errors", "col.errors"), 600, #PB_ListIcon_AlwaysShowSelection | #PB_ListIcon_GridLines)
-    AddGadgetColumn(#GAD_ERRLIST, 1, Ide_I18n_Pick("Ln", "col.ln"), 40)
-    AddGadgetColumn(#GAD_ERRLIST, 2, Ide_I18n_Pick("Col", "col.col"), 36)
-    HideGadget(#GAD_ERRLIST, #True)
     EnableGadgetDrop(#GAD_PROJECT, #PB_Drop_Files, #PB_Drag_Copy)
     HideGadget(#GAD_FIND_STR, #True)
     HideGadget(#GAD_FIND_NEXT, #True)
@@ -1397,12 +2556,33 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     PanelGadget(#GAD_TABS, 0, #Ide_ToolbarH, 100, 100)
     CloseGadgetList()
 
-    TextGadget(#GAD_SPLIT, 0, 0, 10, #Ide_SplitH, "", #PB_Text_Border | #PB_Text_Center)
+    TextGadget(#GAD_STATUS, 0, 0, 10, #Ide_StatusH, "Ready")
+
+    CanvasGadget(#GAD_SPLIT_V, 0, #Ide_ToolbarH, #Ide_SplitVW, 80)
+    HideGadget(#GAD_SPLIT_V, #True)
+    SetGadgetAttribute(#GAD_SPLIT_V, #PB_Canvas_Cursor, #PB_Cursor_LeftRight)
+    BindGadgetEvent(#GAD_SPLIT_V, @Ide_Ui_SplitVGadgetEvent())
+
+    CanvasGadget(#GAD_SPLIT, 0, 0, 10, #Ide_SplitH)
+    SetGadgetAttribute(#GAD_SPLIT, #PB_Canvas_Cursor, #PB_Cursor_UpDown)
+    BindGadgetEvent(#GAD_SPLIT, @Ide_Ui_SplitHGadgetEvent())
+
+    PanelGadget(#GAD_BOTTOM, 0, 0, 10, 10)
+    OpenGadgetList(#GAD_BOTTOM)
+    AddGadgetItem(#GAD_BOTTOM, -1, Ide_I18n_Pick("Console", "dock.console"))
     StringGadget(#GAD_REPL_INPUT, 8, 0, 200, #Ide_ReplBarH, "")
     ButtonGadget(#GAD_REPL_RUN, 220, 0, 60, #Ide_ReplBarH, "Eval")
+    ListIconGadget(#GAD_ERRLIST, 0, 0, 10, Ide_ErrPanelH, Ide_I18n_Pick("Errors", "col.errors"), 600, #PB_ListIcon_AlwaysShowSelection | #PB_ListIcon_GridLines)
+    AddGadgetColumn(#GAD_ERRLIST, 1, Ide_I18n_Pick("Ln", "col.ln"), 40)
+    AddGadgetColumn(#GAD_ERRLIST, 2, Ide_I18n_Pick("Col", "col.col"), 36)
+    HideGadget(#GAD_ERRLIST, #True)
+    CanvasGadget(#GAD_SPLIT_ERR, 0, 0, 10, #Ide_SplitErrH)
+    HideGadget(#GAD_SPLIT_ERR, #True)
+    SetGadgetAttribute(#GAD_SPLIT_ERR, #PB_Canvas_Cursor, #PB_Cursor_UpDown)
+    BindGadgetEvent(#GAD_SPLIT_ERR, @Ide_Ui_ErrSplitGadgetEvent())
     EditorGadget(#GAD_OUTPUT, 0, 0, 10, 10, #PB_Editor_ReadOnly)
+    CloseGadgetList()
     Ide_Ui_OutputInitUnicode()
-    TextGadget(#GAD_STATUS, 0, 0, 10, #Ide_StatusH, "Ready")
 
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_F5, #MNU_RUN)
     AddKeyboardShortcut(#WIN_IDE, #PB_Shortcut_Shift | #PB_Shortcut_F5, #MNU_STOP)
@@ -1436,7 +2616,7 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
     Ide_Ui_ApplyMenuLabels()
     Ide_Ui_ApplyToolbarLabels()
     Ide_Ui_ApplyChrome()
-    
+
     ProcedureReturn #True
   EndProcedure
 
@@ -1477,7 +2657,6 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
       full + Ide_Ui_RuntimeTag()
     EndIf
     SetGadgetText(#GAD_STATUS, full)
-    Ide_Ui_EnsureStatusOnTop()
   EndProcedure
   
   ; <summary>
@@ -1695,7 +2874,6 @@ CompilerIf Defined(Ide_Ui, #PB_Constant) = #False
         Ide_Nav_ErrorsPush(line)
       EndIf
       Ide_Ui_OutputClipClient()
-      Ide_Ui_EnsureStatusOnTop()
     CompilerElse
       Protected cur.s = GetGadgetText(#GAD_OUTPUT)
       If cur <> "" And Right(cur, 1) <> Chr(10)

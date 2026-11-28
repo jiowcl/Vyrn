@@ -14,6 +14,7 @@
 - **Smart Editing & Navigation**: Custom Vyrn syntax highlighting, live syntax checking, lint hints, symbol outline, code formatting (`vyrn format`), snippets, and lightweight Go-to-Definition[cite: 1, 2].  
 - **Interactive Execution & REPL**: Run scripts (`F5`), test expressions on the fly via the built-in REPL, or compile and execute obfuscated `.vyrnc` bytecode (`F7` / `Ctrl+F5`).  
 - **Integrated Script Execution**: Write, run, and view output seamlessly within a unified panel.  
+- **Project & Workspace Management**: Recursive **Project Panel** for `.vyrn` and `.lua` files with drag-and-drop support (files & project folders), entry script designation (`Ctrl+Shift+F5`), auto-save, and recent files/projects history.  
 - **One-Click Packaging & Extensibility**: Package scripts into standalone executables directly from the **Ship** menu, extend workflows with PowerShell hooks/custom tools, and switch seamlessly between English and Traditional Chinese UI.  
 
 ## Environment  

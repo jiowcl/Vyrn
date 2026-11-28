@@ -70,8 +70,7 @@ EndIf
 
 Ide_Editor_Create()
 Ide_Ui_Layout()
-Ide_LastLayoutW = WindowWidth(#WIN_IDE)
-Ide_LastLayoutH = Ide_Ui_ClientHeight()
+Ide_Ui_CaptureClientSize()
 Ide_Runner_Init()
 
 ; Show DLL load hints in the output pane (e.g. portable copy with only VyrnIDE.exe).
@@ -87,7 +86,6 @@ Ide_Ui_MaybeOutputLegend()
 Ide_Ui_RefreshRuntimeStatus()
 Ide_Ui_Layout()
 Ide_Ui_OutputClipClient()
-Ide_Ui_EnsureStatusOnTop()
 Ide_Editor_UpdateCaretStatus()
 
 Define.i argc = CountProgramParameters()
@@ -135,11 +133,41 @@ Repeat
   Ide_Ui_PollWindowSize()
 
   If Ide_SplitDragging
-    If MouseButton(#PB_MouseButton_Left)
+    If Ide_Ui_LmbDown()
       Ide_Ui_SplitDragTo(WindowMouseY(#WIN_IDE))
     Else
       Ide_Ui_EndSplitDrag()
     EndIf
+  EndIf
+
+  If Ide_ErrSplitDragging
+    If Ide_Ui_LmbDown()
+      Ide_Ui_ErrSplitDragTo(WindowMouseY(#WIN_IDE))
+    Else
+      Ide_Ui_EndErrSplitDrag()
+    EndIf
+  EndIf
+
+  If Ide_ProjSplitDragging
+    If Ide_Ui_LmbDown()
+      Ide_Project_WidthDragTo(WindowMouseX(#WIN_IDE))
+    Else
+      Ide_Project_EndWidthDrag()
+    EndIf
+  ElseIf Ide_SplitDragging = 0 And Ide_ErrSplitDragging = 0 And Ide_Ui_LmbDown()
+    If Ide_Project_PointerOnWidthSplit()
+      Ide_Project_BeginWidthDrag()
+    ElseIf Ide_Ui_PointerOnHorizSplit()
+      Ide_Ui_BeginSplitDrag(WindowMouseY(#WIN_IDE))
+    ElseIf Ide_Ui_PointerOnErrSplit()
+      Ide_Ui_BeginErrSplitDrag(WindowMouseY(#WIN_IDE))
+    EndIf
+  EndIf
+
+  If Ide_Project_WidthDragging() = 0 And Ide_SplitDragging = 0 And Ide_ErrSplitDragging = 0
+    Ide_Ui_UpdateProjSplitHover()
+    Ide_Ui_UpdateHorizSplitHover()
+    Ide_Ui_UpdateErrSplitHover()
   EndIf
 
   Select event
@@ -215,13 +243,12 @@ Repeat
           If EventType() = #PB_EventType_LeftClick
             Ide_Ui_BeginSplitDrag(WindowMouseY(#WIN_IDE))
           EndIf
+        Case #GAD_SPLIT_V
+          ; handled by BindGadgetEvent → Ide_Ui_SplitVGadgetEvent()
       EndSelect
 
     Case #PB_Event_SizeWindow
-      Ide_LastLayoutW = WindowWidth(#WIN_IDE)
-      Ide_LastLayoutH = Ide_Ui_ClientHeight()
-      Ide_Ui_Layout()
-      Ide_Editor_ResizeEditors()
+      Ide_Ui_OnSizeWindow()
 
     Case #PB_Event_CloseWindow
       If Ide_Runner_IsBusy()
@@ -239,6 +266,7 @@ Ide_Runner_Shutdown()
 End
 ; IDE Options = PureBasic 6.41 (Windows - x64)
 ; CursorPosition = 21
+; FirstLine = 3
 ; Folding = -
 ; Optimizer
 ; EnableAsm

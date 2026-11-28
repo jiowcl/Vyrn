@@ -114,7 +114,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
   ProcedureC Ide_Runner_PrintLog(*userdata, *msg)
     Protected line.s
     
-    ; Worker-thread callback: only enqueue  -  never touch UI gadgets here.
+    ; Worker-thread callback: only enqueue; never touch UI gadgets here.
     If *msg = 0
       ProcedureReturn
     EndIf
@@ -1189,7 +1189,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
         If Ide_LastShipPsCmd <> ""
           Ide_Ui_OutputAppend("[info] " + Ide_I18n_Pick("Ship menu or Developer -> Copy last ship command", "out.ship_copy_cmd_hint"))
         EndIf
-        Ide_Ui_SetStatus(Ide_I18n_Fmt1("Ship failed — click status bar | {dir}", "status.ship_fail_click", "{dir}", Ide_JobShipOutDir))
+        Ide_Ui_SetStatus(Ide_I18n_Fmt1("Ship failed  -  click status bar | {dir}", "status.ship_fail_click", "{dir}", Ide_JobShipOutDir))
         Ide_Ui_OutputScrollToLastError()
       EndIf
       Ide_Extensions_OnShipFinish(Ide_JobOk)
@@ -1574,7 +1574,7 @@ CompilerIf Defined(Ide_Runner, #PB_Constant) = #False
     EndIf
     Protected pick.s
     ; Default outDir always follows the active script basename (_ship / _compile).
-    ; Ide_ShipLast* is only for "Open last ship output" / prefs  -  not the requester default.
+    ; Ide_ShipLast* is only for "Open last ship output" / prefs, not the requester default.
     Select mode
       Case 0
         script = "ship_standalone.ps1" : buildExe = #False : label = "Standalone"

@@ -45,6 +45,17 @@ Custom **Automation** entries from `ide/tools.ini` (or copy `tools.ini.example` 
 3. Do not assume the repo root — check `Test-Path $env:VYRN_IDE_ROOT` when you need repo files.
 4. Keep runs short; long jobs should log progress lines.
 
+## Git-0 recipes (optional)
+
+No built-in Git panel yet. Copy and rename:
+
+| File | Purpose |
+|------|---------|
+| `git_status.ps1.example` | `git status -sb` in `VYRN_IDE_ROOT` |
+| `git_log_file.ps1.example` | `git log -3 --` on `VYRN_IDE_FILE` |
+
+Or use **Git-0** slots in `tools.ini.example` (`Git status`, `Git diff` for `{file}`). Requires `git` on PATH.
+
 ## Example
 
 `hello_tool.ps1`:
@@ -55,5 +66,3 @@ Write-Output "[ok] VYRN_IDE_ROOT=$env:VYRN_IDE_ROOT"
 ```
 
 Ship a copy of this folder beside `VyrnIDE.exe` (`pack_ide.ps1` includes `extensions\`).
-
-See also: [Ide.md](../../docs/Ide.md) (custom tools + extension notes).

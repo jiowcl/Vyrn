@@ -425,26 +425,38 @@ CompilerIf Defined(Ide_Editor, #PB_Constant) = #False
     If IsGadget(#GAD_TABS) = 0
       ProcedureReturn
     EndIf
-    
-    innerW = GetGadgetAttribute(#GAD_TABS, #PB_Panel_ItemWidth)
-    innerH = GetGadgetAttribute(#GAD_TABS, #PB_Panel_ItemHeight)
-    
-    If innerW < 40
-      innerW = Ide_EditorW
-    EndIf
-    
-    If innerH < 40
-      innerH = Ide_EditorH - 28
+
+    If Ide_Ui_HorizSplitDragging()
+      innerW = GadgetWidth(#GAD_TABS) - 4
+      innerH = Ide_LayoutEditorH - #Ide_PanelTabH
+      If innerH < 40
+        innerH = Ide_EditorH - #Ide_PanelTabH
+      EndIf
+    Else
+      innerW = GetGadgetAttribute(#GAD_TABS, #PB_Panel_ItemWidth)
+      innerH = GetGadgetAttribute(#GAD_TABS, #PB_Panel_ItemHeight)
+      If innerW < 40
+        innerW = Ide_EditorW
+      EndIf
+      If innerH < 40
+        innerH = Ide_EditorH - #Ide_PanelTabH
+      EndIf
     EndIf
     
     If innerW < 40 : innerW = 40 : EndIf
     If innerH < 40 : innerH = 40 : EndIf
     
+    If Ide_Ui_HorizSplitDragging()
+      OpenGadgetList(#GAD_TABS)
+    EndIf
     For i = 0 To Ide_TabCount - 1
       If IsGadget(Ide_Tabs(i)\gadget)
         ResizeGadget(Ide_Tabs(i)\gadget, 0, 0, innerW, innerH)
       EndIf
     Next
+    If Ide_Ui_HorizSplitDragging()
+      CloseGadgetList()
+    EndIf
   EndProcedure
 
   ; <summary>

@@ -72,6 +72,8 @@ CompilerIf Defined(Ide_Samples, #PB_Constant) = #False
     Ide_Samples_Register("showcase\\json", root + "\showcase\json.vyrn")
     Ide_Samples_Register("showcase\\http", root + "\showcase\http.vyrn")
     Ide_Samples_Register("showcase\\coroutines", root + "\showcase\coroutines.vyrn")
+    Ide_Samples_Register("lib\\ta_demo", root + "\ta_demo.vyrn")
+    Ide_Samples_Register("lib\\backtest_demo", root + "\backtest_demo.vyrn")
     apiDir = root + "\api"
     If ExamineDirectory(0, apiDir, "*.vyrn")
       While NextDirectoryEntry(0)

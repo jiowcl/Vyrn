@@ -25,6 +25,8 @@ CompilerIf Defined(Ide_FirstRun, #PB_Constant) = #False
     EndIf
     s + Ide_I18n_Pick("Language: Tools -> Language (English / Chinese).", "firstrun.lang") + Chr(10)
     s + Ide_I18n_Pick("Shortcuts: F5 Run, F8 syntax, Help -> Keyboard Shortcuts.", "firstrun.keys") + Chr(10)
+    s + Ide_I18n_Pick("Console: View -> Error List; drag the bar between errors and output to resize.", "firstrun.errors") + Chr(10)
+    s + Ide_I18n_Pick("Live check: Tools -> Live syntax check (optional; toggles in Tools menu).", "firstrun.live") + Chr(10)
     s + Ide_I18n_Pick("File assoc (optional): .\\scripts\\register_vyrnide_file_assoc.ps1", "firstrun.assoc") + Chr(10)
     s + Ide_I18n_Pick("Extensions: ide\\extensions\\*.ps1 (see README.md).", "firstrun.ext")
     ProcedureReturn s
