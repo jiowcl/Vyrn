@@ -22,8 +22,8 @@
 
 - Windows 10/11 above (recommend)  
 - PureBasic 6.41/6.5 above (recommend)  
-- CMake 4.4.3 bove (recommend)  
-- Visual Studio Build Tools (recommend) or MinGW  
+- CMake 4.4.3 bove  
+- Visual Studio Build Tools or MinGW  
 
 ## How to Build  
 
