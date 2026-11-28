@@ -21,3 +21,24 @@ Obfuscation, not encryption. The optional XOR layer only hides strings and opcod
 
 Output is deterministic: compiling the same source twice gives identical bytes.  
 Header options (`-- vyrn: N strict`, `@bench`, `@unlimited`, timeout, dialect), compile warnings and struct metadata are stored in the file, so a `.vyrnc` run behaves like the source run (warnings are printed again on run).
+
+## File format  
+
+All integers are little-endian.
+
+| Offset | Size | Field |
+|---|---|---|
+| 0 | 4 | Magic `VYBX` |
+| 4 | 2 | Container version (currently 1) |
+| 6 | 2 | Flags: bit0 = XOR obfuscation; any other bit is rejected |
+| 8 | 4 | XOR seed (0 when not obfuscated) |
+| 12 | 4 | Payload length |
+| 16 | 4 | FNV-1a-32 checksum of the plain (un-XORed) payload |
+| 20 | 4 | Reserved (0) |
+| 24 | n | Payload, XORed with a xorshift32 key stream when bit0 is set |
+
+The payload is a normal `VYBC` program (v2, v3, v4, v5 or v6; see below) followed by a `VXT1` extension: extension
+version, chunk name, script meta bits (bench, unlimited, timing, opcode histogram,
+strict, prefer-vyrn), dialect, timeout, compile warnings and struct metadata
+(including struct field names). libvyrnrt unwraps the container, checks the checksum
+and the opcode subset it supports, and reads the `VXT1` tail it needs.
